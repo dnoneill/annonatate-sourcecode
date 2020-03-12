@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+{% block content %}
+<link rel='stylesheet' type='text/css' href='/assets/build/mirador/css/mirador-combined.css'>
+
+<div id="mirador_container">
+<style>#viewer {width: 100%; height: 660px; position: relative;}</style>
+<div id='viewer'></div>
+<script src='/assets/build/mirador/mirador.min.js'></script>
+<script src='/assets/js/annotationEndpoint.js'></script>
+<script type='text/javascript'>
+var annotations = {{filepaths | tojson}}
+   $(function() {
+      myMiradorInstance = Mirador({
+       id: 'viewer',
+       data: {{manifests | tojson}},
+       windowObjects: [{
+           bottomPanelVisible: 'true',
+           loadedManifest: {{firstmanifest | tojson}}
+       }],
+       annotationEndpoint: { 'name':'Local Annotation Endpoint', 'module': 'LocalAnnotationEndpoint', 'options': {'server': '/', 'allannotations' : annotations}},
+			 sidePanelOptions : {
+           'tocTabAvailable': true,
+           'layersTabAvailable': true,
+           'searchTabAvailable': true
+         }
+     });
+   });
+</script>
+{% endblock %}

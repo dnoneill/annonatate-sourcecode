@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+<link rel="stylesheet" type="text/css" href="https://dnoneill.github.io/jekyll-lunr-js-custom-search/dist/custom-search.css">
+{% block content %}
+<div class="content" style="display: inline-flex;">
+<div style="float: left; width: 20%; ">
+  <div id="facets">
+    {% for tag, count in tags.items() %}
+    <a href="{{url_for('search',tag=tag, q=query) }}">{{tag}} ({{count}})</a><br>
+    {% endfor %}
+  </div>
+</div>
+<div style="float: left; width: 80%; border: 1px solid rgb(204, 204, 204);" class="all_results">
+<ul id="resultslist">
+{% for result in results %}
+<li id="result">
+<div class="thumbnail">
+<iiif-annotation annotationurl="{{result.url}}" styling="image_only:true"></iiif-annotation>
+</div>
+<h2><a href="{{result.url}}">{{result.id}}</a></h2>
+<div class="results_data">
+  <table class="searchResultMetadata">
+    <tbody>
+      <tr>
+        <td class="searchResultLeftColumn">Content:</td>
+        <td class="searchResultRightColumn">{{result.content}}</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+</li>
+{% endfor %}
+</ul>
+</div>
+</div>
+{% endblock %}

@@ -1,0 +1,6 @@
+Flask
+flask
+flask_cors
+requests
+beautifulsoup4
+pyyaml
