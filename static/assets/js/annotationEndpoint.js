@@ -20,24 +20,19 @@
       // NOP
     },
 
-    search: function(options) {
+    search: function(options) { 
     	var _this = this;
       _this.uri = options.uri;
     	_this.annotationsList = [];
-    	var id = options['uri'].split('/');
-      var numbid = id.filter(word => word.match(/[0-9]/gm) && word.length > 2).join("-");
-      id = numbid ? numbid : id.slice(-1)[0];
     	for (var key in this.allannotations){
-    		var listid = id.replace(/_/g, '-').replace(/:/g, "").replace(".json", "").replace(/\./g, "").toLowerCase() + '-list.json';
-        console.log(listid)
-        if (listid === key) {
-    			var resources =this.allannotations[key].resources;
-	    		resources.forEach(function(a) {
-	              a.endpoint = _this;
-	            });
-    			_this.annotationsList = resources;
-    		}
+        if (options['uri'] === key) {
+    	  var resources = this.allannotations[key];
+	      resources.forEach(function(a) {
+	          a.endpoint = _this;
+	       });
+    	  _this.annotationsList = resources;
     	}
+    }
       _this.dfd.resolve(false);
     },
 

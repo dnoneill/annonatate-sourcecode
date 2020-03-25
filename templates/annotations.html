@@ -1,7 +1,10 @@
 {% extends 'base.html' %}
 
 {% block content %}
-{% for anno in annotations %}
-	<iiif-{{format}} annotationlist="{{anno}}"></iiif-{{format}}>
+{% for key, value in annotations.items() %}
+	<script type="application/json" id="{{key}}">
+		{{value | tojson_pretty | safe}}
+	</script>
+	<iiif-{{format}} annotationlist="{{key}}"></iiif-{{format}}>
 {% endfor %}
 {% endblock %}
