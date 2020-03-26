@@ -16,7 +16,11 @@
 <ul class="nav">
   <li><a href="/">Home</a></li>
   <li><a href="/annotations">Annotations</a></li>
-  <li style="float: right;"><a href="">{{session['user_name']}}</a></li>
+  <li><a href="/search">Search Annotations</a></li>
+  <li style="float: right;"><a href="/profile"><img src="{{session['avatar_url']}}" style="height: 2em; padding: 0px 6px 0px;">{{session['user_name']}}</a></li>
+   {% if session['workspaces'] | length > 1 %}
+  	<li style="float: right;"><a href="/workspaces" >{{session['currentworkspace']['full_name']}}</a></li>
+  {% endif %}
 </ul>
 </nav>
 <section class="content">

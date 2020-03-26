@@ -36,7 +36,7 @@ def before_request():
 
 @app.route('/login')
 def login():
-    return github.authorize(scope="repo")
+    return github.authorize(scope="repo,user")
 
 @app.route('/authorize')
 @github.authorized_handler
@@ -47,23 +47,68 @@ def authorized(oauth_token):
         return redirect(next_url)
     
     session['user_token'] = oauth_token
-    userinfo = requests.get('https://api.github.com/user', headers={'Authorization': 'token {}'.format(oauth_token)}).json()
-    session['user_id'] = userinfo['login']
-    session['github_url'] = "https://api.github.com/repos/{}/{}/contents".format(session['user_id'], github_repo)
-    session['origin_url'] = "https://{}.github.io/{}".format(session['user_id'],github_repo)
-    session['user_name'] = userinfo['name'] if userinfo['name'] != None else userinfo['login']
+    
+    populateuserinfo()
+    session['currentworkspace'] = session['workspaces'][list(session['workspaces'].keys())[0]]
+    
+    populateworkspace()
+    
     return redirect(next_url)
 
 @app.route('/')
 def index():
     if 'user_id' in session:
         manifestdata = []
+        session['annotations'] = ''
         arraydata = getContents()
         for manifest in manifests:
             manifestdata.append({'manifestUri': manifest})
         return render_template('index.html', filepaths=arraydata, manifests=manifestdata, firstmanifest=manifests[0])
     else:
         return redirect('/login')
+
+@app.route('/workspaces')
+def workspaces():
+    populateuserinfo()
+    session['annotations'] = ''
+    return render_template('workspaces.html')
+
+@app.route('/changeworkspace', methods=['POST'])
+def changeworkspace():
+    workspace = request.form['workspace']
+    session['currentworkspace'] = session['workspaces'][workspace]
+    populateworkspace()
+    next_url = request.args.get('next') or url_for('index')
+    return redirect(next_url)
+
+@github.access_token_getter
+def token_getter():
+    if 'user_token' in session.keys():
+        return session['user_token']
+
+def populateuserinfo():
+    workspaces = {}
+    userinfo = github.get(githubuserapi)
+    session['user_id'] = userinfo['login']
+    session['avatar_url'] = userinfo['avatar_url']
+    session['user_name'] = userinfo['name'] if userinfo['name'] != None else userinfo['login']
+    
+    repos = github.get('{}/repos?per_page=200'.format(githubuserapi))
+    relevantworkspaces = list(filter(lambda x: x['name'] == github_repo, repos))
+    for workspace in relevantworkspaces:
+        workspaces[workspace['full_name']] = workspace
+    if len(workspaces) == 0:
+        payload = {"name": github_repo, "description": "This is your first repository","private": False, "owner": session['user_id']}
+        response = github.post('https://api.github.com/repos/dnoneill/annotationtemplate/forks')
+        #enablepages = github.post('{}/pages'.format(response['url']), headers={'Authorization': 'token {}'.format(session['user_token']), 'Accept': 'application/vnd.github.switcheroo-preview+json'}, params={"source": {"branch": "master","path": "/"}})
+        workspaces[response['full_name']] = response
+    session['workspaces'] = workspaces
+
+def populateworkspace():
+    session['github_url'] = session['currentworkspace']['contents_url'].replace('/{+path}', '')
+    pagesinfo = github.get('{}/pages'.format(session['currentworkspace']['url']))
+    session['origin_url'] = pagesinfo['html_url']
+    session['github_branch'] = pagesinfo['source']['branch']
 
 @app.route('/search')
 def search():
@@ -85,10 +130,10 @@ def search():
 def querysearch(fieldvalue):
     tags = []
     items = []
-    content = getContents()
-    for key, value in content.items():
-        for resource in value['resources']:
-            results = get_search(resource)
+    fieldvalue = fieldvalue if fieldvalue else ''
+    for item in session['annotations']:
+        if '-list.json' not in item['filename']:
+            results = get_search(item['json'])
             listtags = results['tags']
             results['tags'] = " ".join(results['tags'])
             if fieldvalue in " ".join(list(results.values())):
@@ -123,7 +168,7 @@ def listannotations():
     return render_template('annotations.html', annotations=lists, format=format)
 
 def getannotations():
-    if 'annotations' not in session.keys():
+    if 'annotations' not in session.keys() or session['annotations'] == '':
         response = requests.get('{}'.format(session['origin_url']))
         content = json.loads(response.content.decode('utf-8').replace('&lt;', '<').replace('&gt;', '>'))
         for item in content:
@@ -140,7 +185,8 @@ def create_anno():
     data_object = response['json']
     uniqid = str(uuid.uuid1())
     filename = "{}.json".format(uniqid)
-    data_object['@id'] = "{{site.url}}{{site.baseurl}}/%s"%(filename)
+    data_object['@id'] = "{{site.url}}{{site.baseurl}}/%s/%s"%(filepath.replace("_", ""), filename)
+    data_object['oa:annotatedBy'] = [session['user_name']]
     cleanobject = cleananno(data_object)
     code = writetogithub(filename, cleanobject)
     return jsonify(data_object), code
@@ -150,6 +196,9 @@ def update_anno():
     response = json.loads(request.data)
     data_object = response['json']
     id = cleanid(data_object['@id'])
+    currentcreators = data_object['oa:annotatedBy'] if data_object['oa:annotatedBy'] else []
+    currentcreators.append(session['user_name'])
+    data_object['oa:annotatedBy'] = list(set(currentcreators))
     cleanobject = cleananno(data_object)
     code = writetogithub(id, cleanobject)
     return jsonify(data_object), code
@@ -160,12 +209,11 @@ def delete_anno():
     id = cleanid(response['id'])
     annotatons = getannotations()
     canvas = list(filter(lambda x: id in x['filename'], session['annotations']))[0]['canvas']
-    deletefiles = [id]
     canvases = getContents()
+    response = delete_annos(id)
     if len(canvases[canvas]) == 1:
-        deletefiles.append(listfilename(canvas))
-    delete_annos(deletefiles)
-    return jsonify({"File Removed": True}), 201
+        delete_annos(listfilename(canvas))
+    return jsonify({"File Removed": True}), response
 
 @app.route('/write_annotation/', methods=['POST'])
 def write_annotation():
@@ -185,6 +233,18 @@ def write_annotation():
     writetogithub(filename, json_data)
     return jsonify({"Annotations Written": True}), 201
 
+@app.route('/profile/')
+def getprofiledata():
+    return render_template('profile.html', userinfo={'name':session['user_name']})
+
+@app.route('/updateprofile/', methods=['POST'])
+def updateprofile():
+    next_url = request.args.get('next') or url_for('index')
+    profile_data = request.form.to_dict()
+    response = github.raw_request('patch', githubuserapi, data=json.dumps(profile_data))
+    session['user_name'] = profile_data['name']
+    return redirect(next_url)
+
 def cleananno(data_object):
     field = 'resource' if 'resource' in data_object.keys() else 'body'
     charfield = 'chars' if 'resource' in data_object.keys() else 'value'
@@ -199,15 +259,16 @@ def cleananno(data_object):
 def cleanid(id):
     return id.split('/')[-1].replace('.json', '') + '.json'
 
-def delete_annos(annolist):
-    for anno in annolist:
-        data = createdatadict(anno, 'delete')
-        print(data)
-        if 'sha' in data['data'].keys():
-            payload = {'ref': github_branch}
-            response = requests.delete(data['url'], headers={'Authorization': 'token {}'.format(session['user_token'])}, data=json.dumps(data['data']), params=payload)
-            print(response.content)
-            return response
+def delete_annos(anno):
+    data = createdatadict(anno, 'delete')
+    if 'sha' in data['data'].keys():
+        payload = {'ref': session['github_branch']}
+        response = github.raw_request('delete', data['url'], data=json.dumps(data['data']), params=payload)
+        if response.status_code < 400:
+            session['annotations'] = [x for x in session['annotations'] if x['filename'] != anno]
+        return response.status_code
+    else:
+        return 400
 
 def to_pretty_json(value):
     return json.dumps(value, sort_keys=True,
@@ -217,12 +278,13 @@ app.jinja_env.filters['tojson_pretty'] = to_pretty_json
 
 def github_get_existing(full_url, filename):
     path_sha = {}
-    if 'github_sha' not in session.keys():
-        payload = {'ref': github_branch}
-        existing = requests.get(full_url, headers={'Authorization': 'token {}'.format(session['user_token'])}, params=payload).json()
+    full_url = os.path.dirname(full_url)
+    if 'github_sha' not in session.keys() or filename not in session['github_sha'].keys():
+        payload = {'ref': session['github_branch']}
+        existing = github.raw_request('get',full_url, params=payload).json()
         if type(existing) == list and len(existing) > 0:
             for item in existing:
-                path_sha[item['path']] = item['sha']
+                path_sha[os.path.basename(item['path'])] = item['sha']
         session['github_sha'] = path_sha
     else:
         path_sha = session['github_sha']
@@ -246,15 +308,19 @@ def updatelistdate(singleanno, annolist, created=False):
         annolist['oa:serializedAt'] = singleanno['oa:serializedAt']
     return annolist
 
-def writetogithub(filename, annotation, yaml=False):
+def writetogithub(filename, annotation):
     response = sendgithubrequest(filename, annotation)
-    print(response.content)
     if response.status_code < 400:
         session['github_sha'][filename] = response.json()['content']['sha']
         canvas = annotation['on'][0]['full']
         data = {'canvas':canvas, 'json': annotation, 'filename': filename}
         canvases = list(map(lambda x: x['canvas'], session['annotations']))
-        session['annotations'].append(data)
+        existinganno = list(filter(lambda n: n.get('filename') == filename, session['annotations']))
+        if len(existinganno) > 0:
+            annoindex = session['annotations'].index(existinganno[0])
+            session['annotations'][annoindex] = data
+        else:
+            session['annotations'].append(data)
         if canvas not in canvases:
             createlistpage(canvas)
     return response.status_code
@@ -266,7 +332,7 @@ def sendgithubrequest(filename, annotation):
 
 def createlistpage(canvas):
     filename = listfilename(canvas)
-    text = '---\ncanvas_id: "' + canvas + '"\n---\n{% assign annotations = site.pages | where: "canvas", page.canvas_id | map: "content" %}{"@context": "http://iiif.io/api/presentation/2/context.json","@id": "{{ site.url }}{{ site.baseurl }}{{page.url}}","@type": "sc:AnnotationList","resources": [{{ annotations | join: ","}}] }'
+    text = '---\ncanvas_id: "' + canvas + '"\n---\n{% assign annotations = site.annotations | where: "canvas", page.canvas_id | map: "content" %}{"@context": "http://iiif.io/api/presentation/2/context.json","@id": "{{ site.url }}{{ site.baseurl }}{{page.url}}","@type": "sc:AnnotationList","resources": [{{ annotations | join: ","}}] }'
     sendgithubrequest(filename, text)
 
 def listfilename(canvas):
@@ -282,7 +348,7 @@ def createdatadict(filename, text):
     writeordelete = "write" if text != 'delete' else "delete"
     message = "{} {}".format(writeordelete, filename)
     text = '---\ncanvas: "{}"\n---\n{}'.format(text['on'][0]['full'], json.dumps(text)) if type(text) != str else text
-    data = {"message":message, "content": base64.b64encode(text.encode('utf-8')).decode('utf-8'), "branch": github_branch }
+    data = {"message":message, "content": base64.b64encode(text.encode('utf-8')).decode('utf-8'), "branch": session['github_branch'] }
     if sha != '':
         data['sha'] = sha
     return {'data':data, 'url':full_url}
@@ -293,7 +359,7 @@ def writetofile(filename, annotation, yaml=False):
         outfile.write(anno_text)
 
 def get_search(anno):
-    annodata_data = {'tags': [], 'content': [], 'datecreated':'', 'datemodified': '', 'id': anno['@id'], 'url': url_for('static', filename=anno['@id'])}
+    annodata_data = {'tags': [], 'content': [], 'datecreated':'', 'datemodified': '', 'id': anno['@id']}
     if 'oa:annotatedAt' in anno.keys():
         annodata_data['datecreated'] = encodedecode(anno['oa:annotatedAt'])
     if 'created' in anno.keys():

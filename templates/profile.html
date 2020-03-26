@@ -1,0 +1,13 @@
+{% extends 'base.html' %}
+
+{% block content %}
+	<form action="{{ url_for('updateprofile') }}" method="post">
+	{% for key, value in userinfo.items() %}
+		<div>
+			<label for="{{key}}">{{key}}: </label>
+			<input value="{{value}}" name="{{key}}">
+		</div>
+	{% endfor %}
+		<button type="submit">Update</button>
+	</form>
+{% endblock %}

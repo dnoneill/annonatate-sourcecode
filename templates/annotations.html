@@ -2,9 +2,11 @@
 
 {% block content %}
 {% for key, value in annotations.items() %}
+{% if key != "" %}
 	<script type="application/json" id="{{key}}">
 		{{value | tojson_pretty | safe}}
 	</script>
 	<iiif-{{format}} annotationlist="{{key}}"></iiif-{{format}}>
+{% endif %}
 {% endfor %}
 {% endblock %}

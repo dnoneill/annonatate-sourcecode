@@ -60,14 +60,6 @@
       var updated = new Date().toISOString();
       delete annotation.endpoint;
       annotation['oa:serializedAt'] = updated;
-      var creator = localStorage.getItem('creator');
-      if (creator != ''){
-        if (annotation['oa:annotatedBy']) {
-          annotation['oa:annotatedBy'].indexOf(creator) == -1 ? annotation['oa:annotatedBy'].push(creator) : ''
-        } else {
-          annotation['oa:annotatedBy'] = [creator]
-        }
-      }
       var senddata = {'json': annotation}
       jQuery.ajax({
         url: _this.server + 'update_annotations/',
@@ -90,8 +82,6 @@
       var _this = this;
       var created = new Date().toISOString();
       annotation['oa:annotatedAt'] = created;
-      var creator = localStorage.getItem('creator');
-      creator != '' ? annotation['oa:annotatedBy'] = [creator] : '';
       var senddata = {'json': annotation}
       jQuery.ajax({
         url: this.server + 'create_annotations/',
