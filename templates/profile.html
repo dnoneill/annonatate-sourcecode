@@ -10,4 +10,40 @@
 	{% endfor %}
 		<button type="submit">Update</button>
 	</form>
+	{% if invites | length > 0 %}
+	<div>
+	<h2>Invitations</h2>
+	{% for invite in invites %}
+	<img src="{{invite['inviter']['avatar_url']}}" class="githubicon"><a href="{{invite['inviter']['html_url']}}" target="_blank">{{invite['inviter']['login']}}</a> has invited you to collaborate on
+	<a href="{{invite['repository']['html_url']}}">{{invite['repository']['full_name']}}</a>
+	<form action="{{ url_for('acceptinvite') }}" method="post">
+		<button name="inviteurl" type="submit" value="{{invite['url']}}">Accept</button>
+	</form>
+	{% endfor %}
+	</div>
+	{% endif %}
+	<h2>Collaborators for {{session['currentworkspace']['full_name']}}</h2>
+	{% for collaborator in collaborators %}
+	<div>	
+	<img src="{{collaborator['avatar_url']}}" style="height: 100px">
+	<a href="{{collaborator['html_url']}}" target="_blank">
+	{{collaborator['login']}}</a>
+</div>
+{% endfor %}
+{% if session['isadmin'] %}
+<h2>Invite collaborators</h2>
+<form action="{{ url_for('add_collaborator') }}" method="post">
+	<div><label for="username">GitHub Username:</label>
+		<input name="username"/></div>
+	<div>
+	<input type="radio" id="pull" name="permission" value="pull">
+	  <label for="pull">Read Only</label><br>
+	  <input type="radio" id="push" name="permission" value="push" checked>
+	  <label for="push">Read/Write</label><br>
+	  <input type="radio" id="admin" name="permission" value="admin">
+	  <label for="admin">Admin</label>
+	 </div>
+  <button name="button" type="submit" value="submit">Submit</button>
+</form>
+{% endif %}
 {% endblock %}
