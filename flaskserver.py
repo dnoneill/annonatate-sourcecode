@@ -1,5 +1,5 @@
 from flask import Flask, jsonify, url_for, session
-from flask import request, render_template, redirect
+from flask import request, render_template, redirect, send_file
 from flask_session import Session
 
 from flask_cors import CORS
@@ -15,6 +15,7 @@ import simplejson as json
 import pylibmc
 from flask_github import GitHub
 import re
+import shutil
 
 app = Flask(__name__,
             static_url_path='',
@@ -55,6 +56,13 @@ def authorized(oauth_token):
     
     return redirect(next_url)
 
+@app.route('/download')
+def download():
+    path = os.path.join(app.root_path, 'img')
+    output = os.path.join(app.root_path, 'images')
+    shutil.make_archive(output, 'zip', path)
+    return send_file('images.zip', as_attachment=True)
+
 @app.route('/')
 def index():
     if 'user_id' in session:
@@ -80,6 +88,16 @@ def changeworkspace():
     populateworkspace()
     next_url = request.args.get('next') or url_for('index')
     return redirect(next_url)
+
+@app.route('/add_collaborator', methods=['POST'])
+def add_collaborator():
+    username = request.form['username']
+    permission = request.form['permission']
+    contributorurl = collaburl = session['currentworkspace']['collaborators_url'].split('{')[0] + '/' + username
+    params = {'permission': permission}
+    response = github.raw_request('put', contributorurl, params=params)
+    next_url = request.args.get('next') or url_for('index')
+    return redirect('/contributors')
 
 @github.access_token_getter
 def token_getter():
@@ -109,6 +127,7 @@ def populateworkspace():
     pagesinfo = github.get('{}/pages'.format(session['currentworkspace']['url']))
     session['origin_url'] = pagesinfo['html_url']
     session['github_branch'] = pagesinfo['source']['branch']
+    session['isadmin'] = session['currentworkspace']['permissions']['admin']
 
 @app.route('/search')
 def search():
@@ -178,7 +197,6 @@ def getannotations():
         content = session['annotations']
     return content
 
-annotations = []
 @app.route('/create_annotations/', methods=['POST'])
 def create_anno():
     response = json.loads(request.data)
@@ -235,7 +253,17 @@ def write_annotation():
 
 @app.route('/profile/')
 def getprofiledata():
-    return render_template('profile.html', userinfo={'name':session['user_name']})
+    invites = github.get('{}/repository_invitations'.format(githubuserapi))
+    collaburl = session['currentworkspace']['collaborators_url'].split('{')[0]
+    collaborators = github.get(collaburl)
+    return render_template('profile.html', userinfo={'name':session['user_name']}, invites=invites, collaborators=collaborators)
+
+@app.route('/acceptinvite/', methods=['POST'])
+def acceptinvite():
+    inviteurl = request.form['inviteurl']
+    response = github.raw_request('patch', inviteurl)
+    populateuserinfo()
+    return redirect('/profile'), 200
 
 @app.route('/updateprofile/', methods=['POST'])
 def updateprofile():
@@ -293,21 +321,6 @@ def github_get_existing(full_url, filename):
     else:
         return ''
 
-def updatelistdate(singleanno, annolist, created=False):
-    if created and 'created' in singleanno.keys():
-        annolist['created'] = singleanno['created']
-    elif 'created' in singleanno.keys():
-        annolist['modified'] = singleanno['created']
-    if created and 'oa:annotatedAt' in singleanno.keys():
-        annolist['oa:annotatedAt'] = singleanno['oa:annotatedAt']
-    elif 'oa:annotatedAt' in singleanno.keys():
-        annolist['oa:serializedAt'] = singleanno['oa:annotatedAt']
-    if 'modified' in singleanno.keys():
-        annolist['modified'] = singleanno['modified']
-    if 'oa:serializedAt' in singleanno.keys():
-        annolist['oa:serializedAt'] = singleanno['oa:serializedAt']
-    return annolist
-
 def writetogithub(filename, annotation):
     response = sendgithubrequest(filename, annotation)
     if response.status_code < 400:
@@ -352,11 +365,6 @@ def createdatadict(filename, text):
     if sha != '':
         data['sha'] = sha
     return {'data':data, 'url':full_url}
-
-def writetofile(filename, annotation, yaml=False):
-    anno_text = annotation if yaml else json.dumps(annotation)
-    with open(filename, 'w') as outfile:
-        outfile.write(anno_text)
 
 def get_search(anno):
     annodata_data = {'tags': [], 'content': [], 'datecreated':'', 'datemodified': '', 'id': anno['@id']}
