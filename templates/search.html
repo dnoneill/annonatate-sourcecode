@@ -1,6 +1,9 @@
 {% extends 'base.html' %}
 <link rel="stylesheet" type="text/css" href="https://dnoneill.github.io/jekyll-lunr-js-custom-search/dist/custom-search.css">
 {% block content %}
+<form action="{{ url_for('search') }}" method="get">
+<input name="q">
+</form>
 <div class="content" style="display: inline-flex;">
 <div style="float: left; width: 20%; ">
   <div id="facets">
@@ -20,7 +23,7 @@
 <div class="thumbnail">
 <iiif-annotation annotationurl="{{result.id}}" styling="image_only:true"></iiif-annotation>
 </div>
-<h2><a href="{{result.id}}">{{result.id}}</a></h2>
+<h2><a href="{{result.id}}">{{result.basename}}</a></h2>
 <div class="results_data">
   <table class="searchResultMetadata">
     <tbody>

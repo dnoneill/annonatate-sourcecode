@@ -68,8 +68,10 @@ def index():
     if 'user_id' in session:
         manifestdata = []
         session['annotations'] = ''
+        session['github_sha'] = {}
         arraydata = getContents()
-        for manifest in manifests:
+        allmanifests = manifests + session['manifests']
+        for manifest in allmanifests:
             manifestdata.append({'manifestUri': manifest})
         return render_template('index.html', filepaths=arraydata, manifests=manifestdata, firstmanifest=manifests[0])
     else:
@@ -190,12 +192,14 @@ def getannotations():
     if 'annotations' not in session.keys() or session['annotations'] == '':
         response = requests.get('{}'.format(session['origin_url']))
         content = json.loads(response.content.decode('utf-8').replace('&lt;', '<').replace('&gt;', '>'))
-        for item in content:
+        for item in content['annotations']:
             item['canvas'] = item['json']['on'][0]['full'] if 'on' in item['json'].keys() else ''
-        session['annotations'] = content
+        session['annotations'] = content['annotations']
+        session['manifests'] = content['manifests']
+        annotations = content['annotations']
     else:
-        content = session['annotations']
-    return content
+        annotations = session['annotations']
+    return annotations
 
 @app.route('/create_annotations/', methods=['POST'])
 def create_anno():
@@ -206,8 +210,9 @@ def create_anno():
     data_object['@id'] = "{{site.url}}{{site.baseurl}}/%s/%s"%(filepath.replace("_", ""), filename)
     data_object['oa:annotatedBy'] = [session['user_name']]
     cleanobject = cleananno(data_object)
-    code = writetogithub(filename, cleanobject)
-    return jsonify(data_object), code
+    response = writetogithub(filename, cleanobject)
+    returnvalue = response.content if response.status_code > 399 else data_object
+    return jsonify(returnvalue), response.status_code
 
 @app.route('/update_annotations/', methods=['POST'])
 def update_anno():
@@ -218,8 +223,9 @@ def update_anno():
     currentcreators.append(session['user_name'])
     data_object['oa:annotatedBy'] = list(set(currentcreators))
     cleanobject = cleananno(data_object)
-    code = writetogithub(id, cleanobject)
-    return jsonify(data_object), code
+    response = writetogithub(id, cleanobject)
+    returnvalue = response.content if response.status_code > 399 else data_object
+    return jsonify(returnvalue), response.status_code
 
 @app.route('/delete_annotations/', methods=['DELETE', 'POST'])
 def delete_anno():
@@ -336,11 +342,11 @@ def writetogithub(filename, annotation):
             session['annotations'].append(data)
         if canvas not in canvases:
             createlistpage(canvas)
-    return response.status_code
+    return response
 
 def sendgithubrequest(filename, annotation):
     data = createdatadict(filename, annotation)
-    response = requests.put(data['url'], data=json.dumps(data['data']),  headers={'Authorization': 'token {}'.format(session['user_token'])})
+    response = github.raw_request('put', data['url'], data=json.dumps(data['data']))
     return response
 
 def createlistpage(canvas):
@@ -367,7 +373,7 @@ def createdatadict(filename, text):
     return {'data':data, 'url':full_url}
 
 def get_search(anno):
-    annodata_data = {'tags': [], 'content': [], 'datecreated':'', 'datemodified': '', 'id': anno['@id']}
+    annodata_data = {'tags': [], 'content': [], 'datecreated':'', 'datemodified': '', 'id': anno['@id'].replace('{{site.url}}{{site.baseurl}}/', session['origin_url']), 'basename': os.path.basename(anno['@id'])}
     if 'oa:annotatedAt' in anno.keys():
         annodata_data['datecreated'] = encodedecode(anno['oa:annotatedAt'])
     if 'created' in anno.keys():

@@ -48,9 +48,9 @@
         success: function(data) {
           returnSuccess();
         },
-        error: function() {
-          console.log('error')
-          returnError();
+        error: function($xhr,textStatus,errorThrown) {
+          alert('Problem deleting annotation')
+          console.log($xhr.responseText)
         }
       });
     },
@@ -71,8 +71,9 @@
           data.endpoint = _this;
           returnSuccess(data);
         },
-        error: function() {
-          returnError();
+        error: function($xhr,textStatus,errorThrown) {
+          alert('Problem updating annotation')
+          console.log($xhr.responseText)
         }
       });
       annotation.endpoint = this;
@@ -93,8 +94,9 @@
           data.endpoint = _this;
           returnSuccess(data);
         },
-        error: function() {
-          returnError();
+        error: function($xhr,textStatus,errorThrown) {
+          alert('Problem creating annotation')
+          console.log($xhr.responseText)
         }
       });
     },
