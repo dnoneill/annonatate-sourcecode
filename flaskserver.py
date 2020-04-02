@@ -72,46 +72,65 @@ def upload():
 
 @app.route('/createimage', methods=['POST', 'GET'])
 def createimage():
-    if 'file' not in request.files:
+    iiifimage = request.form['IIIF']
+    if 'file' not in request.files and iiifimage == '':
         flash('No file part')
     file = request.files['file']
-    if file.filename == '':
+    if file.filename == '' and iiifimage == '':
         flash('No selected file')
-    if file and allowed_file(file.filename):
-        filename = secure_filename(file.filename)
-        tmpfilepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-        file.save(tmpfilepath)
-        iiiffolder = os.path.splitext(filename)[0]
-        prefix = "{{site.url}}{{site.baseurl}}/images"
-        stream = os.popen("iiif_static.py {} -p {} -d {}".format(tmpfilepath, prefix, app.config['UPLOAD_FOLDER']))
-        stream.read()
-        iiifpath = os.path.join(app.config['UPLOAD_FOLDER'], iiiffolder)
-        infocontents = open(os.path.join(iiifpath, 'info.json')).read()
-        createjekyllfile(infocontents,'info.json', iiifpath)
-        manifest = createmanifest(filename, tmpfilepath,iiiffolder, request.form)
+    if file and allowed_file(file.filename) or iiifimage != '':
+        if iiifimage:
+            print(iiifimage)
+            imgurl, iiiffolder = iiifimage.rstrip('/').rsplit('/', 1)
+            imgurl += '/'
+            manifestpath = "manifests/{}".format(iiiffolder)
+            url = iiifimage
+            tmpfilepath = False
+        else:
+            filename = secure_filename(file.filename)
+            tmpfilepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            file.save(tmpfilepath)
+            iiiffolder = os.path.splitext(filename)[0]
+            manifestpath = "images/{}".format(iiiffolder)
+            prefix = "{{site.url}}{{site.baseurl}}/images"
+            stream = os.popen("iiif_static.py {} -p {} -d {}".format(tmpfilepath, prefix, app.config['UPLOAD_FOLDER']))
+            stream.read()
+            iiifpath = os.path.join(app.config['UPLOAD_FOLDER'], iiiffolder)
+            infocontents = open(os.path.join(iiifpath, 'info.json')).read()
+            imgurl = "https://%s/"%(prefix)
+            url = "{}{}".format(imgurl, iiiffolder)
+            createjekyllfile(infocontents,'info.json', iiifpath)
+        manifesturl = "{}{}/manifest.json".format(session['origin_url'], manifestpath)
+        manifest = createmanifest(tmpfilepath, imgurl, url, iiiffolder, request.form, manifesturl)
         manifest = manifest.toString(compact=False).replace('canvas/info.json', 'info.json').replace('https://{{site.url}}', '{{site.url}}')
-        createjekyllfile(manifest, 'manifest.json', iiifpath)
-        os.remove(tmpfilepath)
-        output = os.path.join(app.config['UPLOAD_FOLDER'], iiiffolder)
-        shutil.make_archive(output, 'zip', iiifpath)
-        shutil.rmtree(iiifpath)
-        return render_template('uploadsuccess.html', output="{}.zip".format(iiiffolder))
+        if iiifimage:
+            contents = "---\n---\n{}".format(manifest)
+            response = sendgithubrequest("manifest.json", contents, manifestpath).json()
+            if 'content' in response.keys():
+                output = 'manifest.json successfully written to {}{}'.format(session['origin_url'], response['content']['path'])
+            else:
+                print(response)
+                output = 'Something went wrong writing to GitHub, please try again'
+        else:
+            createjekyllfile(manifest, 'manifest.json', iiifpath)
+            os.remove(tmpfilepath)
+            output = os.path.join(app.config['UPLOAD_FOLDER'], iiiffolder)
+            shutil.make_archive(output, 'zip', iiifpath)
+            shutil.rmtree(iiifpath)
+            output = "{}.zip".format(iiiffolder)
+        return render_template('uploadsuccess.html', output=output)
 
 def createjekyllfile(contents, filename, iiifpath):
     jekyllstring = "---\n---\n{}".format(contents)
     with open(os.path.join(iiifpath, filename), 'w') as file:
         file.write(jekyllstring)
 
-def createmanifest(filename, tmpfilepath,iiiffolder, formdata):
+def createmanifest(tmpfilepath, imgurl, url, iiiffolder, formdata, manifesturl):
     fac = ManifestFactory()
-    outputiiif = os.path.join(app.config['UPLOAD_FOLDER'], iiiffolder)
-    imgurl = "https://{{site.url}}{{site.baseurl}}/images/"
-    url = "{}{}".format(imgurl, iiiffolder)
     fac.set_base_prezi_uri(url)
-    fac.set_base_prezi_dir(outputiiif)
     fac.set_base_image_uri(imgurl)
     fac.set_iiif_image_info(2.0, 2)
-    manifest = fac.manifest(ident='manifest', label=formdata['label'])
+    manifest = fac.manifest(ident=manifesturl, label=formdata['label'])
     manifest.viewingDirection = formdata['direction']
     manifest.description = formdata['description']
     manifest.set_metadata({"rights": formdata['rights']})
@@ -119,7 +138,18 @@ def createmanifest(filename, tmpfilepath,iiiffolder, formdata):
     cvs = seq.canvas(ident='info', label=formdata['label'])
     anno = cvs.annotation()
     img = anno.image(iiiffolder, iiif=True)
-    img.set_hw_from_file(tmpfilepath)
+    if tmpfilepath:
+        img.set_hw_from_file(tmpfilepath)
+    else:
+        try:
+            img.set_hw_from_iiif()
+        except:
+            print(url)
+            print('expect find')
+            response = requests.get("{}{}/info.json".format(imgurl, iiiffolder))
+            content = response.json()
+            img.height = content['height']
+            img.width = content['width']
     cvs.height = img.height
     cvs.width = img.width
     return manifest
@@ -392,25 +422,11 @@ def to_pretty_json(value):
 
 app.jinja_env.filters['tojson_pretty'] = to_pretty_json
 
-def github_get_existing(full_url, filename):
-    path_sha = {}
-    full_url = os.path.dirname(full_url)
-    duration = 61
-    if 'githubtime' in session.keys():
-        now = datetime.now()
-        duration = (now - session['githubtime']).total_seconds()
-    if 'github_sha' not in session.keys() or filename not in session['github_sha'].keys() or duration > 60:
-        payload = {'ref': session['github_branch']}
-        existing = github.raw_request('get',full_url, params=payload).json()
-        if type(existing) == list and len(existing) > 0:
-            for item in existing:
-                path_sha[os.path.basename(item['path'])] = item['sha']
-        session['github_sha'] = path_sha
-        session['githubtime'] = datetime.now()
-    else:
-        path_sha = session['github_sha']
-    if filename in path_sha.keys():
-        return path_sha[filename]
+def github_get_existing(full_url):
+    payload = {'ref': session['github_branch']}
+    existing = github.raw_request('get',full_url, params=payload).json()
+    if 'sha' in existing:
+        return existing['sha']
     else:
         return ''
 
@@ -431,8 +447,8 @@ def writetogithub(filename, annotation):
             createlistpage(canvas)
     return response
 
-def sendgithubrequest(filename, annotation):
-    data = createdatadict(filename, annotation)
+def sendgithubrequest(filename, annotation, path=filepath):
+    data = createdatadict(filename, annotation, path)
     response = github.raw_request('put', data['url'], data=json.dumps(data['data']))
     return response
 
@@ -448,9 +464,9 @@ def listfilename(canvas):
     filename = "-".join(withnumbs) if len(withnumbs) > 0 else canvaslist[-1]
     return filename + '-list.json'
 
-def createdatadict(filename, text):
-    full_url = "{}/{}/{}".format(session['github_url'], filepath, filename)
-    sha = github_get_existing(full_url, filename)
+def createdatadict(filename, text, path=filepath):
+    full_url = "{}/{}/{}".format(session['github_url'], path, filename)
+    sha = github_get_existing(full_url)
     writeordelete = "write" if text != 'delete' else "delete"
     message = "{} {}".format(writeordelete, filename)
     text = '---\ncanvas: "{}"\n---\n{}'.format(text['on'][0]['full'], json.dumps(text)) if type(text) != str else text

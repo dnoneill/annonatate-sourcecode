@@ -1,6 +1,7 @@
 {% extends 'base.html' %}
 
 {% block content %}
+	{% if '.zip' in output %}
 	<b>Image creation a success!</b>
 	Please follow the instructions below to add image to site
 	<ol>
@@ -15,4 +16,8 @@
 		<p><b>Note: you might want to create a folder to hold all of you custom images. To do this put the downloaded image into a folder. Then upload that folder to the GitHub repository </b></p></li>
 	<li>Go to <a href="{{ url_for('index') }}">homepage</a>. The new image should show in the list of images in the viewer.
 	</ol>
+	{% else %}
+		<b>{{output}}</b>
+	{% endif %}
+
 {% endblock %}

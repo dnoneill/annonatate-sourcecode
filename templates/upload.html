@@ -1,14 +1,24 @@
 {% extends 'base.html' %}
 
 {% block content %}
+	<p>You can either upload an image from your computer or use an existing IIIF image. <b>Only change one of these fields</b>. If you are doing the existing IIIF image make sure to upload the image without the info.json path. i.e. https://libimages.princeton.edu/loris/pudl0076/map_pownall/00000001.jp2</p>
+	<p>
+	<b style="font-size: 1.5em">Note: If you are uploading an image this process can take a while. Do not leave this page until the success page appears</b></p>
    	<form action="{{ url_for('createimage') }}" enctype=multipart/form-data method="post">
-			<input type=file name=file>
-			OR
-			<label for="IIIF">Existing IIIF image: </label>
-			<input name="IIIF">
+   			<div>
+   			<div>
+	   			<label for="IIIF">Upload file from computer: </label>
+				<input type=file name=file>
+			</div>
+			<b>OR</b>
 			<div>
-				<label for="label">Title of Image: </label>
-				<input value="" name="label">
+				<label for="IIIF">Existing IIIF image (without /info.json) </label>
+				<input name="IIIF">
+			</div>
+			</div>
+			<div>
+				<label for="label">Title of Image (Required): </label>
+				<input value="" name="label" required>
 			</div>
 			<div>
 				<label for="description">Description: </label>
