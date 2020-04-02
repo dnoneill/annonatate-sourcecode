@@ -1,6 +1,7 @@
 from flask import Flask, jsonify, url_for, session
-from flask import request, render_template, redirect, send_file
+from flask import request, render_template, redirect, send_file, flash
 from flask_session import Session
+from werkzeug.utils import secure_filename
 
 from flask_cors import CORS
 import json, os, glob, requests
@@ -16,6 +17,9 @@ import pylibmc
 from flask_github import GitHub
 import re
 import shutil
+from datetime import datetime
+from iiif_prezi.factory import ManifestFactory
+import os
 
 app = Flask(__name__,
             static_url_path='',
@@ -27,6 +31,8 @@ app.config.update(
                   )
 Session(app)
 github = GitHub(app)
+ALLOWED_EXTENSIONS = set(['png', 'jpg', 'jpeg'])
+app.config['UPLOAD_FOLDER'] = uploadfolder
 
 
 @app.before_request
@@ -56,19 +62,77 @@ def authorized(oauth_token):
     
     return redirect(next_url)
 
-@app.route('/download')
+def allowed_file(filename):
+    return '.' in filename and \
+        filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+@app.route('/upload')
+def upload():
+    return render_template('upload.html')
+
+@app.route('/createimage', methods=['POST', 'GET'])
+def createimage():
+    if 'file' not in request.files:
+        flash('No file part')
+    file = request.files['file']
+    if file.filename == '':
+        flash('No selected file')
+    if file and allowed_file(file.filename):
+        filename = secure_filename(file.filename)
+        tmpfilepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        file.save(tmpfilepath)
+        iiiffolder = os.path.splitext(filename)[0]
+        prefix = "{{site.url}}{{site.baseurl}}/images"
+        stream = os.popen("iiif_static.py {} -p {} -d {}".format(tmpfilepath, prefix, app.config['UPLOAD_FOLDER']))
+        stream.read()
+        iiifpath = os.path.join(app.config['UPLOAD_FOLDER'], iiiffolder)
+        infocontents = open(os.path.join(iiifpath, 'info.json')).read()
+        createjekyllfile(infocontents,'info.json', iiifpath)
+        manifest = createmanifest(filename, tmpfilepath,iiiffolder, request.form)
+        manifest = manifest.toString(compact=False).replace('canvas/info.json', 'info.json').replace('https://{{site.url}}', '{{site.url}}')
+        createjekyllfile(manifest, 'manifest.json', iiifpath)
+        os.remove(tmpfilepath)
+        output = os.path.join(app.config['UPLOAD_FOLDER'], iiiffolder)
+        shutil.make_archive(output, 'zip', iiifpath)
+        shutil.rmtree(iiifpath)
+        return render_template('uploadsuccess.html', output="{}.zip".format(iiiffolder))
+
+def createjekyllfile(contents, filename, iiifpath):
+    jekyllstring = "---\n---\n{}".format(contents)
+    with open(os.path.join(iiifpath, filename), 'w') as file:
+        file.write(jekyllstring)
+
+def createmanifest(filename, tmpfilepath,iiiffolder, formdata):
+    fac = ManifestFactory()
+    outputiiif = os.path.join(app.config['UPLOAD_FOLDER'], iiiffolder)
+    imgurl = "https://{{site.url}}{{site.baseurl}}/images/"
+    url = "{}{}".format(imgurl, iiiffolder)
+    fac.set_base_prezi_uri(url)
+    fac.set_base_prezi_dir(outputiiif)
+    fac.set_base_image_uri(imgurl)
+    fac.set_iiif_image_info(2.0, 2)
+    manifest = fac.manifest(ident='manifest', label=formdata['label'])
+    manifest.viewingDirection = formdata['direction']
+    manifest.description = formdata['description']
+    manifest.set_metadata({"rights": formdata['rights']})
+    seq = manifest.sequence()
+    cvs = seq.canvas(ident='info', label=formdata['label'])
+    anno = cvs.annotation()
+    img = anno.image(iiiffolder, iiif=True)
+    img.set_hw_from_file(tmpfilepath)
+    cvs.height = img.height
+    cvs.width = img.width
+    return manifest
+
+@app.route('/download', methods=['POST'])
 def download():
-    path = os.path.join(app.root_path, 'img')
-    output = os.path.join(app.root_path, 'images')
-    shutil.make_archive(output, 'zip', path)
-    return send_file('images.zip', as_attachment=True)
+    path = os.path.join(app.config['UPLOAD_FOLDER'], request.form['path'])
+    return send_file(path, as_attachment=True)
 
 @app.route('/')
 def index():
     if 'user_id' in session:
         manifestdata = []
-        session['annotations'] = ''
-        session['github_sha'] = {}
         arraydata = getContents()
         allmanifests = manifests + session['manifests']
         for manifest in allmanifests:
@@ -138,39 +202,51 @@ def search():
     tags = request.args.get('tag')
     if tags:
         allcontent = searchfields(allcontent['items'], 'tags', tags)
+    creator = request.args.get('creator')
+    if creator:
+        allcontent = searchfields(allcontent['items'], 'creator', creator)
     items = allcontent['items']
-    tags = allcontent['tags']
     if request.args.get('format') == 'json':
         return jsonify(items), 200
     else:
-        uniqtags = sorted(list(set(tags)))
-        tagcount = {x:tags.count(x) for x in uniqtags}
-        sortedtagcount = dict(sorted(tagcount.items(), key=(lambda x: (-x[1], x[0]))))
-        return render_template('search.html', results=items, tags=sortedtagcount, query=query)
+        facets = {}
+        for key, value in allcontent['facets'].items():
+            value = [x for x in value if x is not None]
+            uniqtags = sorted(list(set(value)))
+            tagcount = {x:value.count(x) for x in uniqtags}
+            sortedtagcount = dict(sorted(tagcount.items(), key=(lambda x: (-x[1], x[0]))))
+            facets[key] = sortedtagcount
+        annolength = len(list(filter(lambda x: '-list.json' not in x['filename'], session['annotations'])))
+        return render_template('search.html', results=items, facets=facets, query=query, annolength=annolength)
 
 def querysearch(fieldvalue):
-    tags = []
+    facets = {}
     items = []
     fieldvalue = fieldvalue if fieldvalue else ''
     for item in session['annotations']:
         if '-list.json' not in item['filename']:
             results = get_search(item['json'])
-            listtags = results['tags']
-            results['tags'] = " ".join(results['tags'])
-            if fieldvalue in " ".join(list(results.values())):
+            if fieldvalue in " ".join(list(results['searchfields'].values())):
                 items.append(results)
-                results['tags'] = listtags
-                tags.extend(listtags)
-    return {'items': items, 'tags': tags}
+                facets = mergeDict(facets, results['facets'])
+    return {'items': items, 'facets': facets}
 
 def searchfields(content, field, fieldvalue):
-    tags = []
+    facets = {}
     items = []
     for anno in content:
-        if fieldvalue in anno[field]:
+        if fieldvalue in anno['facets'][field]:
             items.append(anno)
-            tags.extend(anno['tags'])
-    return {'items': items, 'tags': tags}
+            facets = mergeDict(facets, anno['facets'])
+    return {'items': items, 'facets': facets}
+
+
+def mergeDict(dict1, dict2):
+    dict3 = {**dict1, **dict2}
+    for key, value in dict3.items():
+        if key in dict1 and key in dict2:
+            dict3[key] = value + dict1[key]
+    return dict3
 
 def getContents():
     arraydata = {}
@@ -189,13 +265,19 @@ def listannotations():
     return render_template('annotations.html', annotations=lists, format=format)
 
 def getannotations():
-    if 'annotations' not in session.keys() or session['annotations'] == '':
+    duration = 61
+    if 'annotime' in session.keys():
+        now = datetime.now()
+        duration = (now - session['annotime']).total_seconds()
+    if 'annotations' not in session.keys() or session['annotations'] == '' or  duration > 60:
         response = requests.get('{}'.format(session['origin_url']))
         content = json.loads(response.content.decode('utf-8').replace('&lt;', '<').replace('&gt;', '>'))
         for item in content['annotations']:
             item['canvas'] = item['json']['on'][0]['full'] if 'on' in item['json'].keys() else ''
         session['annotations'] = content['annotations']
+        
         session['manifests'] = content['manifests']
+        session['annotime'] = datetime.now()
         annotations = content['annotations']
     else:
         annotations = session['annotations']
@@ -313,13 +395,18 @@ app.jinja_env.filters['tojson_pretty'] = to_pretty_json
 def github_get_existing(full_url, filename):
     path_sha = {}
     full_url = os.path.dirname(full_url)
-    if 'github_sha' not in session.keys() or filename not in session['github_sha'].keys():
+    duration = 61
+    if 'githubtime' in session.keys():
+        now = datetime.now()
+        duration = (now - session['githubtime']).total_seconds()
+    if 'github_sha' not in session.keys() or filename not in session['github_sha'].keys() or duration > 60:
         payload = {'ref': session['github_branch']}
         existing = github.raw_request('get',full_url, params=payload).json()
         if type(existing) == list and len(existing) > 0:
             for item in existing:
                 path_sha[os.path.basename(item['path'])] = item['sha']
         session['github_sha'] = path_sha
+        session['githubtime'] = datetime.now()
     else:
         path_sha = session['github_sha']
     if filename in path_sha.keys():
@@ -373,7 +460,7 @@ def createdatadict(filename, text):
     return {'data':data, 'url':full_url}
 
 def get_search(anno):
-    annodata_data = {'tags': [], 'content': [], 'datecreated':'', 'datemodified': '', 'id': anno['@id'].replace('{{site.url}}{{site.baseurl}}/', session['origin_url']), 'basename': os.path.basename(anno['@id'])}
+    annodata_data = {'searchfields': {'content': []}, 'facets': {'tags': [], 'creator': []}, 'datecreated':'', 'datemodified': '', 'id': anno['@id'].replace('{{site.url}}{{site.baseurl}}/', session['origin_url']), 'basename': os.path.basename(anno['@id'])}
     if 'oa:annotatedAt' in anno.keys():
         annodata_data['datecreated'] = encodedecode(anno['oa:annotatedAt'])
     if 'created' in anno.keys():
@@ -382,25 +469,28 @@ def get_search(anno):
         annodata_data['datemodified'] = encodedecode(anno['oa:serializedAt'])
     if 'modified' in anno.keys():
         annodata_data['datemodified'] = encodedecode(anno['modified'])
+    if anno['oa:annotatedBy']:
+        annodata_data['facets']['creator'] = anno['oa:annotatedBy']
     textdata = anno['resource'] if 'resource' in anno.keys() else anno['body']
     textdata = textdata if type(textdata) == list else [textdata]
     for resource in textdata:
         chars = BeautifulSoup(resource['chars'], 'html.parser').get_text() if 'chars' in resource.keys() else ''
         chars = encodedecode(chars)
         if chars and 'tag' in resource['@type'].lower():
-            annodata_data['tags'].append(chars)
+            annodata_data['facets']['tags'].append(chars)
         elif 'purpose' in resource.keys() and 'tag' in resource['purpose']:
             tags_data = chars if chars else resource['value']
-            annodata_data['tags'].append(encodedecode(tags_data))
+            annodata_data['facets']['tags'].append(encodedecode(tags_data))
         elif chars:
-            annodata_data['content'].append(chars)
+            annodata_data['searchfields']['content'].append(chars)
         elif 'items' in resource.keys():
             field = 'value' if 'value' in resource['items'][0].keys() else 'chars'
             fieldvalues = " ".join([encodedecode(item[field]) for item in resource['items']])
-            annodata_data['content'].append(fieldvalues)
+            annodata_data['searchfields']['content'].append(fieldvalues)
         elif 'value' in resource:
-            annodata_data['content'].append(encodedecode(resource['value']))
-    annodata_data['content'] = " ".join(annodata_data['content'])
+            annodata_data['searchfields']['content'].append(encodedecode(resource['value']))
+    annodata_data['searchfields']['content'] = " ".join(annodata_data['searchfields']['content'])
+    annodata_data['searchfields']['tags'] = " ".join(annodata_data['facets']['tags'])
     return annodata_data
 
 def encodedecode(chars):

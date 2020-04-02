@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+
+{% block content %}
+   	<form action="{{ url_for('createimage') }}" enctype=multipart/form-data method="post">
+			<input type=file name=file>
+			OR
+			<label for="IIIF">Existing IIIF image: </label>
+			<input name="IIIF">
+			<div>
+				<label for="label">Title of Image: </label>
+				<input value="" name="label">
+			</div>
+			<div>
+				<label for="description">Description: </label>
+				<input value="" name="description">
+			</div>
+			<div>
+				<label for="rights">Rights: </label>
+				<input value="" name="rights">
+			</div>
+			<div>
+				<label for="rights">Viewing Direction: </label>
+				<select id="direction" name="direction">
+				  <option value="left-to-right" selected>left-to-right</option>
+				  <option value="right-to-left">right-to-left</option>
+				</select>
+			</div>
+		</div>
+		<button type="submit">Create IIIF image</button>
+	</form>
+{% endblock %}

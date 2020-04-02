@@ -2,21 +2,40 @@
 <link rel="stylesheet" type="text/css" href="https://dnoneill.github.io/jekyll-lunr-js-custom-search/dist/custom-search.css">
 {% block content %}
 <form action="{{ url_for('search') }}" method="get">
-<input name="q">
+<input name="q" value="{{request.args['q']}}">
+<input type="hidden" name="tag" value="{{request.args['tag']}}"> 
+<input type="hidden" name="creator" value="{{request.args['creator']}}"> 
+
 </form>
 <div class="content" style="display: inline-flex;">
 <div style="float: left; width: 20%; ">
   <div id="facets">
-    {% if tags | length > 0 %}
-    {% for tag, count in tags.items() %}
-    <a href="{{url_for('search',tag=tag, q=query) }}">{{tag}} ({{count}})</a><br>
-    {% endfor %}
+    {% if facets['tags'] | length > 0 %}
+    <h4>Tags</h4>
+    {% for tag, count in facets['tags'].items() %}   
+    {% if request.args['tag'] == tag %}
+    <a href="{{url_for('search',tag='', q=request.args['q'], creator=request.args['creator']) }}">
     {% else %}
-      No tags
+    <a href="{{url_for('search',tag=tag, creator=request.args['creator'], q=request.args['q']) }}">
+    {% endif %}{{tag}} ({{count}}){% if request.args['tag'] == tag %} <i class="far fa-times-circle"></i>{% endif %}</a><br>
+    {% endfor %}
+    {% endif %}
+    {% if facets['creator'] | length > 0 %}
+    <h4>Creators</h4>
+    {% for creator, count in facets['creator'].items() %}
+    {% if request.args['creator'] == creator %}
+    <a href="{{url_for('search',creator='', q=request.args['q'], tag=request.args['tag']) }}">
+    {% else %}
+    <a href="{{url_for('search',creator=creator, tag=request.args['tag'], q=request.args['q']) }}">
+    {% endif %}{{creator}} ({{count}}){% if request.args['creator'] == creator %} <i class="far fa-times-circle"></i>{% endif %}</a><br>
+    {% endfor %}
     {% endif %}
   </div>
 </div>
 <div style="float: left; width: 80%; border: 1px solid rgb(204, 204, 204);" class="all_results">
+<div style="width: 100%; text-align: center; display: inline-block; border-bottom: 1px solid rgb(204, 204, 204);">
+Showing {{results | length}} annotations out of {{annolength}} annotations
+</div>
 <ul id="resultslist">
 {% for result in results %}
 <li id="result">
@@ -29,7 +48,7 @@
     <tbody>
       <tr>
         <td class="searchResultLeftColumn">Content:</td>
-        <td class="searchResultRightColumn">{{result.content}}</td>
+        <td class="searchResultRightColumn">{{result.searchfields.content}}</td>
       </tr>
     </tbody>
   </table>
