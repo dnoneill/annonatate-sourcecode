@@ -1,0 +1,8 @@
+{% extends 'base.html' %}
+
+{% block content %}
+{% for view in session['customviews'] %}
+<a href="{{view}}" target="_blank">{{view.replace('.html', '')}}</a>
+<iframe src="{{view}}" height="200px"></iframe>
+{% endfor %}
+{% endblock %}

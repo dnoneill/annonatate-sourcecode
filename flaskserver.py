@@ -20,6 +20,7 @@ import shutil
 from datetime import datetime
 from iiif_prezi.factory import ManifestFactory
 import os
+#import time
 
 app = Flask(__name__,
             static_url_path='',
@@ -33,7 +34,6 @@ Session(app)
 github = GitHub(app)
 ALLOWED_EXTENSIONS = set(['png', 'jpg', 'jpeg'])
 app.config['UPLOAD_FOLDER'] = uploadfolder
-
 
 @app.before_request
 def before_request():
@@ -57,9 +57,7 @@ def authorized(oauth_token):
     
     populateuserinfo()
     session['currentworkspace'] = session['workspaces'][list(session['workspaces'].keys())[0]]
-    
     populateworkspace()
-    
     return redirect(next_url)
 
 def allowed_file(filename):
@@ -80,7 +78,6 @@ def createimage():
         flash('No selected file')
     if file and allowed_file(file.filename) or iiifimage != '':
         if iiifimage:
-            print(iiifimage)
             imgurl, iiiffolder = iiifimage.rstrip('/').rsplit('/', 1)
             imgurl += '/'
             manifestpath = "manifests/{}".format(iiiffolder)
@@ -144,8 +141,6 @@ def createmanifest(tmpfilepath, imgurl, url, iiiffolder, formdata, manifesturl):
         try:
             img.set_hw_from_iiif()
         except:
-            print(url)
-            print('expect find')
             response = requests.get("{}{}/info.json".format(imgurl, iiiffolder))
             content = response.json()
             img.height = content['height']
@@ -212,9 +207,11 @@ def populateuserinfo():
     for workspace in relevantworkspaces:
         workspaces[workspace['full_name']] = workspace
     if len(workspaces) == 0:
-        payload = {"name": github_repo, "description": "This is your first repository","private": False, "owner": session['user_id']}
+        branches = {"source": {"branch": "master","path": "/"}}
         response = github.post('https://api.github.com/repos/dnoneill/annotationtemplate/forks')
-        #enablepages = github.post('{}/pages'.format(response['url']), headers={'Authorization': 'token {}'.format(session['user_token']), 'Accept': 'application/vnd.github.switcheroo-preview+json'}, params={"source": {"branch": "master","path": "/"}})
+        enablepages = github.raw_request('post', '{}/pages'.format(response['url']), headers={'Accept': 'application/vnd.github.switcheroo-preview+json'})
+        updates = {'homepage': enablepages.json()['html_url']}
+        updatehomepage = github.raw_request('patch', response['url'], data=json.dumps(updates))
         workspaces[response['full_name']] = response
     session['workspaces'] = workspaces
 
@@ -294,6 +291,22 @@ def listannotations():
     format = request.args.get('type') if request.args.get('type') else 'storyboard'
     return render_template('annotations.html', annotations=lists, format=format)
 
+
+@app.route('/customviews')
+def customviews():
+    return render_template('customviews.html')
+
+@app.route('/annonaview')
+def annonaview():
+    return render_template('annonabuilder.html')
+
+@app.route('/saveannonaview', methods=['POST'])
+def saveannonaview():
+    jsonitems = json.loads(request.data)
+    content = '---\n---\n<script src="https://ncsu-libraries.github.io/annona/dist/annona.js"></script>\n<link rel="stylesheet" type="text/css" href="https://ncsu-libraries.github.io/annona/dist/annona.css">\n{}'.format(jsonitems['tag'])
+    response = sendgithubrequest('{}.html'.format(jsonitems['slug']), content, 'customviews')
+    return jsonify(response.content), response.status_code
+
 def getannotations():
     duration = 61
     if 'annotime' in session.keys():
@@ -307,6 +320,7 @@ def getannotations():
         session['annotations'] = content['annotations']
         
         session['manifests'] = content['manifests']
+        session['customviews'] = content['customviews']
         session['annotime'] = datetime.now()
         annotations = content['annotations']
     else:

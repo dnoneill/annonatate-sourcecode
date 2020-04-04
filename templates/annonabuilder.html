@@ -1,20 +1,26 @@
-{% extends 'base.html' %}
-
-{% block content %}
-<form onsubmit="test(event)">
-	<button style="position: absolute;">Save View</button>
-</form>
-<iframe src="http://localhost:8080/annona/tools/#/tag-builder" id="iframe" style="height: 100vh"></iframe>
-<style>
-	.content {
-		padding: 0px;
-	}
-</style>
-<script type="text/javascript">
-	function test(e) {
-		e.preventDefault();
-		console.log(document.getElementById('iframe').contentWindow.document)
-		console.log(document.getElementById('iframe').contentWindow.document.getElementById('settings'))
-	}
-</script>
-{% endblock %}
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="/favicon.ico">
+    <script src="//ncsu-libraries.github.io/annona/latest/annona.js"></script>
+    <link rel="stylesheet" type="text/css" href="//ncsu-libraries.github.io/annona/latest/annona.css">
+    <title>iiif-tag-builder</title>
+  <link href="/app.js" rel="preload" as="script"></head>
+  <span v-if="process.env.NODE_ENV != 'flask'">
+    {% extends 'base.html' %}
+    {% block content %}
+  </span>
+  <body>
+    <noscript>
+      <strong>We're sorry but iiif-tag-builder doesn't work properly without JavaScript enabled. Please enable it to continue.</strong>
+    </noscript>
+    <div id="app"></div>
+    <!-- built files will be auto injected -->
+  <script type="text/javascript" src="/app.js"></script></body>
+  <span v-if="process.env.NODE_ENV != 'flask'">
+    {% endblock %}
+  </span>
+</html>
