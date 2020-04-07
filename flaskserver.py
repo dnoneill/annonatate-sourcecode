@@ -60,10 +60,6 @@ def authorized(oauth_token):
     populateworkspace()
     return redirect(next_url)
 
-def allowed_file(filename):
-    return '.' in filename and \
-        filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
-
 @app.route('/upload')
 def upload():
     return render_template('upload.html')
@@ -117,38 +113,6 @@ def createimage():
             output = "{}.zip".format(iiiffolder)
         return render_template('uploadsuccess.html', output=output)
 
-def createjekyllfile(contents, filename, iiifpath):
-    jekyllstring = "---\n---\n{}".format(contents)
-    with open(os.path.join(iiifpath, filename), 'w') as file:
-        file.write(jekyllstring)
-
-def createmanifest(tmpfilepath, imgurl, url, iiiffolder, formdata, manifesturl):
-    fac = ManifestFactory()
-    fac.set_base_prezi_uri(url)
-    fac.set_base_image_uri(imgurl)
-    fac.set_iiif_image_info(2.0, 2)
-    manifest = fac.manifest(ident=manifesturl, label=formdata['label'])
-    manifest.viewingDirection = formdata['direction']
-    manifest.description = formdata['description']
-    manifest.set_metadata({"rights": formdata['rights']})
-    seq = manifest.sequence()
-    cvs = seq.canvas(ident='info', label=formdata['label'])
-    anno = cvs.annotation()
-    img = anno.image(iiiffolder, iiif=True)
-    if tmpfilepath:
-        img.set_hw_from_file(tmpfilepath)
-    else:
-        try:
-            img.set_hw_from_iiif()
-        except:
-            response = requests.get("{}{}/info.json".format(imgurl, iiiffolder))
-            content = response.json()
-            img.height = content['height']
-            img.width = content['width']
-    cvs.height = img.height
-    cvs.width = img.width
-    return manifest
-
 @app.route('/download', methods=['POST'])
 def download():
     path = os.path.join(app.config['UPLOAD_FOLDER'], request.form['path'])
@@ -189,143 +153,6 @@ def add_collaborator():
     response = github.raw_request('put', contributorurl, params=params)
     next_url = request.args.get('next') or url_for('index')
     return redirect('/contributors')
-
-@github.access_token_getter
-def token_getter():
-    if 'user_token' in session.keys():
-        return session['user_token']
-
-def populateuserinfo():
-    workspaces = {}
-    userinfo = github.get(githubuserapi)
-    session['user_id'] = userinfo['login']
-    session['avatar_url'] = userinfo['avatar_url']
-    session['user_name'] = userinfo['name'] if userinfo['name'] != None else userinfo['login']
-    
-    repos = github.get('{}/repos?per_page=200'.format(githubuserapi))
-    relevantworkspaces = list(filter(lambda x: x['name'] == github_repo, repos))
-    for workspace in relevantworkspaces:
-        workspaces[workspace['full_name']] = workspace
-    if len(workspaces) == 0:
-        branches = {"source": {"branch": "master","path": "/"}}
-        response = github.post('https://api.github.com/repos/dnoneill/annotationtemplate/forks')
-        enablepages = github.raw_request('post', '{}/pages'.format(response['url']), headers={'Accept': 'application/vnd.github.switcheroo-preview+json'})
-        updates = {'homepage': enablepages.json()['html_url']}
-        updatehomepage = github.raw_request('patch', response['url'], data=json.dumps(updates))
-        workspaces[response['full_name']] = response
-    session['workspaces'] = workspaces
-
-def populateworkspace():
-    session['github_url'] = session['currentworkspace']['contents_url'].replace('/{+path}', '')
-    pagesinfo = github.get('{}/pages'.format(session['currentworkspace']['url']))
-    session['origin_url'] = pagesinfo['html_url']
-    session['github_branch'] = pagesinfo['source']['branch']
-    session['isadmin'] = session['currentworkspace']['permissions']['admin']
-
-@app.route('/search')
-def search():
-    query = request.args.get('q')
-    allcontent = querysearch(query)
-    tags = request.args.get('tag')
-    if tags:
-        allcontent = searchfields(allcontent['items'], 'tags', tags)
-    creator = request.args.get('creator')
-    if creator:
-        allcontent = searchfields(allcontent['items'], 'creator', creator)
-    items = allcontent['items']
-    if request.args.get('format') == 'json':
-        return jsonify(items), 200
-    else:
-        facets = {}
-        for key, value in allcontent['facets'].items():
-            value = [x for x in value if x is not None]
-            uniqtags = sorted(list(set(value)))
-            tagcount = {x:value.count(x) for x in uniqtags}
-            sortedtagcount = dict(sorted(tagcount.items(), key=(lambda x: (-x[1], x[0]))))
-            facets[key] = sortedtagcount
-        annolength = len(list(filter(lambda x: '-list.json' not in x['filename'], session['annotations'])))
-        return render_template('search.html', results=items, facets=facets, query=query, annolength=annolength)
-
-def querysearch(fieldvalue):
-    facets = {}
-    items = []
-    fieldvalue = fieldvalue if fieldvalue else ''
-    for item in session['annotations']:
-        if '-list.json' not in item['filename']:
-            results = get_search(item['json'])
-            if fieldvalue in " ".join(list(results['searchfields'].values())):
-                items.append(results)
-                facets = mergeDict(facets, results['facets'])
-    return {'items': items, 'facets': facets}
-
-def searchfields(content, field, fieldvalue):
-    facets = {}
-    items = []
-    for anno in content:
-        if fieldvalue in anno['facets'][field]:
-            items.append(anno)
-            facets = mergeDict(facets, anno['facets'])
-    return {'items': items, 'facets': facets}
-
-
-def mergeDict(dict1, dict2):
-    dict3 = {**dict1, **dict2}
-    for key, value in dict3.items():
-        if key in dict1 and key in dict2:
-            dict3[key] = value + dict1[key]
-    return dict3
-
-def getContents():
-    arraydata = {}
-    canvases = getannotations()
-    for canvas in canvases:
-        if canvas['canvas'] in arraydata.keys():
-            arraydata[canvas['canvas']].append(canvas['json'])
-        else:
-            arraydata[canvas['canvas']] = [canvas['json']]
-    return arraydata
-
-@app.route('/annotations/', methods=['GET'])
-def listannotations():
-    lists = getContents()
-    format = request.args.get('type') if request.args.get('type') else 'storyboard'
-    return render_template('annotations.html', annotations=lists, format=format)
-
-
-@app.route('/customviews')
-def customviews():
-    return render_template('customviews.html')
-
-@app.route('/annonaview')
-def annonaview():
-    return render_template('annonabuilder.html')
-
-@app.route('/saveannonaview', methods=['POST'])
-def saveannonaview():
-    jsonitems = json.loads(request.data)
-    content = '---\n---\n<script src="https://ncsu-libraries.github.io/annona/dist/annona.js"></script>\n<link rel="stylesheet" type="text/css" href="https://ncsu-libraries.github.io/annona/dist/annona.css">\n{}'.format(jsonitems['tag'])
-    response = sendgithubrequest('{}.html'.format(jsonitems['slug']), content, 'customviews')
-    return jsonify(response.content), response.status_code
-
-def getannotations():
-    duration = 61
-    if 'annotime' in session.keys():
-        now = datetime.now()
-        duration = (now - session['annotime']).total_seconds()
-    if 'annotations' not in session.keys() or session['annotations'] == '' or  duration > 60:
-        response = requests.get('{}'.format(session['origin_url']))
-        content = json.loads(response.content.decode('utf-8').replace('&lt;', '<').replace('&gt;', '>'))
-        for item in content['annotations']:
-            item['canvas'] = item['json']['on'][0]['full'] if 'on' in item['json'].keys() else ''
-        session['annotations'] = content['annotations']
-        
-        session['manifests'] = content['manifests']
-        session['customviews'] = content['customviews']
-        session['annotime'] = datetime.now()
-        annotations = content['annotations']
-    else:
-        annotations = session['annotations']
-    return annotations
 
 @app.route('/create_annotations/', methods=['POST'])
 def create_anno():
@@ -404,6 +231,178 @@ def updateprofile():
     response = github.raw_request('patch', githubuserapi, data=json.dumps(profile_data))
     session['user_name'] = profile_data['name']
     return redirect(next_url)
+@app.route('/search')
+def search():
+    query = request.args.get('q')
+    allcontent = querysearch(query)
+    tags = request.args.get('tag')
+    if tags:
+        allcontent = searchfields(allcontent['items'], 'tags', tags)
+    creator = request.args.get('creator')
+    if creator:
+        allcontent = searchfields(allcontent['items'], 'creator', creator)
+    items = allcontent['items']
+    if request.args.get('format') == 'json':
+        return jsonify(items), 200
+    else:
+        facets = {}
+        for key, value in allcontent['facets'].items():
+            value = [x for x in value if x is not None]
+            uniqtags = sorted(list(set(value)))
+            tagcount = {x:value.count(x) for x in uniqtags}
+            sortedtagcount = dict(sorted(tagcount.items(), key=(lambda x: (-x[1], x[0]))))
+            facets[key] = sortedtagcount
+        annolength = len(list(filter(lambda x: '-list.json' not in x['filename'], session['annotations'])))
+        return render_template('search.html', results=items, facets=facets, query=query, annolength=annolength)
+
+@app.route('/annotations/', methods=['GET'])
+def listannotations():
+    items = getannotations()
+    lists = list(filter(lambda x: '-list.json' not in x['filename'], items)) if request.args.get('annotype') == 'single' else list(filter(lambda x: '-list.json' in x['filename'], items))
+    format = request.args.get('viewtype') if request.args.get('viewtype') else 'storyboard'
+    return render_template('annotations.html', annotations=lists, format=format, filepath=filepath)
+
+@app.route('/customviews')
+def customviews():
+    return render_template('customviews.html')
+
+@app.route('/annonaview')
+def annonaview():
+    return render_template('annonabuilder.html')
+
+@app.route('/saveannonaview', methods=['POST'])
+def saveannonaview():
+    jsonitems = json.loads(request.data)
+    content = '---\n---\n<script src="https://ncsu-libraries.github.io/annona/dist/annona.js"></script>\n<link rel="stylesheet" type="text/css" href="https://ncsu-libraries.github.io/annona/dist/annona.css">\n{}'.format(jsonitems['tag'])
+    response = sendgithubrequest('{}.html'.format(jsonitems['slug']), content, 'customviews')
+    return jsonify(response.content), response.status_code
+
+@github.access_token_getter
+def token_getter():
+    if 'user_token' in session.keys():
+        return session['user_token']
+
+def allowed_file(filename):
+    return '.' in filename and \
+        filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+def createjekyllfile(contents, filename, iiifpath):
+    jekyllstring = "---\n---\n{}".format(contents)
+    with open(os.path.join(iiifpath, filename), 'w') as file:
+        file.write(jekyllstring)
+
+def createmanifest(tmpfilepath, imgurl, url, iiiffolder, formdata, manifesturl):
+    fac = ManifestFactory()
+    fac.set_base_prezi_uri(url)
+    fac.set_base_image_uri(imgurl)
+    fac.set_iiif_image_info(2.0, 2)
+    manifest = fac.manifest(ident=manifesturl, label=formdata['label'])
+    manifest.viewingDirection = formdata['direction']
+    manifest.description = formdata['description']
+    manifest.set_metadata({"rights": formdata['rights']})
+    seq = manifest.sequence()
+    cvs = seq.canvas(ident='info', label=formdata['label'])
+    anno = cvs.annotation()
+    img = anno.image(iiiffolder, iiif=True)
+    if tmpfilepath:
+        img.set_hw_from_file(tmpfilepath)
+    else:
+        try:
+            img.set_hw_from_iiif()
+        except:
+            response = requests.get("{}{}/info.json".format(imgurl, iiiffolder))
+            content = response.json()
+            img.height = content['height']
+            img.width = content['width']
+    cvs.height = img.height
+    cvs.width = img.width
+    return manifest
+
+def populateuserinfo():
+    workspaces = {}
+    userinfo = github.get(githubuserapi)
+    session['user_id'] = userinfo['login']
+    session['avatar_url'] = userinfo['avatar_url']
+    session['user_name'] = userinfo['name'] if userinfo['name'] != None else userinfo['login']
+    
+    repos = github.get('{}/repos?per_page=200'.format(githubuserapi))
+    relevantworkspaces = list(filter(lambda x: x['name'] == github_repo, repos))
+    for workspace in relevantworkspaces:
+        workspaces[workspace['full_name']] = workspace
+    if len(workspaces) == 0:
+        branches = {"source": {"branch": "master","path": "/"}}
+        response = github.post('https://api.github.com/repos/dnoneill/annotationtemplate/forks')
+        enablepages = github.raw_request('post', '{}/pages'.format(response['url']), headers={'Accept': 'application/vnd.github.switcheroo-preview+json'})
+        updates = {'homepage': enablepages.json()['html_url']}
+        updatehomepage = github.raw_request('patch', response['url'], data=json.dumps(updates))
+        workspaces[response['full_name']] = response
+    session['workspaces'] = workspaces
+
+def populateworkspace():
+    session['github_url'] = session['currentworkspace']['contents_url'].replace('/{+path}', '')
+    pagesinfo = github.get('{}/pages'.format(session['currentworkspace']['url']))
+    session['origin_url'] = pagesinfo['html_url']
+    session['github_branch'] = pagesinfo['source']['branch']
+    session['isadmin'] = session['currentworkspace']['permissions']['admin']
+
+def querysearch(fieldvalue):
+    facets = {}
+    items = []
+    fieldvalue = fieldvalue if fieldvalue else ''
+    for item in session['annotations']:
+        if '-list.json' not in item['filename']:
+            results = get_search(item['json'])
+            if fieldvalue in " ".join(list(results['searchfields'].values())):
+                items.append(results)
+                facets = mergeDict(facets, results['facets'])
+    return {'items': items, 'facets': facets}
+
+def searchfields(content, field, fieldvalue):
+    facets = {}
+    items = []
+    for anno in content:
+        if fieldvalue in anno['facets'][field]:
+            items.append(anno)
+            facets = mergeDict(facets, anno['facets'])
+    return {'items': items, 'facets': facets}
+
+
+def mergeDict(dict1, dict2):
+    dict3 = {**dict1, **dict2}
+    for key, value in dict3.items():
+        if key in dict1 and key in dict2:
+            dict3[key] = value + dict1[key]
+    return dict3
+
+def getContents():
+    arraydata = {}
+    canvases = getannotations()
+    for canvas in canvases:
+        if canvas['canvas'] in arraydata.keys():
+            arraydata[canvas['canvas']].append(canvas['json'])
+        else:
+            arraydata[canvas['canvas']] = [canvas['json']]
+    return arraydata
+
+def getannotations():
+    duration = 61
+    if 'annotime' in session.keys():
+        now = datetime.now()
+        duration = (now - session['annotime']).total_seconds()
+    if 'annotations' not in session.keys() or session['annotations'] == '' or  duration > 60:
+        response = requests.get('{}'.format(session['origin_url']))
+        content = json.loads(response.content.decode('utf-8').replace('&lt;', '<').replace('&gt;', '>'))
+        for item in content['annotations']:
+            item['canvas'] = item['json']['on'][0]['full'] if 'on' in item['json'].keys() else ''
+        session['annotations'] = content['annotations']
+        
+        session['manifests'] = content['manifests']
+        session['customviews'] = content['customviews']
+        session['annotime'] = datetime.now()
+        annotations = content['annotations']
+    else:
+        annotations = session['annotations']
+    return annotations
 
 def cleananno(data_object):
     field = 'resource' if 'resource' in data_object.keys() else 'body'
@@ -433,7 +432,6 @@ def delete_annos(anno):
 def to_pretty_json(value):
     return json.dumps(value, sort_keys=True,
                       indent=4, separators=(',', ': '))
-
 app.jinja_env.filters['tojson_pretty'] = to_pretty_json
 
 def github_get_existing(full_url):

@@ -1,12 +1,41 @@
 {% extends 'base.html' %}
 
 {% block content %}
-{% for key, value in annotations.items() %}
-{% if key != "" %}
-	<script type="application/json" id="{{key}}">
-		{{value | tojson_pretty | safe}}
-	</script>
-	<iiif-{{format}} annotationlist="{{key}}"></iiif-{{format}}>
+<form action="{{ url_for('listannotations') }}" method="get">
+<div class="viewinputs">
+<b>View Type</b><br>
+<input type="radio" id="annotation" name="viewtype" value="annotation" {% if request.args['viewtype'] == 'annotation' %}checked{%endif%}>
+<label for="annotation">Image viewer</label><br>
+<input type="radio" id="storyboard" name="viewtype" value="storyboard" {% if request.args['viewtype'] == 'storyboard' or 'viewtype' not in request.args.keys() %}checked {% endif %}>
+<label for="storyboard">Storyboard</label><br>
+</div>
+<div class="viewinputs">
+<b>Annotation Type</b><br>
+<input type="radio" id="single" name="annotype" value="single" {% if request.args['annotype'] == 'single' %}checked{% endif %}>
+<label for="single">Single</label><br>
+<input type="radio" id="list" name="annotype" value="list" {% if request.args['annotype'] == 'list' or 'annotype' not in request.args.keys() %}checked{% endif %}>
+<label for="list">List</label><br>
+</div>
+<input type=submit value=Submit>
+</form>
+{% if request.args['annotype'] == 'single' %}
+{% set annotype = 'annotationurl' %}
+{% else %}
+{% set annotype = 'annotationlist' %}
 {% endif %}
+{% for anno in annotations %}
+<div class="annoitem">
+<div class="annonaview">
+<script type="application/json" id="{{anno['filename']}}">
+	{{anno['json'] | tojson_pretty | safe}}
+</script>
+<iiif-{{format}} {{annotype}}="{{anno['filename']}}"></iiif-{{format}}>
+</div>
+	<div class="annonalinks">
+		<a href="/annonaview?url={{anno['filename']}}&viewtype=iiif-{{format}}&listtype={{annotype}}" target="_blank">Custom Build</a>
+	</div>
+</div>
+<hr>
 {% endfor %}
+
 {% endblock %}
