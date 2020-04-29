@@ -152,7 +152,7 @@ def add_collaborator():
     params = {'permission': permission}
     response = github.raw_request('put', contributorurl, params=params)
     next_url = request.args.get('next') or url_for('index')
-    return redirect('/contributors')
+    return redirect('/profile')
 
 @app.route('/create_annotations/', methods=['POST'])
 def create_anno():
@@ -163,7 +163,9 @@ def create_anno():
     data_object['@id'] = "{{site.url}}{{site.baseurl}}/%s/%s"%(filepath.replace("_", ""), filename)
     data_object['oa:annotatedBy'] = [session['user_name']]
     cleanobject = cleananno(data_object)
-    response = writetogithub(filename, cleanobject)
+    canvas = cleanobject['on'][0]['full']
+    listlength = len(list(filter(lambda n: canvas == n.get('canvas'), session['annotations'])))
+    response = writetogithub(filename, cleanobject, listlength+1)
     returnvalue = response.content if response.status_code > 399 else data_object
     return jsonify(returnvalue), response.status_code
 
@@ -176,7 +178,7 @@ def update_anno():
     currentcreators.append(session['user_name'])
     data_object['oa:annotatedBy'] = list(set(currentcreators))
     cleanobject = cleananno(data_object)
-    response = writetogithub(id, cleanobject)
+    response = writetogithub(id, cleanobject, response['order'])
     returnvalue = response.content if response.status_code > 399 else data_object
     return jsonify(returnvalue), response.status_code
 
@@ -442,31 +444,41 @@ def github_get_existing(full_url):
     else:
         return ''
 
-def writetogithub(filename, annotation):
-    response = sendgithubrequest(filename, annotation)
+def writetogithub(filename, annotation, order):
+    githuborder = 'order: {}\n'.format(order)
+    response = sendgithubrequest(filename, annotation, filepath, githuborder)
     if response.status_code < 400:
-        session['github_sha'][filename] = response.json()['content']['sha']
         canvas = annotation['on'][0]['full']
-        data = {'canvas':canvas, 'json': annotation, 'filename': filename}
+        data = {'canvas':canvas, 'json': annotation, 'filename': filename, 'order': order}
         canvases = list(map(lambda x: x['canvas'], session['annotations']))
-        existinganno = list(filter(lambda n: n.get('filename') == filename, session['annotations']))
+        existinganno = list(filter(lambda n: filename in n.get('filename'), session['annotations']))
+        annolistfilename = listfilename(canvas)
+        existinglist = list(filter(lambda n: annolistfilename in n.get('filename'), session['annotations']))
         if len(existinganno) > 0:
             annoindex = session['annotations'].index(existinganno[0])
             session['annotations'][annoindex] = data
         else:
             session['annotations'].append(data)
+        if len(existinglist) > 0:
+            annolistindex = session['annotations'].index(existinglist[0])
+            canvasannos = list(filter(lambda n: canvas == n.get('canvas'), session['annotations']))
+            session['annotations'][annolistindex]['json']['resources'] = list(map(lambda k: k.get('json'), canvasannos))
+        else:
+            listdata = {'json': {'resources': [data['json']]}, 'filename':annolistfilename, 'canvas': ''}
+            session['annotations'].append(listdata)
         if canvas not in canvases:
             createlistpage(canvas)
+        session['annotime'] = datetime.now()
     return response
 
-def sendgithubrequest(filename, annotation, path=filepath):
-    data = createdatadict(filename, annotation, path)
+def sendgithubrequest(filename, annotation, path=filepath, order=''):
+    data = createdatadict(filename, annotation, path, order)
     response = github.raw_request('put', data['url'], data=json.dumps(data['data']))
     return response
 
 def createlistpage(canvas):
     filename = listfilename(canvas)
-    text = '---\ncanvas_id: "' + canvas + '"\n---\n{% assign annotations = site.annotations | where: "canvas", page.canvas_id | map: "content" %}{"@context": "http://iiif.io/api/presentation/2/context.json","@id": "{{ site.url }}{{ site.baseurl }}{{page.url}}","@type": "sc:AnnotationList","resources": [{{ annotations | join: ","}}] }'
+    text = '---\ncanvas_id: "' + canvas + '"\n---\n{% assign annotations = site.annotations | where: "canvas", page.canvas_id | sort: "order" | map: "content" %}{"@context": "http://iiif.io/api/presentation/2/context.json","@id": "{{ site.url }}{{ site.baseurl }}{{page.url}}","@type": "sc:AnnotationList","resources": [{{ annotations | join: ","}}] }'
     sendgithubrequest(filename, text)
 
 def listfilename(canvas):
@@ -474,14 +486,15 @@ def listfilename(canvas):
     canvaslist = canvas.split('/')
     withnumbs = list(filter(r.search, canvaslist))
     filename = "-".join(withnumbs) if len(withnumbs) > 0 else canvaslist[-1]
+    filename = re.sub('[^A-Za-z0-9]+', '-', filename).lower()
     return filename + '-list.json'
 
-def createdatadict(filename, text, path=filepath):
+def createdatadict(filename, text, path=filepath, order=''):
     full_url = "{}/{}/{}".format(session['github_url'], path, filename)
     sha = github_get_existing(full_url)
     writeordelete = "write" if text != 'delete' else "delete"
     message = "{} {}".format(writeordelete, filename)
-    text = '---\ncanvas: "{}"\n---\n{}'.format(text['on'][0]['full'], json.dumps(text)) if type(text) != str else text
+    text = '---\ncanvas: "{}"\n{}---\n{}'.format(text['on'][0]['full'],order, json.dumps(text)) if type(text) != str else text
     data = {"message":message, "content": base64.b64encode(text.encode('utf-8')).decode('utf-8'), "branch": session['github_branch'] }
     if sha != '':
         data['sha'] = sha

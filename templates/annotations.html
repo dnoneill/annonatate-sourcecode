@@ -24,6 +24,7 @@
 {% set annotype = 'annotationlist' %}
 {% endif %}
 {% for anno in annotations %}
+{% if anno['json']['resources'] | length > 0 or annotype == 'annotationurl' %}
 <div class="annoitem">
 <div class="annonaview">
 <script type="application/json" id="{{anno['filename']}}">
@@ -36,6 +37,7 @@
 	</div>
 </div>
 <hr>
+{% endif %}
 {% endfor %}
 
 {% endblock %}
