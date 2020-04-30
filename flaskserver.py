@@ -118,15 +118,21 @@ def download():
     path = os.path.join(app.config['UPLOAD_FOLDER'], request.form['path'])
     return send_file(path, as_attachment=True)
 
+@app.route('/reorder')
+def reorder():
+    canvas = request.args.get('canvas')
+    annolist = list(filter(lambda x: x.get('canvas') == canvas, session['annotations']))
+    annolist = sorted(annolist, key = lambda i: i['order'])
+    return render_template('reorder.html', annolist=annolist)
+
 @app.route('/')
 def index():
     if 'user_id' in session:
         manifestdata = []
         arraydata = getContents()
-        allmanifests = manifests + session['manifests']
-        for manifest in allmanifests:
+        for manifest in session['manifests']:
             manifestdata.append({'manifestUri': manifest})
-        return render_template('index.html', filepaths=arraydata, manifests=manifestdata, firstmanifest=manifests[0])
+        return render_template('index.html', filepaths=arraydata, manifests=manifestdata, firstmanifest=session['manifests'][0])
     else:
         return redirect('/login')
 

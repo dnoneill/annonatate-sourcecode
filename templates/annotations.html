@@ -34,6 +34,9 @@
 </div>
 	<div class="annonalinks">
 		<a href="/annonaview?url={{anno['filename']}}&viewtype=iiif-{{format}}&listtype={{annotype}}" target="_blank">Custom Build</a>
+		{% if annotype == 'annotationlist' %}
+		<a href="/reorder?canvas={{anno['json']['resources'][0]['on'][0]['full']}}" target="_blank">Reorder List</a>
+		{% endif %}
 	</div>
 </div>
 <hr>
