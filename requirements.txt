@@ -1,6 +1,9 @@
 Flask
 flask
+Flask-Session
 flask_cors
 requests
 beautifulsoup4
-pyyaml
+simplejson
+GitHub-Flask
+iiif-prezi

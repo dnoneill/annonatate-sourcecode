@@ -1,29 +1,18 @@
 {% extends 'base.html' %}
 {% block content %}
-<link rel='stylesheet' type='text/css' href='/assets/build/mirador/css/mirador-combined.css'>
+<script src="/assets/openseadragon/openseadragon.2.4.2.min.js"></script>
+<script type="text/javascript" src="/assets/iso6391/index.js"></script>
 
-<div id="mirador_container">
-<style>#viewer {width: 100%; height: 660px; position: relative;}</style>
-<div id='viewer'></div>
-<script src='/assets/build/mirador/mirador.min.js'></script>
-<script src='/assets/js/annotationEndpoint.js'></script>
-<script type='text/javascript'>
-var annotations = {{filepaths | tojson}}
-   $(function() {
-      myMiradorInstance = Mirador({
-       id: 'viewer',
-       data: {{manifests | tojson}},
-       windowObjects: [{
-           bottomPanelVisible: 'true',
-           loadedManifest: {{firstmanifest | tojson}}
-       }],
-       annotationEndpoint: { 'name':'Local Annotation Endpoint', 'module': 'LocalAnnotationEndpoint', 'options': {'server': '/', 'allannotations' : annotations}},
-			 sidePanelOptions : {
-           'tocTabAvailable': true,
-           'layersTabAvailable': true,
-           'searchTabAvailable': true
-         }
-     });
-   });
-</script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@recogito/annotorious-openseadragon@2.1.0/dist/annotorious.min.css">
+
+<!-- JS -->
+<script src="https://cdn.jsdelivr.net/npm/@recogito/annotorious-openseadragon@2.1.0/dist/openseadragon-annotorious.min.js"></script>
+<script src="https://unpkg.com/vue/dist/vue.js"></script>
+<div id="app">
+  <annoview :existing='{{session["existing"] | tojson}}' :filepaths='{{ filepaths|tojson }}' :userinfo='{{userinfo | tojson}}' :tags='{{tags|tojson}}'></annoview>
+</div>
+<script src="index.js"></script>
+<p>
+   
+</p>
 {% endblock %}

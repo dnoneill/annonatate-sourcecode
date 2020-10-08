@@ -13,7 +13,6 @@ import re
 import string, random
 import uuid
 import simplejson as json
-import pylibmc
 from flask_github import GitHub
 import re
 import shutil
@@ -102,7 +101,6 @@ def createimage():
             if 'content' in response.keys():
                 output = 'manifest.json successfully written to {}{}'.format(session['origin_url'], response['content']['path'])
             else:
-                print(response)
                 output = 'Something went wrong writing to GitHub, please try again'
         else:
             createjekyllfile(manifest, 'manifest.json', iiifpath)
@@ -128,11 +126,8 @@ def reorder():
 @app.route('/')
 def index():
     if 'user_id' in session:
-        manifestdata = []
         arraydata = getContents()
-        for manifest in session['manifests']:
-            manifestdata.append({'manifestUri': manifest})
-        return render_template('index.html', filepaths=arraydata, manifests=manifestdata, firstmanifest=session['manifests'][0])
+        return render_template('index.html', filepaths=arraydata['contents'], tags=list(set(arraydata['tags'])), userinfo={'name': session['user_name'], 'id': session['user_id']})
     else:
         return redirect('/login')
 
@@ -164,28 +159,26 @@ def add_collaborator():
 def create_anno():
     response = json.loads(request.data)
     data_object = response['json']
-    uniqid = str(uuid.uuid1())
-    filename = "{}.json".format(uniqid)
-    data_object['@id'] = "{{site.url}}{{site.baseurl}}/%s/%s"%(filepath.replace("_", ""), filename)
-    data_object['oa:annotatedBy'] = [session['user_name']]
+    filename = data_object['id'].replace("#", "") + '.json'
+    data_object['id'] = "{{site.url}}{{site.baseurl}}/%s/%s"%(filepath.replace("_", ""), filename)
     cleanobject = cleananno(data_object)
-    canvas = cleanobject['on'][0]['full']
+    canvas = cleanobject['target']['id']
     listlength = len(list(filter(lambda n: canvas == n.get('canvas'), session['annotations'])))
     response = writetogithub(filename, cleanobject, listlength+1)
     returnvalue = response.content if response.status_code > 399 else data_object
+    returnvalue['order'] = listlength+1;
     return jsonify(returnvalue), response.status_code
 
 @app.route('/update_annotations/', methods=['POST'])
 def update_anno():
     response = json.loads(request.data)
     data_object = response['json']
-    id = cleanid(data_object['@id'])
-    currentcreators = data_object['oa:annotatedBy'] if data_object['oa:annotatedBy'] else []
-    currentcreators.append(session['user_name'])
-    data_object['oa:annotatedBy'] = list(set(currentcreators))
+    order = data_object['order']
+    id = cleanid(data_object['id'])
     cleanobject = cleananno(data_object)
     response = writetogithub(id, cleanobject, response['order'])
     returnvalue = response.content if response.status_code > 399 else data_object
+    returnvalue['order'] = order;
     return jsonify(returnvalue), response.status_code
 
 @app.route('/delete_annotations/', methods=['DELETE', 'POST'])
@@ -194,7 +187,7 @@ def delete_anno():
     id = cleanid(response['id'])
     annotatons = getannotations()
     canvas = list(filter(lambda x: id in x['filename'], session['annotations']))[0]['canvas']
-    canvases = getContents()
+    canvases = getContents()['contents']
     response = delete_annos(id)
     if len(canvases[canvas]) == 1:
         delete_annos(listfilename(canvas))
@@ -212,7 +205,7 @@ def write_annotation():
         delete_annos(deletefiles)
     if 'list' in json_data['@type'].lower() or 'page' in json_data['@type'].lower():
         for anno in json_data['resources']:
-            id = cleanid(anno['@id'])
+            id = cleanid(anno['id'])
             single_filename = os.path.join(file, id)
             writetogithub(single_filename, anno)
     writetogithub(filename, json_data)
@@ -264,11 +257,16 @@ def search():
         return render_template('search.html', results=items, facets=facets, query=query, annolength=annolength)
 
 @app.route('/annotations/', methods=['GET'])
-def listannotations():
+@app.route('/annotations/<annoid>', methods=['GET'])
+def listannotations(annoid=False):
     items = getannotations()
-    lists = list(filter(lambda x: '-list.json' not in x['filename'], items)) if request.args.get('annotype') == 'single' else list(filter(lambda x: '-list.json' in x['filename'], items))
+    
+    if annoid:
+        lists = list(filter(lambda x: annoid in x['filename'], items))
+    else:
+        lists = list(filter(lambda x: '-list.json' not in x['filename'], items)) if request.args.get('annotype') == 'single' else list(filter(lambda x: '-list.json' in x['filename'], items))
     format = request.args.get('viewtype') if request.args.get('viewtype') else 'storyboard'
-    return render_template('annotations.html', annotations=lists, format=format, filepath=filepath)
+    return render_template('annotations.html', annotations=lists, format=format, filepath=filepath, annoid=annoid)
 
 @app.route('/customviews')
 def customviews():
@@ -385,15 +383,21 @@ def mergeDict(dict1, dict2):
 def getContents():
     arraydata = {}
     canvases = getannotations()
+    tags = []
     for canvas in canvases:
+        loadcanvas = canvas['json']
+        if 'resources' not in loadcanvas.keys():
+            searchfields = get_search(loadcanvas)
+            tags += searchfields['facets']['tags']
+            loadcanvas['order'] = canvas['order']
         if canvas['canvas'] in arraydata.keys():
-            arraydata[canvas['canvas']].append(canvas['json'])
+            arraydata[canvas['canvas']].append(loadcanvas)
         else:
-            arraydata[canvas['canvas']] = [canvas['json']]
-    return arraydata
+            arraydata[canvas['canvas']] = [loadcanvas]
+    return {'contents': arraydata, 'tags': tags}
 
 def getannotations():
-    duration = 61
+    duration = 0
     if 'annotime' in session.keys():
         now = datetime.now()
         duration = (now - session['annotime']).total_seconds()
@@ -401,10 +405,10 @@ def getannotations():
         response = requests.get('{}'.format(session['origin_url']))
         content = json.loads(response.content.decode('utf-8').replace('&lt;', '<').replace('&gt;', '>'))
         for item in content['annotations']:
-            item['canvas'] = item['json']['on'][0]['full'] if 'on' in item['json'].keys() else ''
+            item['canvas'] = item['json']['target']['id'] if 'target' in item['json'].keys() else ''
         session['annotations'] = content['annotations']
         
-        session['manifests'] = content['manifests']
+        getallannotated(content['manifests'])
         session['customviews'] = content['customviews']
         session['annotime'] = datetime.now()
         annotations = content['annotations']
@@ -412,7 +416,25 @@ def getannotations():
         annotations = session['annotations']
     return annotations
 
+def getallannotated(manifests):
+    allannotated = {'manifests': manifests, 'images': []}
+    for annotation in session['annotations']:
+        anno = annotation['json']
+        if 'target' in anno.keys():
+            if 'dcterms:isPartOf' in anno['target'].keys():
+                manifest = anno['target']['dcterms:isPartOf']['id']
+                if manifest not in allannotated['manifests']:
+                    allannotated['manifests'].append(manifest)
+            else:
+                image = anno['target']['id']
+                if image not in allannotated['images']:
+                    allannotated['images'].append(image)
+    session['existing'] = allannotated
+    return allannotated
+
 def cleananno(data_object):
+    if 'order' in data_object.keys():
+        del data_object['order']
     field = 'resource' if 'resource' in data_object.keys() else 'body'
     charfield = 'chars' if 'resource' in data_object.keys() else 'value'
     if field in data_object.keys():
@@ -454,7 +476,7 @@ def writetogithub(filename, annotation, order):
     githuborder = 'order: {}\n'.format(order)
     response = sendgithubrequest(filename, annotation, filepath, githuborder)
     if response.status_code < 400:
-        canvas = annotation['on'][0]['full']
+        canvas = annotation['target']['id']
         data = {'canvas':canvas, 'json': annotation, 'filename': filename, 'order': order}
         canvases = list(map(lambda x: x['canvas'], session['annotations']))
         existinganno = list(filter(lambda n: filename in n.get('filename'), session['annotations']))
@@ -484,7 +506,7 @@ def sendgithubrequest(filename, annotation, path=filepath, order=''):
 
 def createlistpage(canvas):
     filename = listfilename(canvas)
-    text = '---\ncanvas_id: "' + canvas + '"\n---\n{% assign annotations = site.annotations | where: "canvas", page.canvas_id | sort: "order" | map: "content" %}{"@context": "http://iiif.io/api/presentation/2/context.json","@id": "{{ site.url }}{{ site.baseurl }}{{page.url}}","@type": "sc:AnnotationList","resources": [{{ annotations | join: ","}}] }'
+    text = '---\ncanvas_id: "' + canvas + '"\n---\n{% assign annotations = site.annotations | where: "canvas", page.canvas_id | sort: "order" | map: "content" %}{"@context": "http://iiif.io/api/presentation/2/context.json","id": "{{ site.url }}{{ site.baseurl }}{{page.url}}","@type": "sc:AnnotationList","resources": [{{ annotations | join: ","}}] }'
     sendgithubrequest(filename, text)
 
 def listfilename(canvas):
@@ -500,14 +522,14 @@ def createdatadict(filename, text, path=filepath, order=''):
     sha = github_get_existing(full_url)
     writeordelete = "write" if text != 'delete' else "delete"
     message = "{} {}".format(writeordelete, filename)
-    text = '---\ncanvas: "{}"\n{}---\n{}'.format(text['on'][0]['full'],order, json.dumps(text)) if type(text) != str else text
+    text = '---\ncanvas: "{}"\n{}---\n{}'.format(text['target']['id'],order, json.dumps(text)) if type(text) != str else text
     data = {"message":message, "content": base64.b64encode(text.encode('utf-8')).decode('utf-8'), "branch": session['github_branch'] }
     if sha != '':
         data['sha'] = sha
     return {'data':data, 'url':full_url}
 
 def get_search(anno):
-    annodata_data = {'searchfields': {'content': []}, 'facets': {'tags': [], 'creator': []}, 'datecreated':'', 'datemodified': '', 'id': anno['@id'].replace('{{site.url}}{{site.baseurl}}/', session['origin_url']), 'basename': os.path.basename(anno['@id'])}
+    annodata_data = {'searchfields': {'content': []}, 'facets': {'tags': [], 'creator': []}, 'datecreated':'', 'datemodified': '', 'id': anno['id'].replace('{{site.url}}{{site.baseurl}}/', session['origin_url']), 'basename': os.path.basename(anno['id'])}
     if 'oa:annotatedAt' in anno.keys():
         annodata_data['datecreated'] = encodedecode(anno['oa:annotatedAt'])
     if 'created' in anno.keys():
@@ -516,8 +538,10 @@ def get_search(anno):
         annodata_data['datemodified'] = encodedecode(anno['oa:serializedAt'])
     if 'modified' in anno.keys():
         annodata_data['datemodified'] = encodedecode(anno['modified'])
-    if anno['oa:annotatedBy']:
+    if 'oa:annotatedBy' in anno.keys():
         annodata_data['facets']['creator'] = anno['oa:annotatedBy']
+    if 'creator' in anno.keys():
+        annodata_data['facets']['creator'] = anno['creator']['name']
     textdata = anno['resource'] if 'resource' in anno.keys() else anno['body']
     textdata = textdata if type(textdata) == list else [textdata]
     for resource in textdata:

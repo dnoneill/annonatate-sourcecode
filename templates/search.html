@@ -42,7 +42,7 @@ Showing {{results | length}} annotations out of {{annolength}} annotations
 <div class="thumbnail">
 <iiif-annotation annotationurl="{{result.id}}" styling="image_only:true"></iiif-annotation>
 </div>
-<h2><a href="{{result.id}}">{{result.basename}}</a></h2>
+<h2><a href="{{ url_for('listannotations', annoid=result.basename) }}">{{result.basename}}</a></h2>
 <div class="results_data">
   <table class="searchResultMetadata">
     <tbody>

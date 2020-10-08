@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <script src="http://code.jquery.com/jquery-1.8.3.js"></script>
+    <script src="http://code.jquery.com/ui/1.9.2/jquery-ui.js"></script>
+    <script>
+    $(function() {
+        $( "#sortable" ).sortable({
+            revert: true
+        }).bind('sortupdate', function(e, ui) {
+		    console.log($( "#sortable" ).sortable( "toArray" ).toSource())
+});;
+
+        $( "#draggable" ).draggable({
+            connectToSortable: "#sortable",
+            helper: "clone",
+            revert: "invalid"
+        });
+        $( "ul, li" ).disableSelection();
+    });
+    </script>
+</head>
+<body> 
+<ul id="sortable">
+	{% for item in annolist %}
+	<li class="ui-state-default">
+		{{item['order']}}
+		<script type="application/json" id="{{item['filename']}}">
+			{{item['json'] | tojson_pretty | safe}}
+		</script>
+		<iiif-annotation annotationurl="{{item['filename']}}"></iiif-annotation>
+		</li>
+		{% endfor %}
+</ul>
+{% endblock %}
