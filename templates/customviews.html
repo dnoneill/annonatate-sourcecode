@@ -1,6 +1,9 @@
 {% extends 'base.html' %}
 
 {% block content %}
+{% if session['customviews'] | length == 0 %}
+<b>Currently there are no custom views</b>
+{% endif %}
 {% for view in session['customviews'] %}
 <a href="{{view}}" target="_blank">{{view.replace('.html', '')}}</a>
 <iframe src="{{view}}" height="200px"></iframe>

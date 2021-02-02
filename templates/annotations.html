@@ -26,7 +26,15 @@
 {% for anno in annotations %}
 <div class="annoitem">
 <div class="annonaview">
-<a href="{{anno['filename']}}" target="_blank">{{anno['filename']}}</a>
+{% if 'http' in anno['filename'] %}
+	<a href="{{anno['filename']}}" target="_blank">{{anno['filename']}}</a>
+{% else %}
+URL for {{anno['filename']}} will be loaded in a minute.
+{% endif %}
+<div>
+	<a href="{{ url_for('listannotations', annoid=anno['filename'].split('/')[-1]) }}">{{anno['filename'].split("/")[-1]}}</a>
+</div>
+
 <script type="application/json" id="{{anno['filename']}}">
 	{{anno['json'] | tojson_pretty | safe}}
 </script>
@@ -38,12 +46,9 @@
 		</div>
 		{% if anno['json']['resources'] %}
 		<div>
-			<a href="/reorder?canvas={{anno['json']['resources'][0]['target']['id']}}" target="_blank">Reorder List</a>
+			<a href="/reorder?canvas={{anno['json']['resources'][0]['target']['source']}}" target="_blank">Reorder List</a>
 		</div>
 		{% endif %}
-		<div>
-			<a href="{{ url_for('listannotations', annoid=anno['filename'].split('/')[-1]) }}">{{anno['filename'].split("/")[-1]}}</a>
-		</div>
 	</div>
 </div>
 <hr>

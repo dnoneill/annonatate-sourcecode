@@ -14,7 +14,8 @@ const annoview = Vue.component('annoview', {
     </button>
   </div>
   <div class="manifestthumbs" v-show="showManThumbs && currentmanifest">
-    <div v-for="item in manifestdata" style="display: inline-block;">
+    <div v-if="manifestdata.length == 0">Loading...</div>
+    <div v-else v-for="item in manifestdata" style="display: inline-block;">
       <div v-on:click="manifestLoad(item)">
         <img :src="item['image']" style="max-width:100px;padding:5px;">
       </div>
@@ -46,6 +47,7 @@ const annoview = Vue.component('annoview', {
       inputurl: '',
       drawtool: 'rectangle',
       anno: '',
+      viewer: '',
       manifestdata: '',
       currentmanifest: '',
       showManThumbs: true,
@@ -77,6 +79,7 @@ const annoview = Vue.component('annoview', {
         prefixUrl: "/assets/openseadragon/images/",
         tileSources: tilesources
       });
+      this.viewer = viewer;
       var vue = this;
       for (var k=1; k<this.alltiles.length; k++){
         this.setLayers(this.alltiles[k], k, viewer)
@@ -86,14 +89,11 @@ const annoview = Vue.component('annoview', {
       //localStorage.setItem('')
       // Initialize the Annotorious plugin
       var existing = this.currentmanifest ? this.filepaths[this.canvas] : this.filepaths[this.inputurl];
-
       this.anno = OpenSeadragon.Annotorious(viewer, 
         { image: 'openseadragon1',
           widgets: [ 
-                    {widget: 'COMMENT', editable: 'MINE_ONLY'},
-                    {widget: 'TAG', vocabulary: vue.tags},
-                    vue.languagePlugin,
-                    vue.inputPlugin
+                    {widget: 'COMMENT', editable: 'MINE_ONLY', purposeSelector: true},
+                    {widget: 'TAG', vocabulary: vue.tags}
                   ]});
     // Load annotations in W3C WebAnnotation format
       if (existing){
@@ -115,104 +115,10 @@ const annoview = Vue.component('annoview', {
         }
       });
     },
-    inputPlugin: function(args) {
-      var currentRightsBody = args.annotation ? args.annotation.bodies.find(function(b) {
-        return b.rights;
-      }) : null;
-      var currentRightsValue = currentRightsBody ? currentRightsBody.rights : '';
-
-      var addTag = function(evt) {
-        if (currentRightsBody) {
-          args.onUpdateBody(currentRightsBody, {
-            rights: evt.target.value
-          });
-        } else { 
-          args.onAppendBody({
-            rights: evt.target.value
-          });
-        }
-      }
-
-      var createInput = function() {
-        var div = document.createElement('div');
-        div.className = "r6o-autocomplete"
-        var input = document.createElement('input');
-        input.value = currentRightsValue;
-        input.placeholder = 'Add rights statement'
-        input.addEventListener('change', addTag); 
-        div.appendChild(input)
-        return div;
-      }
-
-      var container = document.createElement('div');
-      container.className = 'r6o-widget r6o-tag';
-      
-      var rights = createInput();
-      container.appendChild(rights);
-
-      return container;
-    },
-    languagePlugin: function(args) {
-      var currentLangBody = args.annotation ? args.annotation.bodies.find(function(b) {
-        return b.language;
-      }) : null;
-      var currentLangValue = currentLangBody ? currentLangBody.language : '';
-      currentLangValue = currentLangValue && Array.isArray(currentLangValue) ? currentLangValue.map(langcd => ISO6391.getName(langcd) ? ISO6391.getName(langcd) : langcd) : currentLangValue;
-      var addTag = function(evt) {
-        const langs = evt.target.value.split(',').map(elem => ISO6391.getCode(elem.trim()) ? ISO6391.getCode(elem.trim()) : elem.trim())
-        if (currentLangValue) {
-          args.onUpdateBody(currentLangBody, {
-            language: langs
-          });
-        } else { 
-          args.onAppendBody({
-            language: langs
-          });
-        }
-      }
-
-      var createInput = function() {
-        var div = document.createElement('div');
-        div.className = "r6o-autocomplete"
-        var input = document.createElement('input');
-        input.placeholder = 'Add language. Use comma for multiple languages'
-        
-        input.addEventListener('change', addTag); 
-        var datalist = document.createElement('datalist');
-        datalist.id = 'languages'
-        var langs = ISO6391.getAllNativeNames().concat(ISO6391.getAllNames());
-        langs = _.uniq(langs);
-        for (var i=0; i<langs.length; i++){
-          const option = document.createElement('option');
-          option.value = langs[i];
-          datalist.appendChild(option)
-        }
-        div.appendChild(input)
-        div.appendChild(datalist)
-        input.setAttribute('list','languages')
-        input.setAttribute('type','text')
-        input.setAttribute('multiple','')
-        return div;
-      }
-
-      var container = document.createElement('div');
-      container.className = 'r6o-widget r6o-tag';
-      
-      var lang = createInput();
-      container.appendChild(lang);
-
-      return container;
-    },
-    setOpacity: function(layerdata, event=false){
-      var opacity = event ? event.target.value/100 : layerdata.opacity > 0 ? 0 : 1;
-      layerdata.osdtile.setOpacity(opacity);
-      layerdata.opacity = opacity;
-      var checked = opacity != 0 ? true : false;
-      layerdata.checked = checked;
-    },
     getManifest: function(manifest) {
       this.currentmanifest = manifest;
       this.showManThumbs = true;
+      this.manifestdata = [];
       var vue = this;
       jQuery.ajax({
         url: manifest,
@@ -232,7 +138,6 @@ const annoview = Vue.component('annoview', {
               const id = resourceitem['service']['id'] ? resourceitem['service']['id'] : resourceitem['service']['@id'] + '/info.json';
               const opacity = j == 0 ? 1 : 0;
               const checked = j == 0 ? true : false;
-              console.log(resource)
               tiles.push({'id': id, 'label': resourceitem['label'], 
                 thumbnail: thumb.replace('/full/0', '/100,/0'), 'opacity': opacity,
                 'checked': checked
@@ -241,10 +146,10 @@ const annoview = Vue.component('annoview', {
             thumb = thumb.replace('/full/0', '/100,/0')
             images.push({'image': thumb, 'canvas': canvas, 'tiles': tiles})
           }
-          vue.manifestdata = images
+          vue.manifestdata = images;
         },
-        error: function() {
-          returnError();
+        error: function(err) {
+          console.log(err)
         }
       });
     },
@@ -253,25 +158,29 @@ const annoview = Vue.component('annoview', {
       const drawtool = this.drawtool.replace('angle', '');
       this.anno.setDrawingTool(drawtool);
     },
+    addManifestAnnotation: function(annotation){
+      if (this.currentmanifest){
+        annotation.target['dcterms:isPartOf'] = {
+          "id": this.currentmanifest,
+          "type": "Manifest"
+        }
+        target = this.canvas;
+      }
+      annotation.target.source = target;
+      return annotation;
+    },
     addListeners: function() {
       // Attach handlers to listen to events
       var vue = this;
       this.anno.on('createAnnotation', function(annotation) {
         var target = vue.inputurl;
-        if (vue.currentmanifest){
-          annotation.target['dcterms:isPartOf'] = {
-            "id": vue.currentmanifest,
-            "type": "Manifest"
-          }
-          target = vue.canvas;
-        }
-        annotation.body[0].rights = 'Placeholderforrights'
-        annotation.target.id = target;
+        var annotation = vue.addManifestAnnotation(annotation);
         var senddata = {'json': annotation }
         vue.write_annotation(senddata, 'create', annotation)
       });
     
       this.anno.on('updateAnnotation', function(annotation) {
+        var annotation = vue.addManifestAnnotation(annotation);
         var senddata = {'json': annotation,'id': annotation['id'], 'order': annotation['order']}
         vue.write_annotation(senddata, 'update')
       });
@@ -294,8 +203,8 @@ const annoview = Vue.component('annoview', {
             annotation['order'] = data['order'];
           }
         },
-        error: function() {
-          returnError();
+        error: function(err) {
+          console.log(err)
         }
       });
     } 

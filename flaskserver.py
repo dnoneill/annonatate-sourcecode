@@ -126,8 +126,12 @@ def reorder():
 @app.route('/')
 def index():
     if 'user_id' in session:
-        arraydata = getContents()
-        return render_template('index.html', filepaths=arraydata['contents'], tags=list(set(arraydata['tags'])), userinfo={'name': session['user_name'], 'id': session['user_id']})
+        try:
+            arraydata = getContents()
+            return render_template('index.html', filepaths=arraydata['contents'], tags=list(set(arraydata['tags'])), userinfo={'name': session['user_name'], 'id': session['user_id']})
+        except:
+            del session['user_id']
+            return redirect('/login')
     else:
         return redirect('/login')
 
@@ -162,7 +166,7 @@ def create_anno():
     filename = data_object['id'].replace("#", "") + '.json'
     data_object['id'] = "{{site.url}}{{site.baseurl}}/%s/%s"%(filepath.replace("_", ""), filename)
     cleanobject = cleananno(data_object)
-    canvas = cleanobject['target']['id']
+    canvas = cleanobject['target']['source']
     listlength = len(list(filter(lambda n: canvas == n.get('canvas'), session['annotations'])))
     response = writetogithub(filename, cleanobject, listlength+1)
     returnvalue = response.content if response.status_code > 399 else data_object
@@ -258,9 +262,8 @@ def search():
 
 @app.route('/annotations/', methods=['GET'])
 @app.route('/annotations/<annoid>', methods=['GET'])
-def listannotations(annoid=False):
+def listannotations(annoid=''):
     items = getannotations()
-    
     if annoid:
         lists = list(filter(lambda x: annoid in x['filename'], items))
     else:
@@ -336,7 +339,7 @@ def populateuserinfo():
     for workspace in relevantworkspaces:
         workspaces[workspace['full_name']] = workspace
     if len(workspaces) == 0:
-        branches = {"source": {"branch": "master","path": "/"}}
+        branches = {"source": {"branch": "main","path": "/"}}
         response = github.post('https://api.github.com/repos/dnoneill/annotationtemplate/forks')
         enablepages = github.raw_request('post', '{}/pages'.format(response['url']), headers={'Accept': 'application/vnd.github.switcheroo-preview+json'})
         updates = {'homepage': enablepages.json()['html_url']}
@@ -405,7 +408,7 @@ def getannotations():
         response = requests.get('{}'.format(session['origin_url']))
         content = json.loads(response.content.decode('utf-8').replace('&lt;', '<').replace('&gt;', '>'))
         for item in content['annotations']:
-            item['canvas'] = item['json']['target']['id'] if 'target' in item['json'].keys() else ''
+            item['canvas'] = item['json']['target']['source'] if 'target' in item['json'].keys() else ''
         session['annotations'] = content['annotations']
         
         getallannotated(content['manifests'])
@@ -426,7 +429,7 @@ def getallannotated(manifests):
                 if manifest not in allannotated['manifests']:
                     allannotated['manifests'].append(manifest)
             else:
-                image = anno['target']['id']
+                image = anno['target']['source']
                 if image not in allannotated['images']:
                     allannotated['images'].append(image)
     session['existing'] = allannotated
@@ -476,7 +479,7 @@ def writetogithub(filename, annotation, order):
     githuborder = 'order: {}\n'.format(order)
     response = sendgithubrequest(filename, annotation, filepath, githuborder)
     if response.status_code < 400:
-        canvas = annotation['target']['id']
+        canvas = annotation['target']['source']
         data = {'canvas':canvas, 'json': annotation, 'filename': filename, 'order': order}
         canvases = list(map(lambda x: x['canvas'], session['annotations']))
         existinganno = list(filter(lambda n: filename in n.get('filename'), session['annotations']))
@@ -522,14 +525,14 @@ def createdatadict(filename, text, path=filepath, order=''):
     sha = github_get_existing(full_url)
     writeordelete = "write" if text != 'delete' else "delete"
     message = "{} {}".format(writeordelete, filename)
-    text = '---\ncanvas: "{}"\n{}---\n{}'.format(text['target']['id'],order, json.dumps(text)) if type(text) != str else text
+    text = '---\ncanvas: "{}"\n{}---\n{}'.format(text['target']['source'],order, json.dumps(text)) if type(text) != str else text
     data = {"message":message, "content": base64.b64encode(text.encode('utf-8')).decode('utf-8'), "branch": session['github_branch'] }
     if sha != '':
         data['sha'] = sha
     return {'data':data, 'url':full_url}
 
 def get_search(anno):
-    annodata_data = {'searchfields': {'content': []}, 'facets': {'tags': [], 'creator': []}, 'datecreated':'', 'datemodified': '', 'id': anno['id'].replace('{{site.url}}{{site.baseurl}}/', session['origin_url']), 'basename': os.path.basename(anno['id'])}
+    annodata_data = {'searchfields': {'content': []}, 'facets': {'tags': [], 'creator': []}, 'datecreated':'', 'datemodified': '', 'id': anno['id'], 'basename': os.path.basename(anno['id'])}
     if 'oa:annotatedAt' in anno.keys():
         annodata_data['datecreated'] = encodedecode(anno['oa:annotatedAt'])
     if 'created' in anno.keys():
