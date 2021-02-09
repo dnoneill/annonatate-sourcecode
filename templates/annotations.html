@@ -28,13 +28,21 @@
 {% for anno in annotations %}
 <div class="annoitem">
 <div class="annonaview">
+<h1>
+	<a id="singleviewpage" href="{{ url_for('listannotations', annoid=anno['filename'].split('/')[-1]) }}">{{anno['filename'].split("/")[-1]}}</a>
+</h1>	
 {% if 'http' in anno['filename'] %}
-	<a href="{{anno['filename']}}" target="_blank">{{anno['filename']}}</a>
+	<label for="githubpage">Github URL: </label>
+	<a id="githubpage" href="{{anno['filename']}}" target="_blank">{{anno['filename']}}</a>
 {% else %}
-URL for {{anno['filename']}} will be loaded in a minute.
+GitHub URL for {{anno['filename']}} will be loaded in a minute.
 {% endif %}
-<div>
-	<a href="{{ url_for('listannotations', annoid=anno['filename'].split('/')[-1]) }}">{{anno['filename'].split("/")[-1]}}</a>
+
+<div class="annonalinks">
+	<div>
+		<label for="customview">Custom View for: </label>
+		<a id="customview" href="/annonaview?url={{anno['filename']}}&viewtype=iiif-{{format}}&listtype={{annotype}}" target="_blank">{{anno['filename'].split("/")[-1]}}</a>
+	</div>
 </div>
 
 <script type="application/json" id="{{anno['filename']}}">
@@ -42,11 +50,6 @@ URL for {{anno['filename']}} will be loaded in a minute.
 </script>
 <iiif-{{format}} {{annotype}}="{{anno['filename']}}"></iiif-{{format}}>
 </div>
-	<div class="annonalinks">
-		<div>
-			<a href="/annonaview?url={{anno['filename']}}&viewtype=iiif-{{format}}&listtype={{annotype}}" target="_blank">Custom Build</a>
-		</div>
-	</div>
 </div>
 <hr>
 {% endfor %}

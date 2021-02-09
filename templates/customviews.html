@@ -5,7 +5,14 @@
 <b>Currently there are no custom views</b>
 {% endif %}
 {% for view in session['customviews'] %}
+<div class="customview">
 <a href="{{view}}" target="_blank">{{view.replace('.html', '')}}</a>
-<iframe src="{{view}}" height="200px"></iframe>
+<iframe src="{{view}}" id="{{view.replace('.html', '')}}" onload="resizeIframe(this)"></iframe>
+</div>
+<script> 
+    function resizeIframe(item){
+        item.style.height = item.contentWindow.document.body.scrollHeight + 'px'; 
+    }
+</script> 
 {% endfor %}
 {% endblock %}

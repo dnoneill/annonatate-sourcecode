@@ -225,18 +225,22 @@ tbody {
   width: 100%;
 }
 
-.annonaview {
-  width: 89%;
-  display: inline-block;
-}
-
-.annonalinks {
-  width: 10%;
-  display: inline-block;
-}
-
 .manifestthumbs {
   width: 100%; 
   overflow:auto;
   display: inline-flex;
+}
+
+.annonaview label {
+  font-weight: 900;
+}
+
+.annonaview h1 {
+  font-size: 2em;
+  margin-bottom: 4px!important;
+}
+
+.customview {
+  width: 49%;
+  display: inline-block;
 }
