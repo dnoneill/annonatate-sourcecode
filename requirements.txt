@@ -7,3 +7,4 @@ beautifulsoup4
 simplejson
 GitHub-Flask
 iiif-prezi
+pyyaml

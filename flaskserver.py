@@ -51,7 +51,6 @@ def authorized(oauth_token):
     if oauth_token is None:
         #flash("Authorization failed.")
         return redirect(next_url)
-    
     session['user_token'] = oauth_token
     
     populateuserinfo()
@@ -115,13 +114,6 @@ def createimage():
 def download():
     path = os.path.join(app.config['UPLOAD_FOLDER'], request.form['path'])
     return send_file(path, as_attachment=True)
-
-@app.route('/reorder')
-def reorder():
-    canvas = request.args.get('canvas')
-    annolist = list(filter(lambda x: x.get('canvas') == canvas, session['annotations']))
-    annolist = sorted(annolist, key = lambda i: i['order'])
-    return render_template('reorder.html', annolist=annolist)
 
 @app.route('/')
 def index():

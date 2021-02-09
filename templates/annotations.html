@@ -9,6 +9,7 @@
 <input type="radio" id="storyboard" name="viewtype" value="storyboard" {% if request.args['viewtype'] == 'storyboard' or 'viewtype' not in request.args.keys() %}checked {% endif %}>
 <label for="storyboard">Storyboard</label><br>
 </div>
+{% if not annoid %}
 <div class="viewinputs">
 <b>Annotation Type</b><br>
 <input type="radio" id="single" name="annotype" value="single" {% if request.args['annotype'] == 'single' %}checked{% endif %}>
@@ -16,6 +17,7 @@
 <input type="radio" id="list" name="annotype" value="list" {% if request.args['annotype'] == 'list' or 'annotype' not in request.args.keys() %}checked{% endif %}>
 <label for="list">List</label><br>
 </div>
+{% endif %}
 <input type=submit value=Submit>
 </form>
 {% if request.args['annotype'] == 'single' %}
@@ -44,11 +46,6 @@ URL for {{anno['filename']}} will be loaded in a minute.
 		<div>
 			<a href="/annonaview?url={{anno['filename']}}&viewtype=iiif-{{format}}&listtype={{annotype}}" target="_blank">Custom Build</a>
 		</div>
-		{% if anno['json']['resources'] %}
-		<div>
-			<a href="/reorder?canvas={{anno['json']['resources'][0]['target']['source']}}" target="_blank">Reorder List</a>
-		</div>
-		{% endif %}
 	</div>
 </div>
 <hr>
