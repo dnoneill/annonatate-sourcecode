@@ -5,7 +5,7 @@ const annoview = Vue.component('annoview', {
       <a v-on:click="getManifest(manifest)">{{manifest}}</a>
     </div>
     <div v-for="image in existing['images']">
-      <a v-on:click="inputurl = image; currentmanifest='';loadAnno(image)">{{image}}</a>
+      <a v-on:click="inputurl = image; currentmanifest='';loadAnno()">{{image}}</a>
     </div>
   </div>
   <div>
@@ -65,6 +65,17 @@ const annoview = Vue.component('annoview', {
   	}
   },
   mounted() {
+    const params = new URLSearchParams(window.location.search);
+    const manifesturl = params.get('manifesturl');
+    const imageurl = params.get('imageurl');
+    if (manifesturl){
+      this.currentmanifest = manifesturl;
+      this.getManifest(manifesturl, params.get('canvas'));
+    }
+    if (imageurl) {
+      this.inputurl = imageurl;
+      this.loadAnno();
+    }
   },
   methods: {
     manifestLoad: function(item) {
@@ -124,7 +135,7 @@ const annoview = Vue.component('annoview', {
         }
       });
     },
-    getManifest: function(manifest) {
+    getManifest: function(manifest, loadcanvas=false) {
       this.currentmanifest = manifest;
       this.showManThumbs = true;
       this.manifestdata = [];
@@ -154,6 +165,9 @@ const annoview = Vue.component('annoview', {
             }
             thumb = thumb.replace('/full/0', '/100,/0')
             images.push({'image': thumb, 'canvas': canvas, 'tiles': tiles})
+            if (loadcanvas == canvas) {
+              vue.manifestLoad({'image': thumb, 'canvas': canvas, 'tiles': tiles})
+            }
           }
           vue.manifestdata = images;
         },

@@ -31,6 +31,7 @@
 <h1>
 	<a id="singleviewpage" href="{{ url_for('listannotations', annoid=anno['filename'].split('/')[-1]) }}">{{anno['filename'].split("/")[-1]}}</a>
 </h1>	
+<i class="fab fa-github-square"></i> 
 {% if 'http' in anno['filename'] %}
 	<label for="githubpage">Github URL: </label>
 	<a id="githubpage" href="{{anno['filename']}}" target="_blank">{{anno['filename']}}</a>
@@ -40,11 +41,28 @@ GitHub URL for {{anno['filename']}} will be loaded in a minute.
 
 <div class="annonalinks">
 	<div>
-		<label for="customview">Custom View for: </label>
+		<label for="customview"><i class="fas fa-cog"></i> Build custom view for: </label>
 		<a id="customview" href="/annonaview?url={{anno['filename']}}&viewtype=iiif-{{format}}&listtype={{annotype}}" target="_blank">{{anno['filename'].split("/")[-1]}}</a>
 	</div>
 </div>
 
+{% if 'resources' in anno['json'].keys() %}
+{% set annodata = anno['json']['resources'][0] %}
+{% else %}
+{% set annodata = anno['json'] %}
+{% endif %}
+<label for="annonatate">
+<i class="fas fa-pen"></i> Edit:  
+</label>
+{% if annodata['target']['dcterms:isPartOf'] %}
+<a id="annonatate" href="/?manifesturl={{annodata['target']['dcterms:isPartOf']['id']}}&canvas={{annodata['target']['source']}}">
+	{{anno['filename']}}
+</a>
+{% else %}
+<a id="annonatate" href="/?imageurl={{annodata['target']['source']}}">
+	{{anno['filename']}}
+</a>
+{% endif %}
 <script type="application/json" id="{{anno['filename']}}">
 	{{anno['json'] | tojson_pretty | safe}}
 </script>
