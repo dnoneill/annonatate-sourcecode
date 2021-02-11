@@ -180,6 +180,7 @@ const annoview = Vue.component('annoview', {
       this.anno.setDrawingTool(this.currentdrawtool);
     },
     addManifestAnnotation: function(annotation){
+      var target = this.inputurl;
       if (this.currentmanifest){
         annotation.target['dcterms:isPartOf'] = {
           "id": this.currentmanifest,
@@ -194,7 +195,6 @@ const annoview = Vue.component('annoview', {
       // Attach handlers to listen to events
       var vue = this;
       this.anno.on('createAnnotation', function(annotation) {
-        var target = vue.inputurl;
         var annotation = vue.addManifestAnnotation(annotation);
         var senddata = {'json': annotation }
         vue.write_annotation(senddata, 'create', annotation)
