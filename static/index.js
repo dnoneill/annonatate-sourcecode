@@ -1,10 +1,12 @@
 const annoview = Vue.component('annoview', {
   template: `<div>
-  <div v-for="manifest in existing['manifests']">
-    <a v-on:click="getManifest(manifest)">{{manifest}}</a>
-  </div>
-  <div v-for="image in existing['images']">
-    <a v-on:click="inputurl = image; currentmanifest='';loadAnno(image)">{{image}}</a>
+  <div class="manifestimages">
+    <div v-for="manifest in existing['manifests']">
+      <a v-on:click="getManifest(manifest)">{{manifest}}</a>
+    </div>
+    <div v-for="image in existing['images']">
+      <a v-on:click="inputurl = image; currentmanifest='';loadAnno(image)">{{image}}</a>
+    </div>
   </div>
   <div>
     <label>Manifest</label>
@@ -25,15 +27,21 @@ const annoview = Vue.component('annoview', {
     <label>Image URL</label>
     <input v-on:change="currentmanifest = '';loadAnno()" v-model="inputurl"></input>
   </div>
-  <label for="current-tool" v-if="anno">Current Annotation drawing shape: </label>
-  <button id="current-tool" v-if="anno" v-on:click="toggle()">{{drawtool}}</button>
+  <div class="drawingtools" v-if="anno">
+    <label for="current-tool">Current Annotation drawing shape: </label>
+    <div id="current-tool" v-for="drawtool in drawtools" v-on:change="updateDrawTool()">
+      <label class="toolbutton" v-bind:for="drawtool.name">
+        <input type="radio" v-bind:id="drawtool.name" v-bind:name="drawtool.name" v-bind:value="drawtool.name" v-model="currentdrawtool">
+        <span>{{drawtool.label}}</span></label>
+    </div>
+  </div>
   <div v-for="item in alltiles" v-if="alltiles.length > 1">
     <input type="checkbox" class="tagscheck" v-on:click="setOpacity(item)" v-model="item.checked">
     <span v-html="item.label"></span>
     <div class="slidecontainer">Opacity: <input v-on:change="setOpacity(item, $event)" type="range" min="0" max="100" v-bind:value="item.opacity*100" class="slider"></div>
     <img :src="item['thumbnail']" style="max-width:100px;padding:5px;">
   </div>
-  <div id="openseadragon1" style="height:100vh"></div>
+  <div id="openseadragon1"></div>
   </div>
   `,
   props: {
@@ -45,7 +53,8 @@ const annoview = Vue.component('annoview', {
   data: function() {
   	return {
       inputurl: '',
-      drawtool: 'rectangle',
+      drawtools: [{'name': 'rect', 'label':'Rectangle'},{'name': 'polygon', 'label':'Polygon'}],
+      currentdrawtool: 'rect',
       anno: '',
       viewer: '',
       manifestdata: '',
@@ -153,10 +162,8 @@ const annoview = Vue.component('annoview', {
         }
       });
     },
-    toggle: function() {
-      this.drawtool = this.drawtool == 'rectangle' ? 'polygon' : 'rectangle';
-      const drawtool = this.drawtool.replace('angle', '');
-      this.anno.setDrawingTool(drawtool);
+    updateDrawTool: function() {
+      this.anno.setDrawingTool(this.currentdrawtool);
     },
     addManifestAnnotation: function(annotation){
       if (this.currentmanifest){

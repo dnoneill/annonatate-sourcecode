@@ -64,7 +64,7 @@ section.content {
    position:relative;
    width:auto;
    height:1px;
-   background-image: radial-gradient(#8a2e2f, white);
+   background-image: radial-gradient(teal, white);
    margin-bottom: 1em;
    margin-top: 1em;
    display:block;
@@ -89,10 +89,6 @@ tbody {
 
 .searchResultLeftColumn {
   width: 140px;
-}
-
-#result a {
-  color: #034EA2
 }
 
 #sort_by {
@@ -243,4 +239,93 @@ tbody {
 .customview {
   width: 49%;
   display: inline-block;
+}
+
+.manifestimages {
+  height: 120px;
+  width: 95%;
+  overflow: auto;
+  margin-bottom: 8px;
+}
+
+.manifestimages::-webkit-scrollbar {
+  width: 20px;
+}
+
+/* Track */
+.manifestimages::-webkit-scrollbar-track {
+  box-shadow: inset 0 0 5px grey; 
+  border-radius: 10px;
+}
+ 
+/* Handle */
+.manifestimages::-webkit-scrollbar-thumb {
+  background: teal; 
+  border-radius: 10px;
+}
+
+/* Handle on hover */
+.manifestimages::-webkit-scrollbar-thumb:hover {
+  background: teal; 
+}
+
+label.toolbutton {
+  padding: 0;
+}
+
+label.toolbutton input {
+  opacity: 0;
+  position: absolute;
+}
+
+#current-tool {
+  display: inline-block;
+}
+label.toolbutton span {
+  text-align: center;
+  padding: 6px 12px;
+  display: inline-block;
+}
+
+label.toolbutton input:checked+span {
+  background-color: teal;
+  color: #fff;
+}
+
+.drawingtools {
+  padding-bottom: 12px;
+}
+
+#openseadragon1 {
+  height:100vh;
+  width: 95%;
+}
+
+#app #livedemo {
+  padding-top: 15px;
+}
+
+img.githubicon {
+  max-height: 50px;
+  padding-right: 5px;
+}
+
+.profile h2, .profile h3 {
+  margin: 8px 0;
+  font-weight: 900;
+  text-decoration: underline;
+}
+
+.profile h2 {
+  font-size: 25px;
+  line-height: 25px;
+}
+
+.profile h3 {
+  font-size: 15px;
+  line-height: 15px;
+}
+
+.workspaceusers {
+  padding-left: 20px;
 }

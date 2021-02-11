@@ -1,6 +1,8 @@
 {% extends 'base.html' %}
 
 {% block content %}
+	<div class="profile">
+	<h2>User Display Name (used for creator information)</h2>
 	<form action="{{ url_for('updateprofile') }}" method="post">
 	{% for key, value in userinfo.items() %}
 		<div>
@@ -22,14 +24,37 @@
 	{% endfor %}
 	</div>
 	{% endif %}
-	<h2>Collaborators for {{session['currentworkspace']['full_name']}}</h2>
-	{% for collaborator in collaborators %}
-	<div>	
-	<img src="{{collaborator['avatar_url']}}" style="height: 100px">
-	<a href="{{collaborator['html_url']}}" target="_blank">
-	{{collaborator['login']}}</a>
-</div>
-{% endfor %}
+	<h2>Workspaces</h2>
+	{% for key, value in session['workspaces'].items() %}
+	<div>
+	<div>
+	<a href="{{value['html_url']}}">{{key}}</a>
+	<span class="switchorcurrent">
+	{% if session['currentworkspace']['full_name'] == key %}
+		<div style="color: green">(Current workspace)</div></div>
+		<div class="workspaceusers">
+		<h3>Users for current workspace</h3>
+		{% for collaborator in collaborators %}
+		<div style="display: block;">	
+		<img src="{{collaborator['avatar_url']}}" class="githubicon" style="height: 100px">
+		<a href="{{collaborator['html_url']}}" target="_blank">
+		{{collaborator['login']}}</a>
+		</div>
+		{% endfor %}
+		</div>
+	{% else %}
+	<form action="{{ url_for('changeworkspace') }}" method="post">
+		<button name="workspace" type="submit" value="{{key}}">Switch</button>
+	</form></div>
+	{% endif %}
+	</span>
+	<div class="description">
+	{% if value['description'] %}
+	{{value['description']}}
+	{% endif %}
+	</div>
+	</div>
+	{% endfor %}
 {% if session['isadmin'] %}
 <h2>Invite collaborators</h2>
 <form action="{{ url_for('add_collaborator') }}" method="post">
@@ -46,4 +71,5 @@
   <button name="button" type="submit" value="submit">Submit</button>
 </form>
 {% endif %}
+</div>
 {% endblock %}

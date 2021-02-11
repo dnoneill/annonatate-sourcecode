@@ -8,7 +8,7 @@ import json, os, glob, requests
 import base64
 from settings import *
 from bs4 import BeautifulSoup
-import yaml
+import yaml, time
 import re
 import string, random
 import uuid
@@ -42,6 +42,7 @@ def before_request():
 
 @app.route('/login')
 def login():
+    session.clear()
     return github.authorize(scope="repo,user")
 
 @app.route('/authorize')
@@ -127,16 +128,11 @@ def index():
     else:
         return redirect('/login')
 
-@app.route('/workspaces')
-def workspaces():
-    populateuserinfo()
-    session['annotations'] = ''
-    return render_template('workspaces.html')
-
 @app.route('/changeworkspace', methods=['POST'])
 def changeworkspace():
     workspace = request.form['workspace']
     session['currentworkspace'] = session['workspaces'][workspace]
+    session['annotations'] = ''
     populateworkspace()
     next_url = request.args.get('next') or url_for('index')
     return redirect(next_url)
@@ -331,12 +327,19 @@ def populateuserinfo():
     for workspace in relevantworkspaces:
         workspaces[workspace['full_name']] = workspace
     if len(workspaces) == 0:
-        branches = {"source": {"branch": "main","path": "/"}}
-        response = github.post('https://api.github.com/repos/dnoneill/annotationtemplate/forks')
-        enablepages = github.raw_request('post', '{}/pages'.format(response['url']), headers={'Accept': 'application/vnd.github.switcheroo-preview+json'})
-        updates = {'homepage': enablepages.json()['html_url']}
-        updatehomepage = github.raw_request('patch', response['url'], data=json.dumps(updates))
-        workspaces[response['full_name']] = response
+        branches = {'source': {'branch': github_branch,'path': '/'}}
+        response = github.post('https://api.github.com/repos/annonatate/annotationtemplate/forks')
+        enablepages = github.raw_request('post', '{}/pages'.format(response['url']), data=json.dumps(branches), headers={'Accept': 'application/vnd.github.switcheroo-preview+json'})
+        if enablepages.status_code > 299:
+            return render_template('error.html')
+        else:
+            updates = {'homepage': enablepages.json()['html_url']}
+            waittime = requests.get(updates['homepage'])
+            while waittime.status_code != 200:
+                time.sleep(3)
+                waittime = requests.get(updates['homepage'])
+            updatehomepage = github.raw_request('patch', response['url'], data=json.dumps(updates))
+            workspaces[response['full_name']] = response
     session['workspaces'] = workspaces
 
 def populateworkspace():
@@ -553,8 +556,14 @@ def get_search(anno):
             field = 'value' if 'value' in resource['items'][0].keys() else 'chars'
             fieldvalues = " ".join([encodedecode(item[field]) for item in resource['items']])
             annodata_data['searchfields']['content'].append(fieldvalues)
-        elif 'value' in resource:
+        elif 'value' in resource.keys():
             annodata_data['searchfields']['content'].append(encodedecode(resource['value']))
+        if 'created' in resource.keys() and annodata_data['datecreated'] < resource['created']:
+            annodata_data['datecreated'] = resource['created']
+        if 'modified' in resource.keys() and annodata_data['datemodified'] < resource['modified']:
+            annodata_data['datemodified'] = resource['modified']
+        if 'creator' in resource.keys() and resource['creator']['name'] not in annodata_data['facets']['creator']:
+            annodata_data['facets']['creator'].append(resource['creator']['name'])
     annodata_data['searchfields']['content'] = " ".join(annodata_data['searchfields']['content'])
     annodata_data['searchfields']['tags'] = " ".join(annodata_data['facets']['tags'])
     return annodata_data

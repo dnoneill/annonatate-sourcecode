@@ -48,10 +48,24 @@ Showing {{results | length}} annotations out of {{annolength}} annotations
 <div class="results_data">
   <table class="searchResultMetadata">
     <tbody>
+      {% if result.searchfields.content %}
       <tr>
         <td class="searchResultLeftColumn">Content:</td>
         <td class="searchResultRightColumn">{{result.searchfields.content}}</td>
       </tr>
+      {% endif %}
+      {% if result.searchfields.tags %}
+      <tr>
+        <td class="searchResultLeftColumn">Tags:</td>
+        <td class="searchResultRightColumn">{{result.searchfields.tags}}</td>
+      </tr>
+      {% endif %}
+      {% if result.facets.creator %}
+      <tr>
+        <td class="searchResultLeftColumn">Creator{{'s' if result.facets.creator | length > 1}}: </td>
+        <td class="searchResultRightColumn">{{", ".join(result.facets.creator)}}</td>
+      </tr>
+      {% endif %}
     </tbody>
   </table>
 </div>
