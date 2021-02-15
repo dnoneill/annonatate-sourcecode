@@ -42,8 +42,12 @@ def before_request():
 
 @app.route('/login')
 def login():
-    session.clear()
     return github.authorize(scope="repo,user")
+
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect('https://github.com/logout')
 
 @app.route('/authorize')
 @github.authorized_handler
@@ -51,7 +55,8 @@ def authorized(oauth_token):
     next_url = request.args.get('next') or url_for('index')
     if oauth_token is None:
         #flash("Authorization failed.")
-        return redirect(next_url)
+        return render_template('error.html')
+        #return redirect(next_url)
     session['user_token'] = oauth_token
     
     populateuserinfo()
@@ -321,8 +326,7 @@ def populateuserinfo():
     session['user_id'] = userinfo['login']
     session['avatar_url'] = userinfo['avatar_url']
     session['user_name'] = userinfo['name'] if userinfo['name'] != None else userinfo['login']
-    
-    repos = github.get('{}/repos?per_page=200'.format(githubuserapi))
+    repos = github.get('{}/repos?per_page=300&sort=name'.format(githubuserapi))
     relevantworkspaces = list(filter(lambda x: x['name'] == github_repo, repos))
     for workspace in relevantworkspaces:
         workspaces[workspace['full_name']] = workspace
@@ -344,7 +348,20 @@ def populateuserinfo():
 
 def populateworkspace():
     session['github_url'] = session['currentworkspace']['contents_url'].replace('/{+path}', '')
-    pagesinfo = github.get('{}/pages'.format(session['currentworkspace']['url']))
+    try:
+        pagesinfo = github.get('{}/pages'.format(session['currentworkspace']['url']))
+    except:
+        branches = {'source': {'branch': github_branch,'path': '/'}}
+        enablepages = github.raw_request('post', '{}/pages'.format(session['currentworkspace']['url']), data=json.dumps(branches), headers={'Accept': 'application/vnd.github.switcheroo-preview+json'})
+        if enablepages.status_code > 299:
+            return render_template('error.html')
+        else:
+            waittime = requests.get(enablepages.json()['html_url'])
+            while waittime.status_code != 200:
+                time.sleep(3)
+                waittime = requests.get(enablepages.json()['html_url'])
+            pagesinfo = github.get('{}/pages'.format(session['currentworkspace']['url']))
+    print(pagesinfo)
     session['origin_url'] = pagesinfo['html_url']
     session['github_branch'] = pagesinfo['source']['branch']
     session['isadmin'] = session['currentworkspace']['permissions']['admin']
@@ -399,7 +416,7 @@ def getannotations():
     if 'annotime' in session.keys():
         now = datetime.now()
         duration = (now - session['annotime']).total_seconds()
-    if 'annotations' not in session.keys() or session['annotations'] == '' or  duration > 60:
+    if 'annotations' not in session.keys() or session['annotations'] == '' or  duration > 35:
         response = requests.get('{}'.format(session['origin_url']))
         content = json.loads(response.content.decode('utf-8').replace('&lt;', '<').replace('&gt;', '>'))
         for item in content['annotations']:

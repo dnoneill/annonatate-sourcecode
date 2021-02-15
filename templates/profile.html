@@ -1,6 +1,7 @@
 {% extends 'base.html' %}
 
 {% block content %}
+	<a href="{{url_for('logout')}}">Logout</a>
 	<div class="profile">
 	<h2>User Display Name (used for creator information)</h2>
 	<form action="{{ url_for('updateprofile') }}" method="post">
