@@ -1,34 +1,38 @@
 <!DOCTYPE html>
-<html>
-<title>{% block title %}{% endblock %}</title>
+<html lang="en">
+<title>{% block title %}{% endblock %} - Annonatate</title>
 
 <head>
 	<link rel="stylesheet"  type="text/css" href="{{ url_for('static', filename='assets/css/main.css') }}">
 	<link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/icon?family=Material+Icons">
-  <link rel="stylesheet" type="text/css" href="https://code.getmdl.io/1.3.0/material.teal-blue.min.css" />
   
   <script src="https://ncsu-libraries.github.io/annona/dist/annona.js"></script>
   <link rel="stylesheet" type="text/css" href="https://ncsu-libraries.github.io/annona/dist/annona.css">	
 	<script src="//cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.js"></script>
   <script src="//cdn.jsdelivr.net/npm/lodash@4.17.11/lodash.min.js"></script>
+  <script src="/assets/js/global.js"></script>
+
  </head>
 <body>
   <div class="topnav" id="myTopnav">
-    <a href="{{ url_for('index') }}"><i class="fa fa-home" aria-hidden="true"></i>
+    <a href="{{ url_for('index') }}" aria-label="index link"><i class="fa fa-home" aria-hidden="true"></i>
     </a>
     <a href="{{ url_for('listannotations') }}">Annotations</a>
     <a href="{{ url_for('search') }}">Search</a>
     <a href="{{ url_for('upload') }}">Upload</a>
-    <a href="{{ url_for('annonaview') }}">Custom views</a>
     <a href="{{ url_for('customviews') }}">List custom views</a>
+    <a href="{{ url_for('collections') }}">Collections</a>
+    <a href="https://annonatate.github.io/annonatate-help/" target="_blank">Help</a>
     <a href="/profile" style="float: right;">
-      <img src="{{session['avatar_url']}}" style="height: 1em; padding: 0px 6px 0px;">
+      {% if session['avatar_url'] %}
+      <img src="{{session['avatar_url']}}" style="height: 1em; padding: 0px 6px 0px;" alt="github user icon">
+      {% endif %}
       {{session['user_name']}}
     </a>
      {% if session['workspaces'] | length > 1 %}
-    	<a style="float: right;" href="/workspaces" >{{session['currentworkspace']['full_name']}}</a>
+    	<a style="float: right;" href="{{session['currentworkspace']['html_url']}}" target="_blank">{{session['currentworkspace']['full_name']}}</a>
     {% endif %}
-    <a href="javascript:void(0);" class="icon" onclick="myFunction()">
+    <a href="javascript:void(0);" aria-label="hamburger menu" class="icon" onclick="myFunction()">
       <i class="fa fa-bars"></i>
     </a>
   </div>
@@ -36,6 +40,7 @@
     <header>
       {% block header %}{% endblock %}
     </header>
+    <p class="error">{{g.error | safe}}</p>
     {% block content %}{% endblock %}
   </section>
   <script>

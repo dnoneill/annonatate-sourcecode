@@ -8,3 +8,5 @@ simplejson
 GitHub-Flask
 iiif-prezi
 pyyaml
+iiif
+gunicorn

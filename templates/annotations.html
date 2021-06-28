@@ -1,31 +1,39 @@
 {% extends 'base.html' %}
-
+{% block header %}
+  <h1>{% block title %}Annotations{% endblock %}</h1>
+{% endblock %}
 {% block content %}
 <form action="{{ url_for('listannotations', annoid=annoid) }}" method="get">
 <div class="viewinputs">
-<b>View Type</b><br>
-<input type="radio" id="annotation" name="viewtype" value="annotation" {% if request.args['viewtype'] == 'annotation' %}checked{%endif%}>
-<label for="annotation">Image viewer</label><br>
-<input type="radio" id="storyboard" name="viewtype" value="storyboard" {% if request.args['viewtype'] == 'storyboard' or 'viewtype' not in request.args.keys() %}checked {% endif %}>
-<label for="storyboard">Storyboard</label><br>
+<fieldset>
+	<legend>View Type</legend>
+	<input type="radio" id="annotation" name="viewtype" value="annotation" {% if format == 'annotation' %}checked{%endif%}>
+	<label for="annotation">Image viewer</label><br>
+	<input type="radio" id="storyboard" name="viewtype" value="storyboard" {% if format == 'storyboard' %}checked {% endif %}>
+	<label for="storyboard">Storyboard</label><br>
+</fieldset>
 </div>
 {% if not annoid %}
 <div class="viewinputs">
-<b>Annotation Type</b><br>
-<input type="radio" id="single" name="annotype" value="single" {% if request.args['annotype'] == 'single' %}checked{% endif %}>
-<label for="single">Single</label><br>
-<input type="radio" id="list" name="annotype" value="list" {% if request.args['annotype'] == 'list' or 'annotype' not in request.args.keys() %}checked{% endif %}>
-<label for="list">List</label><br>
+<fieldset>
+	<legend>Annotation Type</legend>
+	<input type="radio" id="single" name="annotype" value="single" {% if request.args['annotype'] == 'single' %}checked{% endif %}>
+	<label for="single">Single Annotation</label><br>
+	<input type="radio" id="list" name="annotype" value="list" {% if request.args['annotype'] == 'list' or 'annotype' not in request.args.keys() %}checked{% endif %}>
+	<label for="list">Annontations Grouped by Image</label><br>
+</fieldset>
 </div>
 {% endif %}
 <input type=submit value=Submit>
 </form>
-{% if request.args['annotype'] == 'single' %}
-{% set annotype = 'annotationurl' %}
-{% else %}
-{% set annotype = 'annotationlist' %}
-{% endif %}
+
 {% for anno in annotations %}
+{% if 'resources' in anno['json'].keys()%}
+{% set annodata = anno['json']['resources'][0] %}
+{% else %}
+{% set annodata = anno['json'] %}
+{% endif %}
+{% if annodata %}
 <div class="annoitem">
 <div class="annonaview">
 <h1>
@@ -33,26 +41,65 @@
 </h1>	
 <i class="fab fa-github-square"></i> 
 {% if 'http' in anno['filename'] %}
-	<label for="githubpage">Github URL: </label>
+	Github URL:
 	<a id="githubpage" href="{{anno['filename']}}" target="_blank">{{anno['filename']}}</a>
+	<div>
+		<i class="fas fa-external-link-alt"></i> Display URL for:
+		<a id="displaystoryboard" target="_blank" href="https://ncsu-libraries.github.io/annona/tools/#/display?url={{anno['filename']}}&viewtype=iiif-storyboard&settings=%7B%22fullpage%22%3Atrue%7D">
+			Storyboard
+		</a> | 
+		<a id="displaystoryboard" target="_blank" href="https://ncsu-libraries.github.io/annona/tools/#/display?url={{anno['filename']}}&viewtype=iiif-annotation">
+			Image View
+		</a>
+	</div>
+	<div>	
+	{% if session['annocollections'][anno['filename']] or session['annocustomviews'][anno['filename']] or anno['canvas'] %}
+		<i class="fas fa-clipboard-list"></i> Is part of:
+		<ul id="incollections">
+		{% if anno['canvas'] %}
+			{% set listfilename = anno['canvas'] | listfilename %}
+			<li>
+				<a id="singleviewpage" target="_blank" href="{{ url_for('listannotations', annoid=listfilename) }}">
+				{{listfilename}}
+				</a> (list)
+			</li>
+		{% endif %}
+		{% for collection in session['annocollections'][anno['filename']] %}
+		<li>
+		<a href="{{ url_for('collections', collectionid=collection) }}" target="_blank">{{collection}}</a> (collection)
+		</li>
+		{% endfor %}
+		{% for customview in session['annocustomviews'][anno['filename']] %}
+		<li>
+		<a href="{{customview}}" target="_blank">{{customview}}</a> (custom view)
+		</li>
+		{% endfor %}
+	</ul>
+	{% endif %}
+	</div>
+	<form action="{{ url_for('createcollection', annotation=anno['filename']) }}" method="get">
+		<label for="title-{{anno['filename']}}">
+			<i class="fas fa-plus-square"></i> Add to Collection:
+		</label>
+		<select name="title" id="title-{{anno['filename']}}">
+			{% for name in session['collectionnames'] %}
+			<option value="{{name}}">{{name}}</option>
+			{% endfor %}
+			<option value="">New Collection</option>
+		  </select>
+		  <input type="hidden" id="url" name="url" value="{{anno['filename']}}">
+		  <button type="submit">Add</button>
+	</form>
 	<div class="annonalinks">
 		<div>
-			<label for="customview"><i class="fas fa-cog"></i> Build custom view for: </label>
-			<a id="customview" href="/annonaview?url={{anno['filename']}}&viewtype=iiif-{{format}}&listtype={{annotype}}" target="_blank">{{anno['filename'].split("/")[-1]}}</a>
+			<i class="fas fa-cog"></i> Build custom view for: 
+			<a id="customview" href="/annonaview?url={{anno['filename']}}&viewtype=iiif-{{format}}" target="_blank">{{anno['filename'].split("/")[-1]}}</a>
 		</div>
 	</div>
 {% else %}
 GitHub URL for {{anno['filename']}} will be loaded in a minute.
 {% endif %}
-
-{% if 'resources' in anno['json'].keys() %}
-{% set annodata = anno['json']['resources'][0] %}
-{% else %}
-{% set annodata = anno['json'] %}
-{% endif %}
-<label for="annonatate">
 <i class="fas fa-pen"></i> Edit:  
-</label>
 {% if annodata['target']['dcterms:isPartOf'] %}
 <a id="annonatate" href="/?manifesturl={{annodata['target']['dcterms:isPartOf']['id']}}&canvas={{annodata['target']['source']}}">
 	{{anno['filename']}}
@@ -65,10 +112,10 @@ GitHub URL for {{anno['filename']}} will be loaded in a minute.
 <script type="application/json" id="{{anno['filename']}}">
 	{{anno['json'] | tojson_pretty | safe}}
 </script>
-<iiif-{{format}} {{annotype}}="{{anno['filename']}}"></iiif-{{format}}>
+<iiif-{{format}} annotationurl="{{anno['filename']}}"></iiif-{{format}}>
 </div>
 </div>
 <hr>
+{% endif %}
 {% endfor %}
-
 {% endblock %}

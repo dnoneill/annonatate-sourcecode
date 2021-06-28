@@ -1,18 +1,69 @@
 {% extends 'base.html' %}
-
+{% block header %}
+  <h1>{% block title %}Custom Views{% endblock %}</h1>
+{% endblock %}
 {% block content %}
+<div>
+<a href="{{ url_for('annonaview') }}">Build Custom view</a>
+</div>
 {% if session['customviews'] | length == 0 %}
 <b>Currently there are no custom views</b>
 {% endif %}
+<div class="gridparent">
 {% for view in session['customviews'] %}
 <div class="customview">
-<a href="{{view}}" target="_blank">{{view.replace('.html', '')}}</a>
-<iframe src="{{view}}" id="{{view.replace('.html', '')}}" onload="resizeIframe(this)"></iframe>
+{% if 'filename' in view %}
+{% if 'slug' not in view %}
+<a href="{{view['filename']}}" target="_blank">{{view['filename'].replace('.html', '')}}</a>
+{% else %}
+<div id="{{view['slug']}}-render">
+{{view['slug']}} is still rendering
 </div>
-<script> 
-    function resizeIframe(item){
-        item.style.height = item.contentWindow.document.body.scrollHeight + 'px'; 
-    }
-</script> 
+<script>
+			var isready = UrlExists(`/uploadstatus?url={{view['filename']}}&checknum=0&uploadtype=customview`);
+			var start = 1;
+      if (isready){
+        success(false)
+      } else {
+        var interval = setInterval(function(){
+          var isready = UrlExists(`/uploadstatus?url={{view['filename']}}&checknum=${start}&uploadtype=customview`);
+          start += 1
+          if (isready){
+            success(true)
+          }
+        }, 40000);
+        function stopFunction() {
+          clearInterval(interval);
+        }
+      }      
+      
+      function success(stopinterval){
+        document.getElementById("{{view['slug']}}-render").innerHTML = `<a href="{{view['filename']}}" target="_blank">{{view['filename']}}</a>`;
+        document.getElementById("{{view['slug']}}-embedview").innerHTML = `
+        <iframe src="{{view['filename']}}" id="{{view['filename'].replace('.html', '')}}" style="height: 600px;width: 100%;"></iframe>`
+        if (stopinterval){
+          stopFunction();
+        }
+      }
+</script>
+{% endif %}
+{% with file=view['filename'], next=request.path %}
+{% include 'deletebutton.html' %}
+{% endwith %}
+{% if 'slug' not in view %}
+<div class="embedview">
+<iframe src="{{view['filename']}}" id="{{view['filename'].replace('.html', '')}}" style="height: 600px;width: 100%;"></iframe>
+</div>
+{% else %}
+<div id="{{view['slug']}}-embedview" class="embedview">
+
+</div>
+{% endif %}
+{% else %}
+<a href="{{view}}" target="_blank">{{view.replace('.html', '')}}</a>
+<iframe src="{{view}}" id="{{view.replace('.html', '')}}" style="height: 660px;"></iframe>
+{% endif %}
+</div> 
 {% endfor %}
+</div>
 {% endblock %}

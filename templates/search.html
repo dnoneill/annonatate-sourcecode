@@ -1,8 +1,12 @@
 {% extends 'base.html' %}
+{% block header %}
+  <h1>{% block title %}Search{% endblock %}</h1>
+{% endblock %}
 <link rel="stylesheet" type="text/css" href="https://dnoneill.github.io/jekyll-lunr-js-custom-search/dist/custom-search.css">
 {% block content %}
 <form action="{{ url_for('search') }}" method="get">
-<input name="q" value="{{request.args['q']}}">
+<label for="q">Query: </label>
+<input name="q" id="q" value="{{request.args['q']}}">
 <input type="hidden" name="tag" value="{{request.args['tag']}}"> 
 <input type="hidden" name="creator" value="{{request.args['creator']}}"> 
 <input type=submit value=Submit>
@@ -11,7 +15,7 @@
 <div style="float: left; width: 20%; ">
   <div id="facets">
     {% if facets['tags'] | length > 0 %}
-    <h4>Tags</h4>
+    <h2>Tags</h2>
     {% for tag, count in facets['tags'].items() %}   
     {% if request.args['tag'] == tag %}
     <a href="{{url_for('search',tag='', q=request.args['q'], creator=request.args['creator']) }}">
@@ -21,7 +25,7 @@
     {% endfor %}
     {% endif %}
     {% if facets['creator'] | length > 0 %}
-    <h4>Creators</h4>
+    <h2>Creators</h2>
     {% for creator, count in facets['creator'].items() %}
     {% if request.args['creator'] == creator %}
     <a href="{{url_for('search',creator='', q=request.args['q'], tag=request.args['tag']) }}">
@@ -46,28 +50,23 @@ Showing {{results | length}} annotations out of {{annolength}} annotations
 {% endif %}
 <h2><a href="{{ url_for('listannotations', annoid=result.basename, annotype='single') }}">{{result.basename}}</a></h2>
 <div class="results_data">
-  <table class="searchResultMetadata">
-    <tbody>
+  <div class="searchResultMetadata">
       {% if result.searchfields.content %}
-      <tr>
-        <td class="searchResultLeftColumn">Content:</td>
-        <td class="searchResultRightColumn">{{result.searchfields.content}}</td>
-      </tr>
+      <div>
+        Content: {{result.searchfields.content}}
+      </div>
       {% endif %}
       {% if result.searchfields.tags %}
-      <tr>
-        <td class="searchResultLeftColumn">Tags:</td>
-        <td class="searchResultRightColumn">{{result.searchfields.tags}}</td>
-      </tr>
+      <div>
+        Tags: {{result.searchfields.tags}}
+      </div>
       {% endif %}
       {% if result.facets.creator %}
-      <tr>
-        <td class="searchResultLeftColumn">Creator{{'s' if result.facets.creator | length > 1}}: </td>
-        <td class="searchResultRightColumn">{{", ".join(result.facets.creator)}}</td>
-      </tr>
+      <div>
+        Creator{{'s' if result.facets.creator | length > 1}}: {{", ".join(result.facets.creator)}}
+      </div>
       {% endif %}
-    </tbody>
-  </table>
+  </div>
 </div>
 </li>
 {% endfor %}

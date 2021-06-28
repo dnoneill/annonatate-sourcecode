@@ -1,0 +1,31 @@
+<button onclick="updateData()" class="button" style="float: right;">Update</button>
+{% for key in session['preloaded'] %}
+<div class="listitems" id="{{key}}" contenteditable="true">
+  <h2>{{key.title()}}</h2>
+  <ul>
+    {% for listitem in session['preloaded'][key] %}
+        <li>{{listitem}}</li>
+    {% endfor %}
+    {% if session['preloaded'][key] | length < 1 %}
+    <li></li>
+    {% endif %}
+  </ul>
+</div>
+{% endfor %}
+<form action="{{ url_for('updatedata') }}" id="updatedataform" name="updatedataform" method="post" style="display: none;">
+    <label for="updatedata">Update data</label>
+    <input id="updatedata" name="updatedata" value=""/>
+</form>
+<script>
+    function updateData() {
+        var dictdata = {}
+        const listitems = document.getElementsByClassName('listitems');
+        for (var li=0; li<listitems.length; li++){
+            var htmlcoll = Array.from(listitems[li].getElementsByTagName('li'));
+            var listelem = htmlcoll.map(elem => elem.textContent);
+            dictdata[listitems[li].id] = listelem;
+        }
+        document.getElementById('updatedata').value = JSON.stringify(dictdata);
+        document.getElementById("updatedataform").submit();
+    }
+</script>

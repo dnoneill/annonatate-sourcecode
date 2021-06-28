@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% block title %}Home{% endblock %}
 {% block content %}
 <script src="/assets/openseadragon/openseadragon.2.4.2.min.js"></script>
 <script type="text/javascript" src="/assets/iso6391/index.js"></script>
@@ -9,7 +10,8 @@
 <script src="/assets/openseadragon/openseadragon-annotorious.min.js"></script>
 <script src="https://unpkg.com/vue/dist/vue.js"></script>
 <div id="app">
-  <annoview :existing='{{session["existing"] | tojson}}' :filepaths='{{ filepaths|tojson }}' :userinfo='{{userinfo | tojson}}' :tags='{{tags|tojson}}'></annoview>
+
+  <annoview :existing='{{existingitems | tojson}}' :filepaths='{{ filepaths|tojson }}' :userinfo='{{userinfo | tojson}}' :tags='{{tags|tojson}}'></annoview>
 </div>
 <script src="index.js"></script>
 <p>

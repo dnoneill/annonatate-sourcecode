@@ -31,7 +31,7 @@
   display: none;
 }
 
-@media screen and (max-width: 700px) {
+@media screen and (max-width: 730px) {
   .topnav a:not(:first-child) {display: none;}
   .topnav a.icon {
     float: right;
@@ -39,7 +39,7 @@
   }
 }
 
-@media screen and (max-width: 700px) {
+@media screen and (max-width: 785px) {
   .topnav.responsive {position: relative;}
   .topnav.responsive .icon {
     position: absolute;
@@ -82,14 +82,6 @@ section.content {
 tbody {
    border: none;
  }
-
-.searchResultLeftColumn, .searchResultRightColumn {
- background-color: white;
-}
-
-.searchResultLeftColumn {
-  width: 140px;
-}
 
 #sort_by {
   float: right;
@@ -182,7 +174,6 @@ tbody {
 }
 
 .thumbnail img {
-  height: 50px;
   width: auto!important;
   float: left;
   padding-right: 10px;
@@ -191,6 +182,8 @@ tbody {
 .searchResultMetadata {
   margin-bottom: 1em; 
   margin-top: 1em;
+  width: 100%;
+  background-color: white;
 }
 
 .results_data {
@@ -237,12 +230,12 @@ tbody {
 }
 
 .customview {
-  width: 49%;
+  width: 100%;
   display: inline-block;
 }
 
 .manifestimages {
-  height: 120px;
+  max-height: 120px;
   width: 95%;
   overflow: auto;
   margin-bottom: 8px;
@@ -296,9 +289,10 @@ label.toolbutton input:checked+span {
   padding-bottom: 12px;
 }
 
-#openseadragon1 {
+#openseadragon1.active {
   height:100vh;
   width: 95%;
+  outline: 1px solid black;
 }
 
 #app #livedemo {
@@ -328,4 +322,126 @@ img.githubicon {
 
 .workspaceusers {
   padding-left: 20px;
+}
+
+.fa-exclamation-triangle {
+  color: red;
+}
+
+
+body {font-family: Arial;}
+	
+/* Style the tab */
+.tab {
+  overflow: hidden;
+  border: 1px solid #ccc;
+  background-color: #f1f1f1;
+}
+
+/* Style the buttons inside the tab */
+.tab button {
+  background-color: inherit;
+  float: left;
+  border: none;
+  outline: none;
+  cursor: pointer;
+  padding: 14px 16px;
+  transition: 0.3s;
+  font-size: 17px;
+}
+
+/* Change background color of buttons on hover */
+.tab button:hover {
+  background-color: #ddd;
+}
+
+/* Create an active/current tablink class */
+.tab button.active {
+  background-color: #ccc;
+}
+
+/* Style the tab content */
+.tabcontent {
+  display: none;
+  padding: 6px 12px;
+  border: 1px solid #ccc;
+  border-top: none;
+}
+
+.logout {
+  float: right;
+  font-size: 1.5em;
+  font-weight: 900;
+  margin-top: -130px!important;
+}
+
+.button {
+  background-color: teal;
+  border: none;
+  color: white;
+  padding: 10px 15px;
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+  margin: 4px 2px;
+  cursor: pointer;
+}
+
+#incollections{
+  margin-top: 0px;
+  margin-bottom: 0px;
+}
+.gridparent {
+  display: grid;
+  grid-template-columns: 100%;
+}
+@media (min-width: 800px) {
+  .gridparent {
+    grid-template-columns: 49% 49%;
+    grid-gap: 24px;
+    margin: 20px;
+  }
+}
+
+
+.gridparent > div {
+  border-bottom: 1px solid black;
+}
+h1 {
+  font-size: 2.5em!important;
+}
+h2 {
+  font-size: 2em!important;
+}
+h3 {
+  font-size: 1.7em!important;
+}
+
+.removeboard, .linkbutton {
+  display: inline-block;
+    border: none;
+    margin: 0;
+    text-decoration: none;
+    background: none;
+    color: black;
+    font-family: sans-serif;
+    font-size: 2rem;
+    cursor: pointer;
+    text-align: center;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+}
+
+.linkbutton {
+  font-size: 14px;
+  color: #0000EE;
+  text-align: left;
+  padding: 0px;
+}
+.submitbutton {
+  padding-top: 20px;
+}
+
+body {
+  margin: 0px;
 }

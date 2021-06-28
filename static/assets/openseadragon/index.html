@@ -1,11 +1,4 @@
-<!DOCTYPE html>
-<html>
-  <head>
-    <meta charset="utf-8" />
-    <title>Annotorious OpenSeadragon Example</title>
-    <link href="https://fonts.googleapis.com/css?family=Lato&display=swap" rel="stylesheet">
-    <style>
-      html, body {
+<!doctype html><html><head><meta charset="utf-8"/><title>Annotorious OpenSeadragon Example</title><link href="https://fonts.googleapis.com/css?family=Lato&display=swap" rel="stylesheet"><style>html, body {
         margin:0;
         padding:0;
         background-color:#e2e2e2;
@@ -41,10 +34,8 @@
 
       .a9s-selection-mask {
         fill:rgba(0,0,0,0.6) !important;
-      }
-    </style>
-    <script>
-      window.onload = function() {
+        pointer-events:none;
+      }</style><script>window.onload = function() {
         var viewer = OpenSeadragon({
           id: "openseadragon",
           prefixUrl: "openseadragon/images/",
@@ -54,15 +45,14 @@
           },
           gestureSettingsTouch: {
             pinchRotate: true
-          }
+          },
+          showRotationControl: true,
+          showFlipControl: true,
+          constrainDuringPan: true,
         });
         
         var anno = OpenSeadragon.Annotorious(viewer, {
           locale: 'auto'
-          // widgets: [
-          //   {widget: 'COMMENT', purpose: true},
-          //   { widget: 'TAG', vocabulary: [ 'Animal', 'Building', 'Waterbody'] }
-          // ]
         });
 
         anno.setAuthInfo({
@@ -82,7 +72,7 @@
         });
 
         var modeBtn = document.getElementById('mode');
-        modeBtn.addEventListener('click', function() {
+        modeBtn.addEventListener('click', function() {             
           if (modeBtn.innerHTML == 'MODE: VIEW') {
             modeBtn.innerHTML = 'MODE: ANNOTATE';
             anno.setDrawingEnabled(true);
@@ -100,48 +90,17 @@
           console.log('selected', annotation);
         });
 
-        anno.on('createAnnotation', function(a) {
-          console.log('created', a);
-          modeBtn.innerHTML = 'MODE: VIEW';
-        });
-
-        anno.on('cancelSelection', function(a) {
-          modeBtn.innerHTML = 'MODE: VIEW';
-        });
-
-        anno.on('updateAnnotation', function(annotation, previous) {
-          console.log('updated', previous, 'with', annotation);
-        });
-
-        anno.on('deleteAnnotation', function(annotation) {
-          console.log('deleted', annotation);
+        anno.on('cancelSelected', function(a) {
+          console.log('cancelSelected', a);
         });
 
         anno.on('mouseEnterAnnotation', function(annotation) {
-          console.log('mouseEnter', annotation);
+          // console.log('mouseEnter', annotation);
         });
 
         anno.on('mouseLeaveAnnotation', function(annotation) {
-          console.log('mouseLeave', annotation);
+          // console.log('mouseLeave', annotation);
         });
 
         anno.loadAnnotations('annotations.w3c.json');
-      }
-    </script>
-  <link href="annotorious.min.css" rel="stylesheet"></head>
-  <body>
-    <div class="column">
-      <h1>Annotorious | OpenSeadragon Example</h1>
-      <p class="instructions">
-        Click the annotation to edit. Hold <strong>SHIFT</strong> while clicking and 
-        dragging the mouse to create a new annotation. 
-      </p>
-      <p>
-        <button id="current-tool">TOOL: RECTANGLE</button>
-        <button id="mode">MODE: VIEW</button>
-      </p>
-      <div id="openseadragon" style="width: 640px; height: 480px;"></div>
-    </div>      
-    <script src="openseadragon/openseadragon.2.4.2.min.js"></script>
-  <script type="text/javascript" src="openseadragon-annotorious.min.js"></script></body>
-</html>
+      }</script><link href="annotorious.min.css" rel="stylesheet"></head><body><div class="column"><h1>Annotorious | OpenSeadragon Example</h1><p class="instructions">Click the annotation to edit. Hold <strong>SHIFT</strong> while clicking and dragging the mouse to create a new annotation.</p><p><button id="current-tool">TOOL: RECTANGLE</button> <button id="mode">MODE: VIEW</button></p><div id="openseadragon" style="width: 640px; height: 480px;"></div></div><script src="openseadragon/openseadragon.2.4.2.min.js"></script><script src="openseadragon-annotorious.min.js"></script></body></html>

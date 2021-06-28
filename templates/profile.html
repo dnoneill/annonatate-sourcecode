@@ -1,76 +1,24 @@
 {% extends 'base.html' %}
-
+{% block header %}
+  <h1>{% block title %}Profile{% endblock %}</h1>
+{% endblock %}
 {% block content %}
-	<a href="{{url_for('logout')}}">Logout</a>
-	<div class="profile">
-	<h2>User Display Name (used for creator information)</h2>
-	<form action="{{ url_for('updateprofile') }}" method="post">
-	{% for key, value in userinfo.items() %}
-		<div>
-			<label for="{{key}}">{{key}}: </label>
-			<input value="{{value}}" name="{{key}}">
-		</div>
-	{% endfor %}
-		<button type="submit">Update</button>
-	</form>
-	{% if invites | length > 0 %}
-	<div>
-	<h2>Invitations</h2>
-	{% for invite in invites %}
-	<img src="{{invite['inviter']['avatar_url']}}" class="githubicon"><a href="{{invite['inviter']['html_url']}}" target="_blank">{{invite['inviter']['login']}}</a> has invited you to collaborate on
-	<a href="{{invite['repository']['html_url']}}">{{invite['repository']['full_name']}}</a>
-	<form action="{{ url_for('acceptinvite') }}" method="post">
-		<button name="inviteurl" type="submit" value="{{invite['url']}}">Accept</button>
-	</form>
-	{% endfor %}
+	<div class="logout">
+		<a href="{{url_for('logout')}}">Logout</a>
 	</div>
-	{% endif %}
-	<h2>Workspaces</h2>
-	{% for key, value in session['workspaces'].items() %}
-	<div>
-	<div>
-	<a href="{{value['html_url']}}">{{key}}</a>
-	<span class="switchorcurrent">
-	{% if session['currentworkspace']['full_name'] == key %}
-		<div style="color: green">(Current workspace)</div></div>
-		<div class="workspaceusers">
-		<h3>Users for current workspace</h3>
-		{% for collaborator in collaborators %}
-		<div style="display: block;">	
-		<img src="{{collaborator['avatar_url']}}" class="githubicon" style="height: 100px">
-		<a href="{{collaborator['html_url']}}" target="_blank">
-		{{collaborator['login']}}</a>
-		</div>
-		{% endfor %}
-		</div>
-	{% else %}
-	<form action="{{ url_for('changeworkspace') }}" method="post">
-		<button name="workspace" type="submit" value="{{key}}">Switch</button>
-	</form></div>
-	{% endif %}
-	</span>
-	<div class="description">
-	{% if value['description'] %}
-	{{value['description']}}
-	{% endif %}
+	<div class="tab">
+		<!-- <button class="tablinks" onclick="openTab(event, 'iiifimage')" id="defaultOpen">Create IIIF image</button> -->
+		<button class="tablinks" onclick="openTab(event, 'profile')" id="defaultOpen">Edit Profile and Workspaces</button>
+		<button class="tablinks" onclick="openTab(event, 'data')" id="datatab">Edit preloaded manifests/images</button>
+		<button class="tablinks" onclick="openTab(event, 'uploads')" id="uploadstab">Edit uploaded manifests/images</button>
+	  </div>
+	<div id="profile" class="tabcontent">
+	{% include 'profiletab.html' %}
 	</div>
+	<div id="data" class="tabcontent">
+		{% include 'profiledata.html' %}
 	</div>
-	{% endfor %}
-{% if session['isadmin'] %}
-<h2>Invite collaborators</h2>
-<form action="{{ url_for('add_collaborator') }}" method="post">
-	<div><label for="username">GitHub Username:</label>
-		<input name="username"/></div>
-	<div>
-	<input type="radio" id="pull" name="permission" value="pull">
-	  <label for="pull">Read Only</label><br>
-	  <input type="radio" id="push" name="permission" value="push" checked>
-	  <label for="push">Read/Write</label><br>
-	  <input type="radio" id="admin" name="permission" value="admin">
-	  <label for="admin">Admin</label>
-	 </div>
-  <button name="button" type="submit" value="submit">Submit</button>
-</form>
-{% endif %}
-</div>
+	<div id="uploads" class="tabcontent">
+		{% include 'profileuploads.html' %}
+	</div>
 {% endblock %}

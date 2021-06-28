@@ -1,7 +1,18 @@
 {% extends 'base.html' %}
-
+{% block header %}
+  <h1>{% block title %}Upload {%if uploadurl %}Success {% else %} Failure {% endif %}{% endblock %}</h1>
+{% endblock %}
 {% block content %}
-	{% if '.zip' in output %}
+	{% if uploadurl %}
+		<p id="uploadtext">
+			{{uploadtype | title}} successfully written.
+			This can take a minute to load. 
+			This page will update with the URL of the {{uploadtype}} when the {{uploadtype}} is avaliable.
+		</p>
+	{% elif '.zip' not in output%}
+		<p>Something went wrong writing to GitHub, please try again.
+		Message from GitHub: {{output | safe}}</p>
+	{% elif '.zip' in output %}
 	<b>Image creation a success!</b>
 	Please follow the instructions below to add image to site
 	<ol>
@@ -16,8 +27,40 @@
 		<p><b>Note: you might want to create a folder to hold all of you custom images. To do this put the downloaded image into a folder. Then upload that folder to the GitHub repository </b></p></li>
 	<li>Go to <a href="{{ url_for('index') }}">homepage</a>. The new image should show in the list of images in the viewer.
 	</ol>
-	{% else %}
-		<b>{{output}}</b>
 	{% endif %}
+<script>
+	$(window).on('load', function() {
+		if ('{{uploadurl}}' != 'False'){
+			checkStatus(0)
+			var start = 1
+			const interval = setInterval(function(){
+				checkStatus(start)
+				start += 1
+			}, 40000);
+			function stopFunction() {
+				clearInterval(interval);
+			}
+		}
+		function checkStatus(checknum){
+			const uploadurl = '{{uploadurl}}' 
+			const uploadtype = '{{uploadtype}}'
+			var isready = UrlExists(`/uploadstatus?url=${uploadurl}&checknum=${checknum}&uploadtype=${uploadtype}`);
+			if (isready){
+				if (checknum > 0){
+					stopFunction();
+				}
+				if (uploadtype == 'manifest'){
+					var annotateurl = `/?manifesturl=${uploadurl}`
+				} else {
+					var annotateurl = `/?imageurl=${uploadurl}`
+				}
+				const successtext = `<p><a href="${uploadurl}">${uploadurl}</a> is now avaliable.</p>
+				<p><a href="${annotateurl}">Start annotating your ${uploadtype}!</a></p>`
+				document.getElementById('uploadtext').innerHTML = successtext
+			}
+		}
+	})
+	
+</script>
 
 {% endblock %}
