@@ -1,7 +1,7 @@
 filepath = "_annotations"
 client_id = ""
 client_secret = ""
-github_repo = "annotationtemplate"
+github_repo = "annonatate"
 github_branch = "main"
 uploadfolder="/tmp"
 githubuserapi="https://api.github.com/user"
