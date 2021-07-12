@@ -24,6 +24,10 @@ from iiif import IIIFStatic
 import os
 #import time
 
+import image as anno
+
+import pdb
+
 app = Flask(__name__,
             static_url_path='',
             static_folder='static',)
@@ -154,70 +158,29 @@ def removecollaborator():
 
 @app.route('/createimage', methods=['POST', 'GET'])
 def createimage():
-    iiifimage = request.form['upload']
-    uploadurl = False
-    isimage = bool(re.match("^upload(iiif|image)$", iiifimage.strip()))
-    if isimage == False:
-        imgurl, iiiffolder = iiifimage.rstrip('/').rsplit('/', 1)
-        imgurl += '/'
-        manifestpath = "manifests/{}".format(iiiffolder)
-        url = iiifimage
-        tmpfilepath = False
-    elif iiifimage == 'uploadiiif':
-        file = request.files['file']
-        filename = secure_filename(file.filename)
-        tmpfilepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-        file.save(tmpfilepath)
-    if iiifimage == 'uploadiiif':
-        iiiffolder = os.path.splitext(filename)[0]
-        manifestpath = "images/{}".format(iiiffolder)
-        prefix = "{{site.url}}{{site.baseurl}}/images"
-        sg = IIIFStatic(dst=app.config['UPLOAD_FOLDER'], prefix=prefix)
-        try:
-            output = sg.generate(tmpfilepath)
-        except:
-            os.remove(tmpfilepath)
-            error = "There was a problem turning this image into a IIIF image. Please try a different image."
-            return render_template('upload.html', imageerror=error)
-        iiifpath = os.path.join(app.config['UPLOAD_FOLDER'], iiiffolder)
-        infocontents = open(os.path.join(iiifpath, 'info.json')).read()
-        imgurl = "https://%s/"%(prefix)
-        url = "{}{}".format(imgurl, iiiffolder)
-        createjekyllfile(infocontents,'info.json', iiifpath)
-    if iiifimage != 'uploadimage':
-        manifesturl = "{}{}/manifest.json".format(session['origin_url'], manifestpath)
-        manifest = createmanifest(tmpfilepath, imgurl, url, iiiffolder, request.form, manifesturl)
-        if type(manifest) == dict:
-            return render_template('upload.html', error=manifest['error'])
-        else:
-            manifest = manifest.toString(compact=False).replace('canvas/info.json', 'info.json').replace('https://{{site.url}}', '{{site.url}}')
-    if iiifimage == 'uploadimage':
-        file =request.files['file']
-        encodedimage = file.stream.read()
-        response = sendgithubrequest(file.filename, encodedimage, "images").json()
-        uploadtype='image'
-        if 'content' in response.keys():
-            uploadurl = "{}{}".format(session['origin_url'], response['content']['path'])
-            output =  True
-        else:
-            output = response['message']
-    elif 'http' in iiifimage:
-        manifest = "---\n---\n{}".format(manifest)
-        response = sendgithubrequest("manifest.json", manifest, manifestpath).json()
+    image = anno.Image(request.form, request.files, session['origin_url'])
+
+    if not image.isimage:
+        response = sendgithubrequest("manifest.json", image.manifest_markdown, image.manifestpath).json()
         uploadtype = 'manifest'
         if 'content' in response.keys():
-            uploadurl ='{}{}'.format(session['origin_url'], response['content']['path'].replace('_manifest', 'manifest'))
+            uploadurl ='{}{}'.format(image.origin_url, response['content']['path'].replace('_manifest', 'manifest'))
             output = True
         else:
             output = response['message']
-    elif iiifimage == 'uploadiiif':
-        createjekyllfile(manifest, 'manifest.json', iiifpath)
-        os.remove(tmpfilepath)
-        output = os.path.join(app.config['UPLOAD_FOLDER'], iiiffolder)
-        shutil.make_archive(output, 'zip', iiifpath)
-        shutil.rmtree(iiifpath)
-        output = "{}.zip".format(iiiffolder)
+        if type(image.manifest) == dict:
+            return render_template('upload.html', error=image.manifest['error'])
+    else:
+        response = sendgithubrequest(image.file.filename, image.encodedimage, "images").json()
+        uploadtype='image'
+        if 'content' in response.keys():
+            uploadurl = "{}{}".format(image.origin_url, response['content']['path'])
+            output =  True
+        else:
+            output = response['message']
     triggerbuild()
+    template_name = 'uploadsuccess.html'
+    template_vars = {'output': output, 'uploadurl': uploadurl, 'uploadtype': uploadtype}
     return render_template('uploadsuccess.html', output=output, uploadurl=uploadurl, uploadtype=uploadtype)
 
 @app.route('/download', methods=['POST'])
@@ -567,51 +530,6 @@ def triggerbuild(url=False):
     pagebuild = url if url else session['currentworkspace']['url'] + '/pages'
     return github.raw_request("post", '{}/builds'.format(pagebuild), headers={'Accept': 'application/vnd.github.mister-fantastic-preview+json'})
 
-def createjekyllfile(contents, filename, iiifpath):
-    jekyllstring = "---\n---\n{}".format(contents)
-    with open(os.path.join(iiifpath, filename), 'w') as file:
-        file.write(jekyllstring)
-
-def createmanifest(tmpfilepath, imgurl, url, iiiffolder, formdata, manifesturl):
-    try:
-        fac = ManifestFactory()
-        fac.set_base_prezi_uri(url)
-        fac.set_base_image_uri(imgurl)
-        fac.set_iiif_image_info(2.0, 2)
-        manifest = fac.manifest(ident=manifesturl, label=formdata['label'])
-        manifest.viewingDirection = formdata['direction']
-        manifest.description = formdata['description']
-        manifest.set_metadata({"rights": formdata['rights']})
-        seq = manifest.sequence()
-        cvs = seq.canvas(ident='info', label=formdata['label'])
-        anno = cvs.annotation()
-        img = anno.image(iiiffolder, iiif=True)
-    except Exception as e:
-        return {'error': e}
-    if tmpfilepath:
-        img.set_hw_from_file(tmpfilepath)
-    else:
-        try:
-            img.set_hw_from_iiif()
-        except:
-            try:
-                response = requests.get("{}{}/info.json".format(imgurl, iiiffolder))
-                if response.status_code > 299:
-                    response = requests.get("{}{}".format(imgurl, iiiffolder))
-                try:
-                    content = response.json()
-                except:
-                    return {'error': 'No IIIF image exists at {}{}'.format(imgurl, iiiffolder)}
-                    # im = Image.open(BytesIO(response.content))
-                    # print(im.size)
-                    # content = {'height': im.size[1], 'width': im.size[0]}
-                img.height = content['height']
-                img.width = content['width']
-            except:
-                return {'error': 'Unable to get height/width for image located at {}{}'.format(imgurl, iiiffolder)}
-    cvs.height = img.height
-    cvs.width = img.width
-    return manifest
 
 def populateuserinfo():
     workspaces = {}
