@@ -10,7 +10,6 @@ from flask_cors import CORS
 import json, os, glob, requests
 import base64
 from settings import *
-from bs4 import BeautifulSoup
 import yaml, time
 import re
 import string, random
@@ -25,6 +24,7 @@ import os
 #import time
 
 import image as anno
+import search as anno
 
 import pdb
 
@@ -428,27 +428,15 @@ def acceptinvite():
 
 @app.route('/search')
 def search():
-    query = request.args.get('q')
-    allcontent = querysearch(query)
-    tags = request.args.get('tag')
-    if tags:
-        allcontent = searchfields(allcontent['items'], 'tags', tags)
-    creator = request.args.get('creator')
-    if creator:
-        allcontent = searchfields(allcontent['items'], 'creator', creator)
-    items = allcontent['items']
+    search = anno.Search(request.args, session['annotations'])
+
     if request.args.get('format') == 'json':
-        return jsonify(items), 200
+        return jsonify(search.items), 200
     else:
-        facets = {}
-        for key, value in allcontent['facets'].items():
-            value = [x for x in value if x is not None]
-            uniqtags = sorted(list(set(value)))
-            tagcount = {x:value.count(x) for x in uniqtags}
-            sortedtagcount = dict(sorted(tagcount.items(), key=(lambda x: (-x[1], x[0]))))
-            facets[key] = sortedtagcount
+        facets = search.facets
+
         annolength = len(list(filter(lambda x: '-list.json' not in x['filename'], session['annotations'])))
-        return render_template('search.html', results=items, facets=facets, query=query, annolength=annolength)
+        return render_template('search.html', results=search.items, facets=search.facets, query=search.query, annolength=annolength)
 
 @app.route('/annotations/', methods=['GET'])
 @app.route('/annotations/<annoid>', methods=['GET'])
@@ -612,52 +600,6 @@ def populateworkspace():
     except:
         return render_template('error.html', message="<p>There is a problem with your GitHub pages site. Try <a href='https://docs.github.com/en/github/working-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site'>enabling the website</a> or deleting/renaming the repository <a href='{}/settings'>{}/settings</a></p>".format(session['currentworkspace']['html_url'], session['currentworkspace']['html_url']))
     
-
-def querysearch(fieldvalue):
-    facets = {}
-    items = []
-    fieldvalue = fieldvalue if fieldvalue else ''
-    for item in session['annotations']:
-        if '-list.json' not in item['filename']:
-            results = get_search(item['json'])
-            if fieldvalue.lower() in " ".join(list(results['searchfields'].values())).lower():
-                items.append(results)
-                facets = mergeDict(facets, results['facets'])
-    return {'items': items, 'facets': facets}
-
-def searchfields(content, field, fieldvalue):
-    facets = {}
-    items = []
-    for anno in content:
-        if fieldvalue in anno['facets'][field]:
-            items.append(anno)
-            facets = mergeDict(facets, anno['facets'])
-    return {'items': items, 'facets': facets}
-
-
-def mergeDict(dict1, dict2):
-    dict3 = {**dict1, **dict2}
-    for key, value in dict3.items():
-        if key in dict1 and key in dict2:
-            dict3[key] = value + dict1[key]
-    return dict3
-
-def getContents():
-    arraydata = {}
-    canvases = getannotations()
-    tags = []
-    for canvas in canvases:
-        loadcanvas = canvas['json']
-        if 'resources' not in loadcanvas.keys():
-            searchfields = get_search(loadcanvas)
-            tags += searchfields['facets']['tags']
-            loadcanvas['order'] = canvas['order']
-        if canvas['canvas'] in arraydata.keys():
-            arraydata[canvas['canvas']].append(loadcanvas)
-        else:
-            arraydata[canvas['canvas']] = [loadcanvas]
-    return {'contents': arraydata, 'tags': tags}
-
 def getannotations():
     duration = 36
     if 'annotime' in session.keys():
@@ -879,54 +821,6 @@ def createdatadict(filename, text, path=filepath, order=''):
     if sha != '':
         data['sha'] = sha
     return {'data':data, 'url':full_url}
-
-def get_search(anno):
-    annodata_data = {'searchfields': {'content': []}, 'facets': {'tags': [], 'creator': []}, 'datecreated':'', 'datemodified': '', 'id': anno['id'], 'basename': os.path.basename(anno['id'])}
-    if 'oa:annotatedAt' in anno.keys():
-        annodata_data['datecreated'] = encodedecode(anno['oa:annotatedAt'])
-    if 'created' in anno.keys():
-        annodata_data['datecreated'] = encodedecode(anno['created'])
-    if 'oa:serializedAt' in anno.keys():
-        annodata_data['datemodified'] = encodedecode(anno['oa:serializedAt'])
-    if 'modified' in anno.keys():
-        annodata_data['datemodified'] = encodedecode(anno['modified'])
-    if 'oa:annotatedBy' in anno.keys():
-        annodata_data['facets']['creator'] = anno['oa:annotatedBy']
-    if 'creator' in anno.keys():
-        annodata_data['facets']['creator'] = anno['creator']['name']
-    textdata = anno['resource'] if 'resource' in anno.keys() else anno['body']
-    textdata = textdata if type(textdata) == list else [textdata]
-    for resource in textdata:
-        chars = BeautifulSoup(resource['chars'], 'html.parser').get_text() if 'chars' in resource.keys() else ''
-        chars = encodedecode(chars)
-        if chars and 'tag' in resource['type'].lower():
-            annodata_data['facets']['tags'].append(chars)
-        elif 'purpose' in resource.keys() and 'tag' in resource['purpose']:
-            tags_data = chars if chars else resource['value']
-            annodata_data['facets']['tags'].append(encodedecode(tags_data))
-        elif chars:
-            annodata_data['searchfields']['content'].append(chars)
-        elif 'items' in resource.keys():
-            field = 'value' if 'value' in resource['items'][0].keys() else 'chars'
-            fieldvalues = " ".join([encodedecode(item[field]) for item in resource['items']])
-            annodata_data['searchfields']['content'].append(fieldvalues)
-        elif 'value' in resource.keys():
-            annodata_data['searchfields']['content'].append(encodedecode(resource['value']))
-        if 'created' in resource.keys() and annodata_data['datecreated'] < resource['created']:
-            annodata_data['datecreated'] = resource['created']
-        if 'modified' in resource.keys() and annodata_data['datemodified'] < resource['modified']:
-            annodata_data['datemodified'] = resource['modified']
-        if 'creator' in resource.keys() and resource['creator']['name'] not in annodata_data['facets']['creator']:
-            annodata_data['facets']['creator'].append(resource['creator']['name'])
-    annodata_data['searchfields']['content'] = " ".join(annodata_data['searchfields']['content'])
-    annodata_data['searchfields']['tags'] = " ".join(annodata_data['facets']['tags'])
-    return annodata_data
-
-def encodedecode(chars):
-    if type(chars) == str:
-        return chars
-    else:
-        return chars.encode('utf8')
 
 def workspaceCheck(method=False):
     collaburl = session['currentworkspace']['collaborators_url'].split('{')[0]
