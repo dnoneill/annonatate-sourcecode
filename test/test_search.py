@@ -2,17 +2,15 @@
 # -*- coding: utf-8 -*-
 
 import unittest
-import search as anno
+
+import annonatate.search as anno
 import json
 import ast
 
-import pdb
+class TestSearch(unittest.TestCase):
 
-class Test(unittest.TestCase):
-
-    # TODO: trim this down to just the fields needed by search, and anonymize it
     def setUp(self):
-      with open('testdata/annotations.txt') as f:
+      with open('test/testdata/annotations.txt') as f:
         self.annotations = ast.literal_eval(f.read())
 
     def test_search_query_none(self):
@@ -37,6 +35,11 @@ class Test(unittest.TestCase):
 
       self.assertEqual(len(search.items), 1)
       self.assertEqual(search.items[0]['basename'], '142a41cd-6bb8-4052-a2b3-a300bfd15a9a.json')
+
+    def test_search_facet(self):
+      search = anno.Search({}, self.annotations)
+
+      self.assertEqual(search.facets['tags']['Machinery'], 1)
 
 if __name__ == '__main__':
    # begin the unittest.main()

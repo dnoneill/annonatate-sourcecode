@@ -15,9 +15,8 @@ class Image:
         self.origin_url = origin_url
         self.request_form = request_form
         self.request_files = request_files
-
         if not self.isimage:
-            # handle uploaded external url
+            # handle uploaded url
             self.imgurl, self.iiiffolder = self.iiifimage.rstrip('/').rsplit('/', 1)
             self.imgurl += '/'
             self.manifestpath = "manifests/{}".format(self.iiiffolder)

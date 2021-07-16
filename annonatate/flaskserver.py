@@ -433,8 +433,6 @@ def search():
     if request.args.get('format') == 'json':
         return jsonify(search.items), 200
     else:
-        facets = search.facets
-
         annolength = len(list(filter(lambda x: '-list.json' not in x['filename'], session['annotations'])))
         return render_template('search.html', results=search.items, facets=search.facets, query=search.query, annolength=annolength)
 
@@ -599,7 +597,23 @@ def populateworkspace():
         session['isadmin'] = session['currentworkspace']['permissions']['admin']
     except:
         return render_template('error.html', message="<p>There is a problem with your GitHub pages site. Try <a href='https://docs.github.com/en/github/working-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site'>enabling the website</a> or deleting/renaming the repository <a href='{}/settings'>{}/settings</a></p>".format(session['currentworkspace']['html_url'], session['currentworkspace']['html_url']))
-    
+
+def getContents():
+    arraydata = {}
+    canvases = getannotations()
+    tags = []
+    for canvas in canvases:
+        loadcanvas = canvas['json']
+        if 'resources' not in loadcanvas.keys():
+            searchfields = get_search(loadcanvas)
+            tags += searchfields['facets']['tags']
+            loadcanvas['order'] = canvas['order']
+        if canvas['canvas'] in arraydata.keys():
+            arraydata[canvas['canvas']].append(loadcanvas)
+        else:
+            arraydata[canvas['canvas']] = [loadcanvas]
+    return {'contents': arraydata, 'tags': tags}
+
 def getannotations():
     duration = 36
     if 'annotime' in session.keys():

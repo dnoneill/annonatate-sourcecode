@@ -1,0 +1,17 @@
+{% for key in session['upload'] %}
+<div class="uploadlist" id="{{key}}">
+  <h2>{{key.title()}}</h2>
+  {% for url in session['upload'][key] %}
+  <div>
+      {% if key == 'images' %}
+    <img src="{{url}}" width="200px" alt="visual representation of {{url}}">
+    {% else %}
+    <a href="{{url}}">{{url}}</a>
+    {% endif %}
+    {% with file=url, next='/profile?tab=uploads' %}
+    {% include 'deletebutton.html' %}
+    {% endwith %}
+    </div>
+{% endfor %}
+</div>
+{% endfor %}
