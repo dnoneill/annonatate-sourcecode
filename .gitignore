@@ -1,1 +1,18 @@
 .DS_Store
+
+# python stuff from https://github.com/github/gitignore/blob/master/Python.gitignore
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Flask stuff:
+instance/
+.webassets-cache
+flask_session/
+
+unittest/
+venv/
+.env
+
