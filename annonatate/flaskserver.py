@@ -605,7 +605,7 @@ def getContents():
     for canvas in canvases:
         loadcanvas = canvas['json']
         if 'resources' not in loadcanvas.keys():
-            searchfields = get_search(loadcanvas)
+            searchfields = anno.get_search(loadcanvas)
             tags += searchfields['facets']['tags']
             loadcanvas['order'] = canvas['order']
         if canvas['canvas'] in arraydata.keys():
