@@ -8,14 +8,13 @@ import urllib.parse
 
 from flask_cors import CORS
 import json, os, glob, requests
-import base64
 from settings import *
 import yaml, time
 import re
 import string, random
 import uuid
 import simplejson as json
-from flask_github import GitHub
+#from flask_github import GitHub
 import shutil
 from datetime import datetime
 from iiif_prezi.factory import ManifestFactory
@@ -25,6 +24,7 @@ import os
 
 from utils.search import get_search, encodedecode, Search
 from utils.image import Image
+from utils.github import GitHubAnno
 
 app = Flask(__name__,
             static_url_path='',
@@ -35,7 +35,7 @@ app.config.update(
                   GITHUB_CLIENT_SECRET = client_secret
                   )
 Session(app)
-github = GitHub(app)
+github = GitHubAnno(app)
 ALLOWED_EXTENSIONS = set(['png', 'jpg', 'jpeg'])
 app.config['UPLOAD_FOLDER'] = uploadfolder
 indexfile = 'static/githubfiles/index.html'
@@ -161,7 +161,7 @@ def createimage():
     if not image.isimage:
         if type(image.manifest) == dict:
             return render_template('upload.html', error=image.manifest['error'])
-        response = sendgithubrequest("manifest.json", image.manifest_markdown, image.manifestpath).json()
+        response = github.sendgithubrequest("manifest.json", image.manifest_markdown, image.manifestpath).json()
         uploadtype = 'manifest'
         if 'content' in response.keys():
             uploadurl ='{}{}'.format(image.origin_url, response['content']['path'].replace('_manifest', 'manifest'))
@@ -169,7 +169,7 @@ def createimage():
         else:
             output = response['message']
     else:
-        response = sendgithubrequest(image.file.filename, image.encodedimage, "images").json()
+        response = github.sendgithubrequest(session, image.file.filename, image.encodedimage, "images").json()
         uploadtype='image'
         if 'content' in response.keys():
             uploadurl = "{}{}".format(image.origin_url, response['content']['path'])
@@ -210,7 +210,7 @@ def createcollection(collectionid=''):
         session['collections'][title] = collection
         if title not in session['collectionnames']:
             session['collectionnames'].append(title)
-        sendgithubrequest('{}.json'.format(title), contents, collectionsfolder)
+        github.sendgithubrequest(session, '{}.json'.format(title), contents, collectionsfolder)
         return redirect('/collections')
     else:
         formvalues = {}
@@ -404,7 +404,7 @@ def deletefile():
         uploadtype = path.split('/')[0]
         session['upload'][uploadtype].remove(url)
     payload = {'ref': session['github_branch']}
-    data = createdatadict(filename, 'delete', path)
+    data = github.createdatadict(session, filename, 'delete', path)
     response = github.raw_request('delete', data['url'], data=json.dumps(data['data']), params=payload)
     return redirect(request.args.get('next'))
 
@@ -468,7 +468,7 @@ def saveannonaview():
     {}
     </body>
     </html>""".format(jsonitems['tag'])
-    response = sendgithubrequest('{}.html'.format(jsonitems['slug']), content, folder)
+    response = github.sendgithubrequest(session, '{}.html'.format(jsonitems['slug']), content, folder)
     if response.status_code < 300:
         annourl = parseboard(jsonitems['tag'])['url']
         fileurl = os.path.join(session['origin_url'], folder, jsonitems['slug']) + '/'
@@ -488,7 +488,7 @@ def updatedata():
     data = request.form['updatedata']
     jsondata = json.loads(data)
     yamldata = yaml.dump(jsondata)
-    sendgithubrequest('preload.yml', yamldata, '_data')
+    github.sendgithubrequest(session, 'preload.yml', yamldata, '_data')
     session['preloaded'] = jsondata
     return redirect('/profile?tab=data')
 @github.access_token_getter
@@ -631,13 +631,13 @@ def getannotations():
         session['customviews'] = content['customviews']
         parsecustomviews(content)
         session['annotime'] = datetime.now()
-        updateAnnosGitHub()
+        github.updateAnnos(session)
         annotations = session['annotations']
         if status > 299:
             session['annotations'] = ''
     else:
         annotations = session['annotations']
-        githubresponse = updateAnnosGitHub()
+        githubresponse = github.updateAnnos(session)
         if githubresponse:
             filenames = list(map(lambda x: x['filename'].split('/')[-1], session['annotations']))
             notinsession = list(filter(lambda x: x['name'] not in filenames and '-list' not in x['name'],githubresponse))
@@ -689,7 +689,7 @@ def parsecollections(content):
 
 def updateindex():
     contents = open(indexfile).read()
-    sendgithubrequest('index.html', contents, '')
+    github.sendgithubrequest(session, 'index.html', contents, '', filepath)
 
 def parseboard(board):
     regex = r"((annotationurls?|rangeurl)=['\"])(.+?)(?=['\"])"
@@ -703,16 +703,6 @@ def parsetype(board):
     regex = r"<\/(iiif-.+)>"
     m = re.search(regex, board)
     return m.group(1)
-
-def updateAnnosGitHub():
-    annotations = session['annotations']
-    try:
-        githubresponse = github.get(session['currentworkspace']['contents_url'].replace('{+path}', filepath))
-        githubfilenames = list(map(lambda x: x['name'], githubresponse))
-        session['annotations'] = list(filter(lambda x: x['filename'].split('/')[-1] in githubfilenames,annotations))
-        return githubresponse
-    finally:
-        return False
 
 def origin_contents():
     response = requests.get(session['origin_url'])
@@ -741,7 +731,7 @@ def cleanid(id):
     return id.split('/')[-1].replace('.json', '') + '.json'
 
 def delete_annos(anno):
-    data = createdatadict(anno, 'delete')
+    data = github.createdatadict(session, anno, 'delete', filepath)
     if 'sha' in data['data'].keys():
         payload = {'ref': session['github_branch']}
         response = github.raw_request('delete', data['url'], data=json.dumps(data['data']), params=payload)
@@ -756,23 +746,9 @@ def to_pretty_json(value):
                       indent=4, separators=(',', ': '))
 app.jinja_env.filters['tojson_pretty'] = to_pretty_json
 
-def github_get_existing(full_url):
-    payload = {'ref': session['github_branch']}
-    match = False
-    if '/images/' in full_url:
-        full_url, match = full_url.strip('/').rsplit('/', 1)
-    existing = github.raw_request('get',full_url, params=payload).json()
-    if match and type(existing) == list:
-        matches = list(filter(lambda x: x['name'] == match, existing))
-        existing = matches[0] if len(matches) > 0 else matches
-    if 'sha' in existing:
-        return existing['sha']
-    else:
-        return ''
-
 def writetogithub(filename, annotation, order):
     githuborder = 'order: {}\n'.format(order)
-    response = sendgithubrequest(filename, annotation, filepath, githuborder)
+    response = github.sendgithubrequest(session, filename, annotation, filepath, githuborder)
     if response.status_code < 400:
         canvas = annotation['target']['source']
         data = {'canvas':canvas, 'json': annotation, 'filename': filename, 'order': order}
@@ -797,15 +773,10 @@ def writetogithub(filename, annotation, order):
         session['annotime'] = datetime.now()
     return response
 
-def sendgithubrequest(filename, annotation, path=filepath, order=''):
-    data = createdatadict(filename, annotation, path, order)
-    response = github.raw_request('put', data['url'], data=json.dumps(data['data'], indent=4))
-    return response
-
 def createlistpage(canvas):
     filename = listfilename(canvas)
     text = '---\ncanvas_id: "' + canvas + '"\n---\n{% assign annotations = site.annotations | where: "canvas", page.canvas_id | sort: "order" | map: "content" %}\n{\n"@context": "http://iiif.io/api/presentation/2/context.json",\n"id": "{{ site.url }}{{ site.baseurl }}{{page.url}}",\n"type": "AnnotationPage",\n"resources": [{{ annotations | join: ","}}] }'
-    sendgithubrequest(filename, text)
+    github.sendgithubrequest(session, filename, text, filepath)
 
 def listfilename(canvas):
     r = re.compile("\d+")
@@ -819,18 +790,6 @@ app.jinja_env.filters['listfilename'] = listfilename
 # def listfilenamelink(canvas):
 #     return "%s%s/%s"%(session['origin_url'], filepath.replace("_", ""), listfilename(canvas))
 # app.jinja_env.filters['listfilenamelink'] = listfilenamelink
-
-def createdatadict(filename, text, path=filepath, order=''):
-    full_url = os.path.join(session['github_url'], path, filename)
-    sha = github_get_existing(full_url)
-    writeordelete = "write" if text != 'delete' else "delete"
-    message = "{} {}".format(writeordelete, filename)
-    text = '---\ncanvas: "{}"\n{}---\n{}'.format(text['target']['source'],order, json.dumps(text, indent=4)) if type(text) != str and type(text) != bytes else text
-    text = text.encode('utf-8') if type(text) != bytes else text
-    data = {"message":message, "content": base64.b64encode(text).decode('utf-8'), "branch": session['github_branch'] }
-    if sha != '':
-        data['sha'] = sha
-    return {'data':data, 'url':full_url}
 
 def workspaceCheck(method=False):
     collaburl = session['currentworkspace']['collaborators_url'].split('{')[0]
