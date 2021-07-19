@@ -4,8 +4,6 @@
 import os
 from bs4 import BeautifulSoup
 
-import pdb
-
 class Search:
     def __init__(self, request_args, annotations):
         self.request_args = request_args
@@ -19,13 +17,17 @@ class Search:
         if self.creator:
             self.allcontent = self.searchfields(self.allcontent['items'], 'creator', self.creator)
         self.items = self.allcontent['items']
-        self.facets = {}
+        self.facets = self.gatherfacets()
+
+    def gatherfacets(self):
+        facets = {}
         for key, value in self.allcontent['facets'].items():
             value = [x for x in value if x is not None]
             uniqtags = sorted(list(set(value)))
             tagcount = {x:value.count(x) for x in uniqtags}
             sortedtagcount = dict(sorted(tagcount.items(), key=(lambda x: (-x[1], x[0]))))
-            self.facets[key] = sortedtagcount
+            facets[key] = sortedtagcount
+        return facets
 
     def querysearch(self, fieldvalue):
         facets = {}

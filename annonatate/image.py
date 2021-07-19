@@ -10,7 +10,6 @@ import pdb
 class Image:
     def __init__(self, request_form, request_files, origin_url):
         self.iiifimage = request_form['upload'] # might be 'uploadimage', or a url
-        self.uploadurl = False
         self.isimage = bool(re.match("^upload(iiif|image)$", self.iiifimage.strip()))
         self.origin_url = origin_url
         self.request_form = request_form

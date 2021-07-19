@@ -26,8 +26,6 @@ import os
 import image as anno
 import search as anno
 
-import pdb
-
 app = Flask(__name__,
             static_url_path='',
             static_folder='static',)
@@ -179,8 +177,6 @@ def createimage():
         else:
             output = response['message']
     triggerbuild()
-    template_name = 'uploadsuccess.html'
-    template_vars = {'output': output, 'uploadurl': uploadurl, 'uploadtype': uploadtype}
     return render_template('uploadsuccess.html', output=output, uploadurl=uploadurl, uploadtype=uploadtype)
 
 @app.route('/download', methods=['POST'])
