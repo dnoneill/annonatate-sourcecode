@@ -23,8 +23,8 @@ from iiif import IIIFStatic
 import os
 #import time
 
-import image as anno
-import search as anno
+import image as annoimage
+import search as annosearch
 
 app = Flask(__name__,
             static_url_path='',
@@ -156,7 +156,7 @@ def removecollaborator():
 
 @app.route('/createimage', methods=['POST', 'GET'])
 def createimage():
-    image = anno.Image(request.form, request.files, session['origin_url'])
+    image = annoimage.Image(request.form, request.files, session['origin_url'])
 
     if not image.isimage:
         response = sendgithubrequest("manifest.json", image.manifest_markdown, image.manifestpath).json()
@@ -424,7 +424,7 @@ def acceptinvite():
 
 @app.route('/search')
 def search():
-    search = anno.Search(request.args, session['annotations'])
+    search = annosearch.Search(request.args, session['annotations'])
 
     if request.args.get('format') == 'json':
         return jsonify(search.items), 200
@@ -601,7 +601,7 @@ def getContents():
     for canvas in canvases:
         loadcanvas = canvas['json']
         if 'resources' not in loadcanvas.keys():
-            searchfields = anno.get_search(loadcanvas)
+            searchfields = annosearch.get_search(loadcanvas)
             tags += searchfields['facets']['tags']
             loadcanvas['order'] = canvas['order']
         if canvas['canvas'] in arraydata.keys():
