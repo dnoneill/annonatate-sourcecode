@@ -3,7 +3,7 @@
 
 import unittest
 
-import annonatate.search as anno
+import annonatate.lib.search as anno
 import json
 import ast
 
