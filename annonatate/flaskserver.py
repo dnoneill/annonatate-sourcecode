@@ -23,8 +23,8 @@ from iiif import IIIFStatic
 import os
 #import time
 
-import utils.search
-import utils.image
+from utils.search import get_search, encodedecode, Search
+from utils.image import Image
 
 app = Flask(__name__,
             static_url_path='',
@@ -156,7 +156,7 @@ def removecollaborator():
 
 @app.route('/createimage', methods=['POST', 'GET'])
 def createimage():
-    image = utils.image.Image(request.form, request.files, session['origin_url'])
+    image = Image(request.form, request.files, session['origin_url'])
 
     if not image.isimage:
         response = sendgithubrequest("manifest.json", image.manifest_markdown, image.manifestpath).json()
@@ -424,7 +424,7 @@ def acceptinvite():
 
 @app.route('/search')
 def search():
-    search = utils.search.Search(request.args, session['annotations'])
+    search = Search(request.args, session['annotations'])
 
     if request.args.get('format') == 'json':
         return jsonify(search.items), 200
@@ -601,7 +601,7 @@ def getContents():
     for canvas in canvases:
         loadcanvas = canvas['json']
         if 'resources' not in loadcanvas.keys():
-            searchfields = utils.get_search(loadcanvas)
+            searchfields = get_search(loadcanvas)
             tags += searchfields['facets']['tags']
             loadcanvas['order'] = canvas['order']
         if canvas['canvas'] in arraydata.keys():
