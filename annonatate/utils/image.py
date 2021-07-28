@@ -22,7 +22,10 @@ class Image:
             self.url = self.iiifimage
             self.tmpfilepath = False
             self.manifesturl = "{}{}/manifest.json".format(self.origin_url, self.manifestpath)
-            self.createmanifest()
+            self.manifest = self.createmanifest()
+            if type(self.manifest) != dict: # manifest creation failed
+                manifest_markdown = self.manifest.toString(compact=False).replace('canvas/info.json', 'info.json').replace('https://{{site.url}}', '{{site.url}}')
+                self.manifest_markdown = "---\n---\n{}".format(manifest_markdown)
         else:
             # handle uploaded image
             self.file = request_files['file']
@@ -67,11 +70,5 @@ class Image:
                     return {'error': 'Unable to get height/width for image located at {}{}'.format(self.imgurl, self.iiiffolder)}
         cvs.height = img.height
         cvs.width = img.width
-        self.manifest = manifest
-        if type(self.manifest) == dict: # manifest creation failed
-            self.template_name = 'upload.html'
-            self.template_vars = {'error': self.manifest['error']}
-        else:
-            # pb: previously self.manifest was overwritten with the string version, but for testing we need the json version
-            manifest_markdown = self.manifest.toString(compact=False).replace('canvas/info.json', 'info.json').replace('https://{{site.url}}', '{{site.url}}')
-            self.manifest_markdown = "---\n---\n{}".format(manifest_markdown)
+        return manifest
+        

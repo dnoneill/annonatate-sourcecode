@@ -159,6 +159,8 @@ def createimage():
     image = Image(request.form, request.files, session['origin_url'])
 
     if not image.isimage:
+        if type(image.manifest) == dict:
+            return render_template('upload.html', error=image.manifest['error'])
         response = sendgithubrequest("manifest.json", image.manifest_markdown, image.manifestpath).json()
         uploadtype = 'manifest'
         if 'content' in response.keys():
@@ -166,8 +168,6 @@ def createimage():
             output = True
         else:
             output = response['message']
-        if type(image.manifest) == dict:
-            return render_template('upload.html', error=image.manifest['error'])
     else:
         response = sendgithubrequest(image.file.filename, image.encodedimage, "images").json()
         uploadtype='image'
