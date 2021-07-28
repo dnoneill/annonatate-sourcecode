@@ -1,6 +1,6 @@
 import unittest
 
-import annonatate.lib.image as ImageClass
+import annonatate.utils.image as ImageClass
 import requests
 import requests_mock
 import json
