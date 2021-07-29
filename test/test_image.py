@@ -6,8 +6,6 @@ import requests_mock
 import json
 from werkzeug.datastructures import FileStorage
 
-import pdb
-
 class TestImage(unittest.TestCase):
    def setUp(self):
       self.request_form = {'upload': 'file:test/testdata/imagetest', 'label': 'This is the label', 'direction': 'left-to-right', 'description': 'This is the description', 'rights': 'This is the rights'}

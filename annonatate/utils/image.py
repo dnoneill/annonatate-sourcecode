@@ -5,8 +5,6 @@ import re
 from iiif_prezi.factory import ManifestFactory
 import requests
 
-import pdb
-
 class Image:
     def __init__(self, request_form, request_files, origin_url):
         self.iiifimage = request_form['upload'] # might be 'uploadimage', or a url
