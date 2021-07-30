@@ -1,30 +1,22 @@
 from flask import Flask, jsonify, url_for, session,g
 from flask import request, render_template, redirect, send_file, flash
 from flask_session import Session
-from werkzeug.utils import secure_filename
-from PIL import Image
-from io import BytesIO
 import urllib.parse
 
-from flask_cors import CORS
 import json, os, glob, requests
 import base64
 from settings import *
 import yaml, time
 import re
-import string, random
-import uuid
 import simplejson as json
 from flask_github import GitHub
-import shutil
 from datetime import datetime
-from iiif_prezi.factory import ManifestFactory
-from iiif import IIIFStatic 
 import os
-#import time
 
 from utils.search import get_search, encodedecode, Search
 from utils.image import Image
+from utils.iiiffunctions import addAnnotationList
+from utils.collectionform import CollectionForm, parseboard, parsetype
 
 app = Flask(__name__,
             static_url_path='',
@@ -38,8 +30,7 @@ Session(app)
 github = GitHub(app)
 ALLOWED_EXTENSIONS = set(['png', 'jpg', 'jpeg'])
 app.config['UPLOAD_FOLDER'] = uploadfolder
-indexfile = 'static/githubfiles/index.html'
-collectionsfolder = 'collections'
+
 @app.before_request
 def before_request():
     user = None
@@ -59,6 +50,24 @@ def before_request():
         if check == 'problem':
             return 'You have lost access to {}, please go to the profile page to change workspaces or refresh this page to have it automatically choose a new workspace for you.'.format(session['currentworkspace']['full_name']), 400
     
+def getDefaults():
+    if 'currentworkspace' in session.keys():
+        currentworkspace = session['currentworkspace']
+        if 'annonatate-wax' in currentworkspace['description'].lower():
+            return {'annotations': '_annotations', 
+            'apiurl': 'api/all.json', 
+            'customviews': '_exhibits',
+            'collections': 'collections',
+            'index': os.path.join('static/githubfile', apiurl)
+            }
+        else:
+            return {'annotations': '_annotations', 
+            'apiurl': '', 
+            'customviews': 'customviews', 
+            'collections': 'collections',
+            'index': 'static/githubfiles/index.html'
+            }
+
 @app.route('/login')
 def login():
     argsnext = urllib.parse.quote(request.args.get('next')) if request.args.get('next') else url_for('index')
@@ -79,6 +88,7 @@ def authorized(oauth_token):
         #return redirect(next_url)
     session['user_token'] = oauth_token
     session['login_time'] = str(datetime.now())
+    session['defaults'] = getDefaults()
     isfirstbuild = buildWorkspaces()
     next_url = request.args.get('next')
     if next_url and isfirstbuild != True:
@@ -112,7 +122,7 @@ def uploadstatus():
         if checknum == '1':
             triggerbuild()
         elif checknum == '2':
-            updateindex()
+            updateindex(False)
         return 'failure', 404
     if uploadtype == 'customviews':
         for item in session[uploadtype]:
@@ -136,6 +146,7 @@ def renameGitHub():
         session['workspaces'][content['full_name']] = content
         if iscurrentworkspace:
             session['currentworkspace'] = content
+            session['defaults'] = getDefaults()
             updateworkspace(content['full_name'])
             session['annotime'] = datetime.now()
     else:
@@ -210,32 +221,10 @@ def createcollection(collectionid=''):
         session['collections'][title] = collection
         if title not in session['collectionnames']:
             session['collectionnames'].append(title)
-        sendgithubrequest('{}.json'.format(title), contents, collectionsfolder)
+        sendgithubrequest('{}.json'.format(title), contents, session['defaults']['collections'])
         return redirect('/collections')
     else:
-        formvalues = {}
-        formvalues['annotations'] = []
-        formvalues['title'] = collectionid if collectionid else request.args.get('title')
-        if collectionid:
-            formvalues['add'] = False
-            for item in session['collections'][collectionid]['json']['items']:
-                annodict = item
-                annodict['url'] = parseboard(item['board'])['url']
-                annodict['board'] = item['board'].replace('"', "'")
-                annodict['viewtype'] = parsetype(item['board'])
-                formvalues['annotations'].append(annodict)
-        else:
-            formvalues['add'] = True
-            annodict = {'url': request.args.get('url'), 
-            'title': request.args.get('annotitle'), 
-            'description': request.args.get('desc'), 
-            'viewtype': request.args.get('viewtype'),
-            'board': request.args.get('tag'),
-            'thumbnail': request.args.get('thumbnail')
-            }
-            if request.args.get('annotation'):
-                annodict['annotation'] = json.loads(request.args.get('annotation'))
-            formvalues['annotations'].append(annodict)
+        formvalues = CollectionForm(collectionid, request, session['collections']).formvalues
         return render_template('createcollection.html', formvalues=formvalues)
 
 @app.route('/collections')
@@ -247,7 +236,7 @@ def collections(collectionid=''):
         collections = {collectionid: session['collections'][collectionid]}
     else:
         collections=session['collections']
-    return render_template('collections.html', collections=collections, collectionurl='{}{}'.format(session['origin_url'], collectionsfolder))
+    return render_template('collections.html', collections=collections, collectionurl='{}{}'.format(session['origin_url'], session['defaults']['collections']))
 
 @app.route('/')
 def index():
@@ -300,6 +289,7 @@ def changeworkspace():
 def updateworkspace(workspace):
     clearSessionWorkspaces()
     session['currentworkspace'] = session['workspaces'][workspace]
+    session['defaults'] = getDefaults()
     populateworkspace()
 
 @app.route('/add_collaborator', methods=['POST'])
@@ -429,7 +419,7 @@ def search():
     if request.args.get('format') == 'json':
         return jsonify(search.items), 200
     else:
-        annolength = len(list(filter(lambda x: '-list.json' not in x['filename'], session['annotations'])))
+        annolength = len(list(filter(lambda x: '-list' not in x['filename'], session['annotations'])))
         return render_template('search.html', results=search.items, facets=search.facets, query=search.query, annolength=annolength)
 
 @app.route('/annotations/', methods=['GET'])
@@ -439,7 +429,7 @@ def listannotations(annoid=''):
     if annoid:
         lists = list(filter(lambda x: annoid in x['filename'], items))
     else:
-        lists = list(filter(lambda x: '-list.json' not in x['filename'], items)) if request.args.get('annotype') == 'single' else list(filter(lambda x: '-list.json' in x['filename'], items))
+        lists = list(filter(lambda x: '-list' not in x['filename'], items)) if request.args.get('annotype') == 'single' else list(filter(lambda x: '-list' in x['filename'], items))
     format = request.args.get('viewtype') if request.args.get('viewtype') else 'annotation'
     return render_template('annotations.html', annotations=lists, format=format, filepath=filepath, annoid=annoid)
 
@@ -505,6 +495,7 @@ def buildWorkspaces():
     if isfirstbuild != 'noworkspaces':
         if 'currentworkspace' not in session.keys() or not session['currentworkspace']:
             session['currentworkspace'] = session['workspaces'][list(session['workspaces'].keys())[0]]
+            session['defaults'] = getDefaults()
         populateworkspace()
     return isfirstbuild
 
@@ -521,7 +512,7 @@ def populateuserinfo():
     session['avatar_url'] = userinfo['avatar_url']
     session['user_name'] = userinfo['name'] if userinfo['name'] != None else userinfo['login']
     repos = github.get('{}/repos?per_page=300&sort=name'.format(githubuserapi))
-    relevantworkspaces = list(filter(lambda x: x['name'] == github_repo or x['description'] == 'annonatate', repos))
+    relevantworkspaces = list(filter(lambda x: x['name'] == github_repo or (x['description'] and 'annonatate' in x['description'].lower()), repos))
     for workspace in relevantworkspaces:
         workspaces[workspace['full_name']] = workspace
     if len(workspaces) == 0:
@@ -615,7 +606,7 @@ def getannotations():
     if 'annotime' in session.keys():
         now = datetime.now()
         duration = (now - session['annotime']).total_seconds()
-    if 'annotations' not in session.keys() or session['annotations'] == '' or  duration > 35:
+    if 'annotations' not in session.keys() or session['annotations'] == '' or  duration > 0:
         content, status = origin_contents()
         for item in content['annotations']:
             item['canvas'] = item['json']['target']['source'] if 'target' in item['json'].keys() else ''
@@ -687,27 +678,15 @@ def parsecollections(content):
     else:
         updateindex()
 
-def updateindex():
-    contents = open(indexfile).read()
-    sendgithubrequest('index.html', contents, '')
-
-def parseboard(board):
-    regex = r"((annotationurls?|rangeurl)=['\"])(.+?)(?=['\"])"
-    m = re.search(regex, board)
-    if m:
-        return {'url': m.group(3), 'type': m.group(2)}
-    else:
-        return {'url': '', 'type': ''}
-
-def parsetype(board):
-    regex = r"<\/(iiif-.+)>"
-    m = re.search(regex, board)
-    return m.group(1)
+def updateindex(updateConfig=True):
+    index = session['defaults']['index']
+    contents = open(index).read()
+    sendgithubrequest(index.replace('static/githubfiles/', ''), contents)
 
 def updateAnnosGitHub():
     annotations = session['annotations']
     try:
-        githubresponse = github.get(session['currentworkspace']['contents_url'].replace('{+path}', filepath))
+        githubresponse = github.get(session['currentworkspace']['contents_url'].replace('{+path}', session['defaults']['annotations']))
         githubfilenames = list(map(lambda x: x['name'], githubresponse))
         session['annotations'] = list(filter(lambda x: x['filename'].split('/')[-1] in githubfilenames,annotations))
         return githubresponse
@@ -715,9 +694,10 @@ def updateAnnosGitHub():
         return False
 
 def origin_contents():
-    response = requests.get(session['origin_url'])
+    apiurl = session['origin_url'] + session['defaults']['apiurl']
+    response = requests.get(apiurl)
     if response.status_code > 299:
-        response = requests.get(session['origin_url'] + 'index.html')
+        response = requests.get(apiurl + 'index.html')
     try:
         content = json.loads(response.content.decode('utf-8').replace('&lt;', '<').replace('&gt;', '>'))
     except:
@@ -772,9 +752,11 @@ def github_get_existing(full_url):
 
 def writetogithub(filename, annotation, order):
     githuborder = 'order: {}\n'.format(order)
-    response = sendgithubrequest(filename, annotation, filepath, githuborder)
+    folder = session['defaults']['annotations']
+    response = sendgithubrequest(filename, annotation, folder, githuborder)
     if response.status_code < 400:
         canvas = annotation['target']['source']
+        manifest = annotation['target']['dcterms:isPartOf']['id'] if 'dcterms:isPartOf' in annotation['target'].keys() else ''
         data = {'canvas':canvas, 'json': annotation, 'filename': filename, 'order': order}
         canvases = list(map(lambda x: x['canvas'], session['annotations']))
         existinganno = list(filter(lambda n: filename in n.get('filename'), session['annotations']))
@@ -792,23 +774,33 @@ def writetogithub(filename, annotation, order):
         else:
             listdata = {'json': {'resources': [data['json']]}, 'filename':annolistfilename, 'canvas': ''}
             session['annotations'].append(listdata)
+        response = requests.get(manifest)
         if canvas not in canvases:
-            createlistpage(canvas)
+            createlistpage(canvas, manifest)
         session['annotime'] = datetime.now()
     return response
 
-def sendgithubrequest(filename, annotation, path=filepath, order=''):
+
+def sendgithubrequest(filename, annotation, path='', order=''):
     data = createdatadict(filename, annotation, path, order)
     response = github.raw_request('put', data['url'], data=json.dumps(data['data'], indent=4))
     return response
 
-def createlistpage(canvas):
-    filename = listfilename(canvas)
+def createlistpage(canvas, manifest):
+    filenameforlist = listfilename(canvas)
+    filename = os.path.join(session['defaults']['annotations'], filenameforlist)
     text = '---\ncanvas_id: "' + canvas + '"\n---\n{% assign annotations = site.annotations | where: "canvas", page.canvas_id | sort: "order" | map: "content" %}\n{\n"@context": "http://iiif.io/api/presentation/2/context.json",\n"id": "{{ site.url }}{{ site.baseurl }}{{page.url}}",\n"type": "AnnotationPage",\n"resources": [{{ annotations | join: ","}}] }'
     sendgithubrequest(filename, text)
+    if manifest in session['upload']['manifests']:
+        response = requests.get(manifest)
+        urlforlist = os.path.join(session['origin_url'], session['defaults']['annotations'].replace('_', ''), filenameforlist)
+        manifestwithlist = addAnnotationList(response.json(), canvas, urlforlist, session['origin_url'])
+        manifestfilename = manifest.replace(session['origin_url'], '')
+        sendgithubrequest(manifestfilename, manifestwithlist)
 
 def listfilename(canvas):
     r = re.compile("\d+")
+    canvas = canvas.replace('.json', '')
     canvaslist = canvas.split('/')
     withnumbs = list(filter(r.search, canvaslist))
     filename = "-".join(withnumbs) if len(withnumbs) > 0 else canvaslist[-1]
