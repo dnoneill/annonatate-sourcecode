@@ -1,0 +1,114 @@
+[{
+    'filename': 'https://testuser.github.io/annonatate/annotations/0002386-list.json',
+    'order': None,
+    'json': {
+        '@context': 'http://iiif.io/api/presentation/2/context.json',
+        'id': 'https://testuser.github.io/annonatate/annotations/0002386-list',
+        'type': 'AnnotationPage',
+        'resources': [{
+            'type': 'Annotation',
+            'body': [{
+                    'type': 'TextualBody',
+                    'value': "Here's a crane",
+                    'purpose': 'commenting',
+                    'creator': {
+                        'id': 'testuser',
+                        'name': 'Test User'
+                    },
+                    'created': '2021-07-06T16:53:52.647Z',
+                    'modified': '2021-07-06T16:53:54.917Z'
+                }, {
+                    "type": "TextualBody",
+                    "value": "Machinery",
+                    "purpose": "tagging",
+                    "creator": {
+                        "id": "testuser",
+                        "name": "Test User"
+                    },
+                    'created': '2021-07-06T16:53:52.647Z',
+                    'modified': '2021-07-06T16:53:54.917Z'
+                }
+
+            ],
+            'target': {
+                'source': 'https://iiif.lib.ncsu.edu/iiif/0002386/info.json',
+                'selector': {
+                    'type': 'FragmentSelector',
+                    'conformsTo': 'http://www.w3.org/TR/media-frags/',
+                    'value': 'xywh=pixel:3097.68505859375,809.8154907226562,725.33837890625,818.0507202148438'
+                }
+            },
+            '@context': 'http://www.w3.org/ns/anno.jsonld',
+            'id': '{{site.url}}{{site.baseurl}}/annotations/142a41cd-6bb8-4052-a2b3-a300bfd15a9a.json'
+        }]
+    },
+    'canvas': ''
+}, {
+    'filename': 'https://testuser.github.io/annonatate/annotations/142a41cd-6bb8-4052-a2b3-a300bfd15a9a.json',
+    'order': 1,
+    'json': {
+        'type': 'Annotation',
+        'body': [{
+            'type': 'TextualBody',
+            'value': "Here's a crane",
+            'purpose': 'commenting',
+            'creator': {
+                'id': 'testuser',
+                'name': 'Test User'
+            },
+            'created': '2021-07-06T16:53:52.647Z',
+            'modified': '2021-07-06T16:53:54.917Z'
+        }, {
+            "type": "TextualBody",
+            "value": "Machinery",
+            "purpose": "tagging",
+            "creator": {
+                "id": "testuser",
+                "name": "Test User"
+            },
+            'created': '2021-07-06T16:53:52.647Z',
+            'modified': '2021-07-06T16:53:54.917Z'
+        }],
+        'target': {
+            'source': 'https://iiif.lib.ncsu.edu/iiif/0002386/info.json',
+            'selector': {
+                'type': 'FragmentSelector',
+                'conformsTo': 'http://www.w3.org/TR/media-frags/',
+                'value': 'xywh=pixel:3097.68505859375,809.8154907226562,725.33837890625,818.0507202148438'
+            }
+        },
+        '@context': 'http://www.w3.org/ns/anno.jsonld',
+        'id': 'https://testuser.github.io/annonatate/annotations/142a41cd-6bb8-4052-a2b3-a300bfd15a9a.json',
+        'order': 1
+    },
+    'canvas': 'https://iiif.lib.ncsu.edu/iiif/0002386/info.json'
+}, {
+    'filename': 'https://testuser.github.io/annonatate/annotations/19547cb3-f588-4724-878b-e4f81415fa86.json',
+    'order': 1,
+    'json': {
+        'type': 'Annotation',
+        'body': [{
+            'type': 'TextualBody',
+            'value': 'A branch',
+            'purpose': 'commenting',
+            'creator': {
+                'id': 'testuser',
+                'name': 'Test User'
+            },
+            'created': '2021-07-12T20:21:29.272Z',
+            'modified': '2021-07-12T20:21:30.687Z'
+        }],
+        'target': {
+            'source': 'https://testuser.github.io/annonatate/images/scan_20210223050407_0019.jpg',
+            'selector': {
+                'type': 'FragmentSelector',
+                'conformsTo': 'http://www.w3.org/TR/media-frags/',
+                'value': 'xywh=pixel:364.18359375,325.7713928222656,66.83917236328125,44.5594482421875'
+            }
+        },
+        '@context': 'http://www.w3.org/ns/anno.jsonld',
+        'id': 'https://testuser.github.io/annonatate/annotations/19547cb3-f588-4724-878b-e4f81415fa86.json',
+        'order': 1
+    },
+    'canvas': 'https://testuser.github.io/annonatate/images/scan_20210223050407_0019.jpg'
+}]

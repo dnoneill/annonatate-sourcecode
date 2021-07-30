@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+{% block title %}Home{% endblock %}
+{% block content %}
+<script src="/assets/openseadragon/openseadragon.2.4.2.min.js"></script>
+<script type="text/javascript" src="/assets/iso6391/index.js"></script>
+<link rel="stylesheet" type="text/css" href="/assets/openseadragon/annotorious.min.css">
+
+<!-- JS -->
+<!-- <script src="https://cdn.jsdelivr.net/npm/@recogito/annotorious-openseadragon@2.1.0/dist/openseadragon-annotorious.min.js"></script> -->
+<script src="/assets/openseadragon/openseadragon-annotorious.min.js"></script>
+<script src="https://unpkg.com/vue/dist/vue.js"></script>
+<div id="app">
+
+  <annoview :existing='{{existingitems | tojson}}' :filepaths='{{ filepaths|tojson }}' :userinfo='{{userinfo | tojson}}' :tags='{{tags|tojson}}'></annoview>
+</div>
+<script src="index.js"></script>
+<p>
+   
+</p>
+{% endblock %}

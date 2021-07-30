@@ -10,7 +10,6 @@ from flask_cors import CORS
 import json, os, glob, requests
 import base64
 from settings import *
-from bs4 import BeautifulSoup
 import yaml, time
 import re
 import string, random
@@ -23,6 +22,9 @@ from iiif_prezi.factory import ManifestFactory
 from iiif import IIIFStatic 
 import os
 #import time
+
+from utils.search import get_search, encodedecode, Search
+from utils.image import Image
 
 app = Flask(__name__,
             static_url_path='',
@@ -154,69 +156,26 @@ def removecollaborator():
 
 @app.route('/createimage', methods=['POST', 'GET'])
 def createimage():
-    iiifimage = request.form['upload']
-    uploadurl = False
-    isimage = bool(re.match("^upload(iiif|image)$", iiifimage.strip()))
-    if isimage == False:
-        imgurl, iiiffolder = iiifimage.rstrip('/').rsplit('/', 1)
-        imgurl += '/'
-        manifestpath = "manifests/{}".format(iiiffolder)
-        url = iiifimage
-        tmpfilepath = False
-    elif iiifimage == 'uploadiiif':
-        file = request.files['file']
-        filename = secure_filename(file.filename)
-        tmpfilepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-        file.save(tmpfilepath)
-    if iiifimage == 'uploadiiif':
-        iiiffolder = os.path.splitext(filename)[0]
-        manifestpath = "images/{}".format(iiiffolder)
-        prefix = "{{site.url}}{{site.baseurl}}/images"
-        sg = IIIFStatic(dst=app.config['UPLOAD_FOLDER'], prefix=prefix)
-        try:
-            output = sg.generate(tmpfilepath)
-        except:
-            os.remove(tmpfilepath)
-            error = "There was a problem turning this image into a IIIF image. Please try a different image."
-            return render_template('upload.html', imageerror=error)
-        iiifpath = os.path.join(app.config['UPLOAD_FOLDER'], iiiffolder)
-        infocontents = open(os.path.join(iiifpath, 'info.json')).read()
-        imgurl = "https://%s/"%(prefix)
-        url = "{}{}".format(imgurl, iiiffolder)
-        createjekyllfile(infocontents,'info.json', iiifpath)
-    if iiifimage != 'uploadimage':
-        manifesturl = "{}{}/manifest.json".format(session['origin_url'], manifestpath)
-        manifest = createmanifest(tmpfilepath, imgurl, url, iiiffolder, request.form, manifesturl)
-        if type(manifest) == dict:
-            return render_template('upload.html', error=manifest['error'])
-        else:
-            manifest = manifest.toString(compact=False).replace('canvas/info.json', 'info.json').replace('https://{{site.url}}', '{{site.url}}')
-    if iiifimage == 'uploadimage':
-        file =request.files['file']
-        encodedimage = file.stream.read()
-        response = sendgithubrequest(file.filename, encodedimage, "images").json()
-        uploadtype='image'
-        if 'content' in response.keys():
-            uploadurl = "{}{}".format(session['origin_url'], response['content']['path'])
-            output =  True
-        else:
-            output = response['message']
-    elif 'http' in iiifimage:
-        manifest = "---\n---\n{}".format(manifest)
-        response = sendgithubrequest("manifest.json", manifest, manifestpath).json()
+    image = Image(request.form, request.files, session['origin_url'])
+
+    if not image.isimage:
+        if type(image.manifest) == dict:
+            return render_template('upload.html', error=image.manifest['error'])
+        response = sendgithubrequest("manifest.json", image.manifest_markdown, image.manifestpath).json()
         uploadtype = 'manifest'
         if 'content' in response.keys():
-            uploadurl ='{}{}'.format(session['origin_url'], response['content']['path'].replace('_manifest', 'manifest'))
+            uploadurl ='{}{}'.format(image.origin_url, response['content']['path'].replace('_manifest', 'manifest'))
             output = True
         else:
             output = response['message']
-    elif iiifimage == 'uploadiiif':
-        createjekyllfile(manifest, 'manifest.json', iiifpath)
-        os.remove(tmpfilepath)
-        output = os.path.join(app.config['UPLOAD_FOLDER'], iiiffolder)
-        shutil.make_archive(output, 'zip', iiifpath)
-        shutil.rmtree(iiifpath)
-        output = "{}.zip".format(iiiffolder)
+    else:
+        response = sendgithubrequest(image.file.filename, image.encodedimage, "images").json()
+        uploadtype='image'
+        if 'content' in response.keys():
+            uploadurl = "{}{}".format(image.origin_url, response['content']['path'])
+            output =  True
+        else:
+            output = response['message']
     triggerbuild()
     return render_template('uploadsuccess.html', output=output, uploadurl=uploadurl, uploadtype=uploadtype)
 
@@ -465,27 +424,13 @@ def acceptinvite():
 
 @app.route('/search')
 def search():
-    query = request.args.get('q')
-    allcontent = querysearch(query)
-    tags = request.args.get('tag')
-    if tags:
-        allcontent = searchfields(allcontent['items'], 'tags', tags)
-    creator = request.args.get('creator')
-    if creator:
-        allcontent = searchfields(allcontent['items'], 'creator', creator)
-    items = allcontent['items']
+    search = Search(request.args, session['annotations'])
+
     if request.args.get('format') == 'json':
-        return jsonify(items), 200
+        return jsonify(search.items), 200
     else:
-        facets = {}
-        for key, value in allcontent['facets'].items():
-            value = [x for x in value if x is not None]
-            uniqtags = sorted(list(set(value)))
-            tagcount = {x:value.count(x) for x in uniqtags}
-            sortedtagcount = dict(sorted(tagcount.items(), key=(lambda x: (-x[1], x[0]))))
-            facets[key] = sortedtagcount
         annolength = len(list(filter(lambda x: '-list.json' not in x['filename'], session['annotations'])))
-        return render_template('search.html', results=items, facets=facets, query=query, annolength=annolength)
+        return render_template('search.html', results=search.items, facets=search.facets, query=search.query, annolength=annolength)
 
 @app.route('/annotations/', methods=['GET'])
 @app.route('/annotations/<annoid>', methods=['GET'])
@@ -567,51 +512,6 @@ def triggerbuild(url=False):
     pagebuild = url if url else session['currentworkspace']['url'] + '/pages'
     return github.raw_request("post", '{}/builds'.format(pagebuild), headers={'Accept': 'application/vnd.github.mister-fantastic-preview+json'})
 
-def createjekyllfile(contents, filename, iiifpath):
-    jekyllstring = "---\n---\n{}".format(contents)
-    with open(os.path.join(iiifpath, filename), 'w') as file:
-        file.write(jekyllstring)
-
-def createmanifest(tmpfilepath, imgurl, url, iiiffolder, formdata, manifesturl):
-    try:
-        fac = ManifestFactory()
-        fac.set_base_prezi_uri(url)
-        fac.set_base_image_uri(imgurl)
-        fac.set_iiif_image_info(2.0, 2)
-        manifest = fac.manifest(ident=manifesturl, label=formdata['label'])
-        manifest.viewingDirection = formdata['direction']
-        manifest.description = formdata['description']
-        manifest.set_metadata({"rights": formdata['rights']})
-        seq = manifest.sequence()
-        cvs = seq.canvas(ident='info', label=formdata['label'])
-        anno = cvs.annotation()
-        img = anno.image(iiiffolder, iiif=True)
-    except Exception as e:
-        return {'error': e}
-    if tmpfilepath:
-        img.set_hw_from_file(tmpfilepath)
-    else:
-        try:
-            img.set_hw_from_iiif()
-        except:
-            try:
-                response = requests.get("{}{}/info.json".format(imgurl, iiiffolder))
-                if response.status_code > 299:
-                    response = requests.get("{}{}".format(imgurl, iiiffolder))
-                try:
-                    content = response.json()
-                except:
-                    return {'error': 'No IIIF image exists at {}{}'.format(imgurl, iiiffolder)}
-                    # im = Image.open(BytesIO(response.content))
-                    # print(im.size)
-                    # content = {'height': im.size[1], 'width': im.size[0]}
-                img.height = content['height']
-                img.width = content['width']
-            except:
-                return {'error': 'Unable to get height/width for image located at {}{}'.format(imgurl, iiiffolder)}
-    cvs.height = img.height
-    cvs.width = img.width
-    return manifest
 
 def populateuserinfo():
     workspaces = {}
@@ -693,36 +593,6 @@ def populateworkspace():
         session['isadmin'] = session['currentworkspace']['permissions']['admin']
     except:
         return render_template('error.html', message="<p>There is a problem with your GitHub pages site. Try <a href='https://docs.github.com/en/github/working-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site'>enabling the website</a> or deleting/renaming the repository <a href='{}/settings'>{}/settings</a></p>".format(session['currentworkspace']['html_url'], session['currentworkspace']['html_url']))
-    
-
-def querysearch(fieldvalue):
-    facets = {}
-    items = []
-    fieldvalue = fieldvalue if fieldvalue else ''
-    for item in session['annotations']:
-        if '-list.json' not in item['filename']:
-            results = get_search(item['json'])
-            if fieldvalue.lower() in " ".join(list(results['searchfields'].values())).lower():
-                items.append(results)
-                facets = mergeDict(facets, results['facets'])
-    return {'items': items, 'facets': facets}
-
-def searchfields(content, field, fieldvalue):
-    facets = {}
-    items = []
-    for anno in content:
-        if fieldvalue in anno['facets'][field]:
-            items.append(anno)
-            facets = mergeDict(facets, anno['facets'])
-    return {'items': items, 'facets': facets}
-
-
-def mergeDict(dict1, dict2):
-    dict3 = {**dict1, **dict2}
-    for key, value in dict3.items():
-        if key in dict1 and key in dict2:
-            dict3[key] = value + dict1[key]
-    return dict3
 
 def getContents():
     arraydata = {}
@@ -961,54 +831,6 @@ def createdatadict(filename, text, path=filepath, order=''):
     if sha != '':
         data['sha'] = sha
     return {'data':data, 'url':full_url}
-
-def get_search(anno):
-    annodata_data = {'searchfields': {'content': []}, 'facets': {'tags': [], 'creator': []}, 'datecreated':'', 'datemodified': '', 'id': anno['id'], 'basename': os.path.basename(anno['id'])}
-    if 'oa:annotatedAt' in anno.keys():
-        annodata_data['datecreated'] = encodedecode(anno['oa:annotatedAt'])
-    if 'created' in anno.keys():
-        annodata_data['datecreated'] = encodedecode(anno['created'])
-    if 'oa:serializedAt' in anno.keys():
-        annodata_data['datemodified'] = encodedecode(anno['oa:serializedAt'])
-    if 'modified' in anno.keys():
-        annodata_data['datemodified'] = encodedecode(anno['modified'])
-    if 'oa:annotatedBy' in anno.keys():
-        annodata_data['facets']['creator'] = anno['oa:annotatedBy']
-    if 'creator' in anno.keys():
-        annodata_data['facets']['creator'] = anno['creator']['name']
-    textdata = anno['resource'] if 'resource' in anno.keys() else anno['body']
-    textdata = textdata if type(textdata) == list else [textdata]
-    for resource in textdata:
-        chars = BeautifulSoup(resource['chars'], 'html.parser').get_text() if 'chars' in resource.keys() else ''
-        chars = encodedecode(chars)
-        if chars and 'tag' in resource['type'].lower():
-            annodata_data['facets']['tags'].append(chars)
-        elif 'purpose' in resource.keys() and 'tag' in resource['purpose']:
-            tags_data = chars if chars else resource['value']
-            annodata_data['facets']['tags'].append(encodedecode(tags_data))
-        elif chars:
-            annodata_data['searchfields']['content'].append(chars)
-        elif 'items' in resource.keys():
-            field = 'value' if 'value' in resource['items'][0].keys() else 'chars'
-            fieldvalues = " ".join([encodedecode(item[field]) for item in resource['items']])
-            annodata_data['searchfields']['content'].append(fieldvalues)
-        elif 'value' in resource.keys():
-            annodata_data['searchfields']['content'].append(encodedecode(resource['value']))
-        if 'created' in resource.keys() and annodata_data['datecreated'] < resource['created']:
-            annodata_data['datecreated'] = resource['created']
-        if 'modified' in resource.keys() and annodata_data['datemodified'] < resource['modified']:
-            annodata_data['datemodified'] = resource['modified']
-        if 'creator' in resource.keys() and resource['creator']['name'] not in annodata_data['facets']['creator']:
-            annodata_data['facets']['creator'].append(resource['creator']['name'])
-    annodata_data['searchfields']['content'] = " ".join(annodata_data['searchfields']['content'])
-    annodata_data['searchfields']['tags'] = " ".join(annodata_data['facets']['tags'])
-    return annodata_data
-
-def encodedecode(chars):
-    if type(chars) == str:
-        return chars
-    else:
-        return chars.encode('utf8')
 
 def workspaceCheck(method=False):
     collaburl = session['currentworkspace']['collaborators_url'].split('{')[0]

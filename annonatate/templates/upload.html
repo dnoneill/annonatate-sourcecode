@@ -1,0 +1,94 @@
+{% extends 'base.html' %}
+{% block header %}
+  <h1>{% block title %}Upload{% endblock %}</h1>
+{% endblock %}
+{% block content %}
+	</head>
+	<body>
+	{{error}}
+	<div class="tab">
+	  <!-- <button class="tablinks" onclick="openTab(event, 'iiifimage')" id="defaultOpen">Create IIIF image</button> -->
+	  <button class="tablinks" onclick="openTab(event, 'manifest')" id="defaultOpen">Create Manifest</button>
+	  <button class="tablinks" onclick="openTab(event, 'image')">Upload Image</button>
+	</div>
+<!-- 	
+	<div id="iiifimage" class="tabcontent">
+		<h2>Create Tiled IIIF image</h2>
+		<p>
+	  <b>
+		This process only works with JPEG and JPG images.
+		<br>
+		Note: This process can take a while. Do not leave this page until the success page appears</b>
+	  </p>
+	  
+		<form action="{{ url_for('createimage') }}" enctype=multipart/form-data method="post">
+		<div>
+			<label for="upload-tile">Upload file from computer: </label>
+			<input type="text" id="upload-tile" name="upload" value="uploadiiif" style="display: none">
+		 	<input type=file name=file accept="image/jpeg" required>
+	 	</div>
+		 <div>
+			<label for="label">Title of Image (Required): </label>
+			<input value="" name="label" id="label" required>
+		</div>
+   		<div>
+			<label for="description">Description: </label>
+			<input value="" name="description">
+   		</div>
+		<div>
+			<label for="rights">Rights: </label>
+			<input value="" name="rights">
+		</div>
+		<div>
+			<label for="rights">Viewing Direction: </label>
+			<select id="direction" name="direction">
+				<option value="left-to-right" selected>left-to-right</option>
+				<option value="right-to-left">right-to-left</option>
+			</select>
+		</div>
+		<button type="submit">Create IIIF image</button>
+		</form>
+	</div> -->
+	
+	<div id="manifest" class="tabcontent">
+	  <h2>Create Manifest using existing image</h2>
+	  <form action="{{ url_for('createimage') }}" enctype=multipart/form-data method="post">
+	  	<div>
+			<label for="upload-manifest">Existing IIIF image (without /info.json) </label>
+			<input id="upload-manifest" name="upload" required>
+		</div>
+		<div>
+			<label for="label">Title of Image (Required): </label>
+			<input value="" id="label" name="label" required>
+		</div>
+   		<div>
+			<label for="description">Description: </label>
+			<input value="" id="description" name="description">
+   		</div>
+		<div>
+			<label for="rights">Rights: </label>
+			<input value="" id="rights" name="rights">
+		</div>
+		<div>
+			<label for="direction">Viewing Direction: </label>
+			<select id="direction" name="direction">
+				<option value="left-to-right" selected>left-to-right</option>
+				<option value="right-to-left">right-to-left</option>
+			</select>
+		</div>
+		<button type="submit">Create IIIF Manifest</button>
+		</form>
+	</div>
+	
+	<div id="image" class="tabcontent">
+	  <h2>Upload Image</h2>
+	  <form action="{{ url_for('createimage') }}" enctype=multipart/form-data method="post">
+		<div>
+			<label for="upload-image">Upload file from computer: </label>
+			<input type="text"  id="upload-image" name="upload" value="uploadimage" style="display: none">
+		 	<input type=file id="upload-image" name=file accept="image/*" required>
+	 	</div>
+		<button type="submit">Upload image</button>
+	</form>
+	</div>
+{% endblock %}
