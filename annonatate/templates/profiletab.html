@@ -27,7 +27,9 @@
         {% if switcherror %}
         <p>
         <i class="fas fa-exclamation-triangle" style="color:red"></i> There was a problem switching to the workspace <b>{{switcherror}}</b>.
-        If this is newly created workspace give the workspace a minute to finish rendering and try switching again. If this problem does not go away in a couple minutes please <a href="https://github.com/annonatate/annonatate/issues/new">contact us.</a>
+        If this is newly created workspace give the workspace a minute to finish rendering and try switching again. 
+        If this is a <b>wax repository</b> we had to add an API to your repository. Please give it a minute and try switching again.
+        If this problem does not go away in a couple minutes please <a href="https://github.com/annonatate/annonatate/issues/new">contact us.</a>
         </p>
         {% endif %}
         {% for key, value in session['workspaces'].items() %}

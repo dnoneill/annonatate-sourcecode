@@ -20,7 +20,7 @@ from utils.collectionform import CollectionForm, parseboard, parsetype
 
 app = Flask(__name__,
             static_url_path='',
-            static_folder='static',)
+            )
 app.config.update(
                   SESSION_TYPE = 'filesystem',
                   GITHUB_CLIENT_ID = client_id,
