@@ -54,11 +54,12 @@ def getDefaults():
     if 'currentworkspace' in session.keys():
         currentworkspace = session['currentworkspace']
         if 'annonatate-wax' in currentworkspace['description'].lower():
+            apiurl = 'api/all.json'
             return {'annotations': '_annotations', 
-            'apiurl': 'api/all.json', 
+            'apiurl': apiurl,
             'customviews': '_exhibits',
             'collections': 'collections',
-            'index': os.path.join('static/githubfile', apiurl)
+            'index': os.path.join('static/githubfiles', apiurl)
             }
         else:
             return {'annotations': '_annotations', 
@@ -281,10 +282,31 @@ def changeworkspace():
     if status_code < 299:
         getContents()
     else:
+        if 'wax' in session['currentworkspace']['description'].lower():
+            try:
+                github.get(session['currentworkspace']['contents_url'].replace('/{+path}', session['defaults']['apiurl']))
+            except:
+                updateWax()
         triggerbuild()
         next_url += '?switcherror={}'.format(workspace)
         updateworkspace(prevworkspace)
     return redirect(next_url)
+
+def updateWax():
+    updateconfig()
+    updateindex()
+
+def updateconfig():
+    configfilenames = '_config.yml'
+    config = github.get(session['currentworkspace']['contents_url'].replace('/{+path}', configfilenames))
+    decodedcontents = base64.b64decode(config['content']).decode('utf-8')
+    contentsyaml = yaml.load(decodedcontents, Loader=yaml.FullLoader)
+    contentsyaml['collections']['annotations'] = {'output': True, 'permalink': '/annotations/:name'}
+    contentsyaml['baseurl'] = '/' + session['currentworkspace']['name']
+    if 'minicomp.github.io' in contentsyaml['url']:
+        del contentsyaml['url']
+    updatedcontents = yaml.dump(contentsyaml)
+    sendgithubrequest(configfilenames, updatedcontents)
 
 def updateworkspace(workspace):
     clearSessionWorkspaces()
@@ -606,7 +628,7 @@ def getannotations():
     if 'annotime' in session.keys():
         now = datetime.now()
         duration = (now - session['annotime']).total_seconds()
-    if 'annotations' not in session.keys() or session['annotations'] == '' or  duration > 0:
+    if 'annotations' not in session.keys() or session['annotations'] == '' or  duration > 35:
         content, status = origin_contents()
         for item in content['annotations']:
             item['canvas'] = item['json']['target']['source'] if 'target' in item['json'].keys() else ''
@@ -796,7 +818,7 @@ def createlistpage(canvas, manifest):
         urlforlist = os.path.join(session['origin_url'], session['defaults']['annotations'].replace('_', ''), filenameforlist)
         manifestwithlist = addAnnotationList(response.json(), canvas, urlforlist, session['origin_url'])
         manifestfilename = manifest.replace(session['origin_url'], '')
-        sendgithubrequest(manifestfilename, manifestwithlist)
+        response = sendgithubrequest(manifestfilename, manifestwithlist)
 
 def listfilename(canvas):
     r = re.compile("\d+")
