@@ -10,6 +10,7 @@
 	  <!-- <button class="tablinks" onclick="openTab(event, 'iiifimage')" id="defaultOpen">Create IIIF image</button> -->
 	  <button class="tablinks" onclick="openTab(event, 'manifest')" id="defaultOpen">Create Manifest</button>
 	  <button class="tablinks" onclick="openTab(event, 'image')">Upload Image</button>
+	  <button class="tablinks" onclick="openTab(event, 'collection')">Upload Collection</button>
 	</div>
 <!-- 	
 	<div id="iiifimage" class="tabcontent">
@@ -90,5 +91,17 @@
 	 	</div>
 		<button type="submit">Upload image</button>
 	</form>
+	</div>
+	<div id="collection" class="tabcontent">
+		<h2>Process Collection</h2>
+		<form action="{{ url_for('processwaxcollection') }}" enctype=multipart/form-data method="post">
+		  <div>
+				<label for="collectioncsv">Upload collection csv: </label>
+				<input type=file id="collectioncsv" name="collectioncsv" accept=".csv" required>
+				<label for="waxcollection">Collection name:</label>
+				<input type="text"  id="waxcollection" name="waxcollection" required>
+		   </div>
+		  <button type="submit">Upload collection</button>
+	  </form>
 	</div>
 {% endblock %}

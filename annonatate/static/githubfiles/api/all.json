@@ -1,6 +1,6 @@
 ---
 ---
-{% assign images = site.static_files | where_exp: 'item', 'item.path contains "/uploads/"' | sort_natural | map: 'path' %}
+{% assign images = site.static_files | where_exp: 'item', 'item.path contains "/images/"' | sort_natural | map: 'path' %}
 {% assign collections = site.pages | where_exp: 'item', 'item.dir == "/collections/"' | sort_natural %}
 {% assign customviews = site.exhibits | sort_natural %}
 {% assign waxcollections = site.collections | where_exp: 'item', 'item.label != "exhibits"' | where_exp: 'item', 'item.label != "posts"' | map: "label" %}
@@ -15,7 +15,7 @@
 {% endfor %}
 {% assign imagearray = '' | split: "" %}
 {% for image in images %}
-{% unless image contains 'assets' %}
+{% unless image contains 'assets' or image contains 'derivatives' %}
  {% assign item = image | prepend: site.baseurl | prepend: site.url %}
  {% assign imagearray = imagearray | push: item %}
 {% endunless %}

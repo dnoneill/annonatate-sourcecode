@@ -6,7 +6,7 @@ import urllib.parse
 import json, os, glob, requests
 import base64
 from settings import *
-import yaml, time
+import yaml, time, csv
 import re
 import simplejson as json
 from flask_github import GitHub
@@ -30,7 +30,7 @@ Session(app)
 github = GitHub(app)
 ALLOWED_EXTENSIONS = set(['png', 'jpg', 'jpeg'])
 app.config['UPLOAD_FOLDER'] = uploadfolder
-
+githubfilefolder = 'annonatate/static/githubfiles/'
 @app.before_request
 def before_request():
     user = None
@@ -59,21 +59,21 @@ def getDefaults():
             'apiurl': apiurl,
             'customviews': '_exhibits',
             'collections': 'collections',
-            'index': os.path.join('static/githubfiles', apiurl)
+            'index': os.path.join(githubfilefolder, apiurl)
             }
         else:
             return {'annotations': '_annotations', 
             'apiurl': '', 
             'customviews': 'customviews', 
             'collections': 'collections',
-            'index': 'static/githubfiles/index.html'
+            'index': os.path.join(githubfilefolder, 'index.html')
             }
 
 @app.route('/login')
 def login():
     argsnext = urllib.parse.quote(request.args.get('next')) if request.args.get('next') else url_for('index')
     nexturl = url_for('authorized', _external=True) + "?next={}".format(argsnext)
-    return github.authorize(scope="repo", redirect_uri=nexturl)
+    return github.authorize(scope="repo,workflow", redirect_uri=nexturl)
 
 @app.route('/logout')
 def logout():
@@ -191,6 +191,33 @@ def createimage():
     triggerbuild()
     return render_template('uploadsuccess.html', output=output, uploadurl=uploadurl, uploadtype=uploadtype)
 
+
+@app.route('/processwaxcollection', methods=['POST', 'GET'])
+def processwaxcollection():
+    collectionname = request.form['waxcollection']
+    csvfile = request.files['collectioncsv'].stream.read()
+    sendgithubrequest('{}.csv'.format(collectionname), csvfile, '_data')
+    reader = csv.DictReader(csvfile.decode().splitlines())
+    actions = github.get('{}/actions/workflows'.format(session['currentworkspace']['url']))
+    hasaction = list(filter(lambda action: action['name'] == collectionname, actions['workflows']))
+    if len(hasaction) > 0:
+        triggerAction(hasaction[0]['id'])
+    else:
+        updateconfig(collectionname, reader.fieldnames)
+        yamlcontents = open(os.path.join(githubfilefolder, 'action.yml')).read()
+        yamlcontents = yamlcontents.replace('replacewithcollection', collectionname)
+        yamlcontents = yamlcontents.replace('replacewithbranch', session['currentworkspace']['default_branch'])
+        response = sendgithubrequest('.github/workflows/{}.yml'.format(collectionname), yamlcontents)
+        if response.status_code < 299:
+            time.sleep(1)
+            triggerAction(response.json()['content']['name'])
+    return render_template('upload.html')
+
+def triggerAction(ident):
+    currrentworkspace = session['currentworkspace']
+    response = github.raw_request('post', '{}/actions/workflows/{}/dispatches'.format(currrentworkspace['url'], ident), headers={'Accept': 'application/vnd.github.v3+json'}, data=json.dumps({"ref":currrentworkspace['default_branch']}))
+    print(response.content)
+
 @app.route('/download', methods=['POST'])
 def download():
     path = os.path.join(app.config['UPLOAD_FOLDER'], request.form['path'])
@@ -296,14 +323,21 @@ def updateWax():
     updateconfig()
     updateindex()
 
-def updateconfig():
+def updateconfig(collection='', searchfields=''):
     configfilenames = '_config.yml'
     config = github.get(session['currentworkspace']['contents_url'].replace('/{+path}', configfilenames))
     decodedcontents = base64.b64decode(config['content']).decode('utf-8')
     contentsyaml = yaml.load(decodedcontents, Loader=yaml.FullLoader)
-    contentsyaml['collections']['annotations'] = {'output': True, 'permalink': '/annotations/:name'}
-    contentsyaml['baseurl'] = '/' + session['currentworkspace']['name']
-    if 'minicomp.github.io' in contentsyaml['url']:
+    if collection:
+        contentsyaml['collections'][collection] = {'output': True, 'layout': 'qatar_item',
+        'metadata': {'source': '{}.csv'.format(collection)},
+        'images': {'source': 'raw_images/{}'.format(collection)},
+        }
+        contentsyaml['search']['main']['collections'][collection] = {'content': False, 'fields': searchfields}
+    else:
+        contentsyaml['collections']['annotations'] = {'output': True, 'permalink': '/annotations/:name'}
+        contentsyaml['baseurl'] = '/' + session['currentworkspace']['name']
+    if 'url' in contentsyaml.keys() and 'minicomp.github.io' in contentsyaml['url']:
         del contentsyaml['url']
     updatedcontents = yaml.dump(contentsyaml)
     sendgithubrequest(configfilenames, updatedcontents)
@@ -703,7 +737,7 @@ def parsecollections(content):
 def updateindex(updateConfig=True):
     index = session['defaults']['index']
     contents = open(index).read()
-    sendgithubrequest(index.replace('static/githubfiles/', ''), contents)
+    sendgithubrequest(index.replace(githubfilefolder, ''), contents)
 
 def updateAnnosGitHub():
     annotations = session['annotations']
@@ -834,7 +868,7 @@ app.jinja_env.filters['listfilename'] = listfilename
 #     return "%s%s/%s"%(session['origin_url'], filepath.replace("_", ""), listfilename(canvas))
 # app.jinja_env.filters['listfilenamelink'] = listfilenamelink
 
-def createdatadict(filename, text, path=filepath, order=''):
+def createdatadict(filename, text, path='', order=''):
     full_url = os.path.join(session['github_url'], path, filename)
     sha = github_get_existing(full_url)
     writeordelete = "write" if text != 'delete' else "delete"
@@ -864,4 +898,4 @@ def workspaceCheck(method=False):
         g.error = '<i class="fas fa-exclamation-triangle"></i> You have lost access to {}, we have updated your workspace to {}'.format(prevsession['full_name'], session['currentworkspace']['full_name'])
         
 if __name__ == "__main__":
-    app.run(debug=False)
+    app.run(debug=True)
