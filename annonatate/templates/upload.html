@@ -9,9 +9,9 @@
 	<div class="tab">
 	  <!-- <button class="tablinks" onclick="openTab(event, 'iiifimage')" id="defaultOpen">Create IIIF image</button> -->
 	  <button class="tablinks" onclick="openTab(event, 'manifest')" id="defaultOpen">Create Manifest</button>
-	  <button class="tablinks" onclick="openTab(event, 'image')">Upload Image</button>
+	  <button class="tablinks" onclick="openTab(event, 'image')" id="imagetab">Upload Image</button>
 	  {% if session['defaults']['iswax'] %}
-	  <button class="tablinks" onclick="openTab(event, 'collection')">Process Wax Collection</button>
+	  <button class="tablinks" onclick="openTab(event, 'collection')" id="collectiontab">Process Wax Collection</button>
 	  {% endif %}
 	</div>
 <!-- 	
