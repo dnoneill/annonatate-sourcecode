@@ -128,10 +128,19 @@ def uploadstatus():
             updateindex(False)
         return 'failure', 404
     if uploadtype == 'customviews':
-        for item in session[uploadtype]:
-            if 'slug' in item.keys() and item['filename'] == url:
-                del item['slug']
+        deleteItemAnnonCustomViews(url, 'slug')
     return 'success', 200
+
+def deleteItemAnnonCustomViews(url, deletetype=''):
+    for key, value in session['annocustomviews'].items():
+        for index, item in enumerate(value):
+            if item == url or (type(item) == dict and item['filename'] == url):
+                if deletetype:
+                    if type(item) == dict and deletetype in item.keys():
+                        del session['annocustomviews'][key][index][deletetype]
+                else:
+                    del session['annocustomviews'][key][index]
+                break
 
 @app.route('/rename', methods=['POST'])
 def renameGitHub():
@@ -437,11 +446,12 @@ def deletefile():
     url = request.args.get('file')
     fullfile = url.replace(session['origin_url'], '').strip('/')
     path, filename = fullfile.rsplit('/', 1)
-    if path == 'customviews':
-        deletebykey(session['customviews'], 'filename', url)
-        parsecustomviews(session)
+    if path == session['defaults']['customviews'].strip('_'):
+        path = session['defaults']['customviews']
+        deleteItemAnnonCustomViews(url)
         filename += '.html'
-    elif path == 'collections':
+    elif path == session['defaults']['collections'].strip('_'):
+        path = session['defaults']['collections']
         collectionname = urllib.parse.unquote(filename.replace('.json', ''))
         session['collectionnames'].remove(collectionname)
         del session['collections'][collectionname]
@@ -493,8 +503,6 @@ def listannotations(annoid=''):
 
 @app.route('/customviews')
 def customviews():
-    if 'annocustomviews' not in session.keys():
-        parsecustomviews(session)
     return render_template('customviews.html')
 
 @app.route('/annonaview')
@@ -678,7 +686,6 @@ def getannotations():
             parsecollections(content)
             session['preloaded'] = content['preloadedcontent']
             session['upload'] = {'images': content['images'], 'manifests': content['manifests']}
-        session['customviews'] = content['customviews']
         parsecustomviews(content)
         session['annotime'] = datetime.now()
         updateAnnosGitHub()
