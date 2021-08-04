@@ -407,24 +407,6 @@ def delete_anno():
         delete_annos(listfilename(canvas))
     return jsonify({"File Removed": True}), response
 
-@app.route('/write_annotation/', methods=['POST'])
-def write_annotation():
-    data = json.loads(request.data)
-    json_data = data['json']
-    file = filepath if data['type'] == 'annotation' else '_ranges'
-    filename = os.path.join(file, data['filename'])
-    for id in data['deleteids']:
-        fileid = cleanid(id)
-        deletefiles = [os.path.join(filepath, fileid)]
-        delete_annos(deletefiles)
-    if 'list' in json_data['type'].lower() or 'page' in json_data['type'].lower():
-        for anno in json_data['resources']:
-            id = cleanid(anno['id'])
-            single_filename = os.path.join(file, id)
-            writetogithub(single_filename, anno)
-    writetogithub(filename, json_data)
-    return jsonify({"Annotations Written": True}), 201
-
 @app.route('/profile/')
 def getprofiledata():
     invites = github.get('{}/repository_invitations'.format(githubuserapi))
@@ -464,6 +446,7 @@ def deletefile():
     payload = {'ref': session['github_branch']}
     data = createdatadict(filename, 'delete', path)
     response = github.raw_request('delete', data['url'], data=json.dumps(data['data']), params=payload)
+    session['annotime'] = datetime.now()
     return redirect(request.args.get('next'))
 
 def deletebykey(dictlist, key, match):
@@ -793,6 +776,7 @@ def delete_annos(anno):
         response = github.raw_request('delete', data['url'], data=json.dumps(data['data']), params=payload)
         if response.status_code < 400:
             session['annotations'] = [x for x in session['annotations'] if anno not in x['filename']]
+            session['annotime'] = datetime.now()
         return response.status_code
     else:
         return 400
