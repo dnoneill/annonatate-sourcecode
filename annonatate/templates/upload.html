@@ -10,7 +10,9 @@
 	  <!-- <button class="tablinks" onclick="openTab(event, 'iiifimage')" id="defaultOpen">Create IIIF image</button> -->
 	  <button class="tablinks" onclick="openTab(event, 'manifest')" id="defaultOpen">Create Manifest</button>
 	  <button class="tablinks" onclick="openTab(event, 'image')">Upload Image</button>
-	  <button class="tablinks" onclick="openTab(event, 'collection')">Upload Collection</button>
+	  {% if session['defaults']['iswax'] %}
+	  <button class="tablinks" onclick="openTab(event, 'collection')">Process Wax Collection</button>
+	  {% endif %}
 	</div>
 <!-- 	
 	<div id="iiifimage" class="tabcontent">
@@ -93,13 +95,29 @@
 	</form>
 	</div>
 	<div id="collection" class="tabcontent">
-		<h2>Process Collection</h2>
+		<h2>Process Wax Collection</h2>
+		{% set wax_url = session['currentworkspace']['html_url'] + '/tree/' + session['currentworkspace']['default_branch'] + '/_data/raw_images'  %}
+		<p>Before uploading, make sure you have:
+			<ol>
+				<li>a folder that has images here: <a href="{{wax_url}}">{{wax_url}}</a>
+				</li>
+				<li>a csv spreadsheet that matches the formats outlined here: <a href="https://minicomp.github.io/wiki/wax/preparing-your-collection-data/metadata/">https://minicomp.github.io/wiki/wax/preparing-your-collection-data/metadata/</a>
+				</li>
+			</ol>
+			If you have both of these proceed. Make sure you collection name you enter into the form matches the name of the folder in the first step.
+			What this interface will do once you hit upload is create IIIF derivatives of the images you have uploaded.
+			It will also add all the new items into the search for your Wax website.
+			Additionally, it will create an item page for each item in your collection. 
+			You should see your new images listed on the homepage shortly.
+		</p>
 		<form action="{{ url_for('processwaxcollection') }}" enctype=multipart/form-data method="post">
 		  <div>
 				<label for="collectioncsv">Upload collection csv: </label>
 				<input type=file id="collectioncsv" name="collectioncsv" accept=".csv" required>
-				<label for="waxcollection">Collection name:</label>
-				<input type="text"  id="waxcollection" name="waxcollection" required>
+		   </div>
+		   <div>
+			<label for="waxcollection">Collection name:</label>
+			<input type="text"  id="waxcollection" name="waxcollection" required>
 		   </div>
 		  <button type="submit">Upload collection</button>
 	  </form>

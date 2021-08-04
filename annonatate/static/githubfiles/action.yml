@@ -17,6 +17,8 @@ jobs:
         run: bundle exec rake wax:pages replacewithcollection
       - name: derivatives
         run: bundle exec rake wax:derivatives:iiif replacewithcollection
+      - name: search
+        run: bundle exec rake wax:search main
       - name: commit files
         run: |
           git config --local user.email "action@github.com"

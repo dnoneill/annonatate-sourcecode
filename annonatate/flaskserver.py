@@ -59,6 +59,7 @@ def getDefaults():
             'apiurl': apiurl,
             'customviews': '_exhibits',
             'collections': 'collections',
+            'iswax': True,
             'index': os.path.join(githubfilefolder, apiurl)
             }
         else:
@@ -66,6 +67,7 @@ def getDefaults():
             'apiurl': '', 
             'customviews': 'customviews', 
             'collections': 'collections',
+            'iswax': False,
             'index': os.path.join(githubfilefolder, 'index.html')
             }
 
@@ -211,7 +213,7 @@ def processwaxcollection():
         if response.status_code < 299:
             time.sleep(1)
             triggerAction(response.json()['content']['name'])
-    return render_template('upload.html')
+    return redirect(url_for('upload'))
 
 def triggerAction(ident):
     currrentworkspace = session['currentworkspace']
@@ -502,8 +504,15 @@ def annonaview():
 @app.route('/saveannonaview', methods=['POST'])
 def saveannonaview():
     jsonitems = json.loads(request.data)
-    folder = 'customviews'
-    content = """---\n---\n
+    frontmatter = ''
+    if session['defaults']['iswax']:
+        title = jsonitems['slug'].replace('_', ' ').title()
+        date = datetime.now().strftime('%Y-%m-%d')
+    else:
+
+        frontmatter = 'title: {}\nlayout: exhibit\nauthor: {}\npublish_date: {}\n'.format(title, session['user_name'], date)
+    folder = session['defaults']['customviews']
+    content = """---\n{}---\n
     <!DOCTYPE html>
     <html>
     <head>
@@ -513,7 +522,7 @@ def saveannonaview():
     <body>
     {}
     </body>
-    </html>""".format(jsonitems['tag'])
+    </html>""".format(frontmatter, jsonitems['tag'])
     response = sendgithubrequest('{}.html'.format(jsonitems['slug']), content, folder)
     if response.status_code < 300:
         annourl = parseboard(jsonitems['tag'])['url']

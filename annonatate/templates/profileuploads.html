@@ -2,6 +2,7 @@
 <div class="uploadlist" id="{{key}}">
   <h2>{{key.title()}}</h2>
   {% for url in session['upload'][key] %}
+  {% if '/derivatives/' not in url %}
   <div>
       {% if key == 'images' %}
     <img src="{{url}}" width="200px" alt="visual representation of {{url}}">
@@ -12,6 +13,7 @@
     {% include 'deletebutton.html' %}
     {% endwith %}
     </div>
+    {% endif %}
 {% endfor %}
 </div>
 {% endfor %}
