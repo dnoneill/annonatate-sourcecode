@@ -508,8 +508,6 @@ def saveannonaview():
     if session['defaults']['iswax']:
         title = jsonitems['slug'].replace('_', ' ').title()
         date = datetime.now().strftime('%Y-%m-%d')
-    else:
-
         frontmatter = 'title: {}\nlayout: exhibit\nauthor: {}\npublish_date: {}\n'.format(title, session['user_name'], date)
     folder = session['defaults']['customviews']
     content = """---\n{}---\n
@@ -526,16 +524,12 @@ def saveannonaview():
     response = sendgithubrequest('{}.html'.format(jsonitems['slug']), content, folder)
     if response.status_code < 300:
         annourl = parseboard(jsonitems['tag'])['url']
-        fileurl = os.path.join(session['origin_url'], folder, jsonitems['slug']) + '/'
-        isinlist = [idx for idx, item in enumerate(session['customviews']) if fileurl == item['filename']]
-        if len(isinlist) == 0:
-            session['customviews'].append({'filename':  fileurl, 'slug': jsonitems['slug'], 'json': jsonitems['tag']})
-        else:
-            session['customviews'][isinlist[0]]['json'] = jsonitems['tag']
+        fileurl = os.path.join(session['origin_url'], folder.strip('_'), jsonitems['slug']) + '/'
         if annourl in session['annocustomviews'] and annourl not in session['annocustomviews'][annourl]:
-            session['annocustomviews'][annourl].append(fileurl)
+            if fileurl not in session['annocustomviews'][annourl]:
+                session['annocustomviews'][annourl].append({'slug': jsonitems['slug'], 'filename': fileurl})
         elif annourl:
-            session['annocustomviews'][annourl] = [fileurl]
+            session['annocustomviews'][annourl] = [{'slug': jsonitems['slug'], 'filename': fileurl}]
     return jsonify(response.content), response.status_code
 
 @app.route('/updatedata', methods=['POST'])

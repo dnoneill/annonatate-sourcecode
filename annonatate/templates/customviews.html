@@ -6,11 +6,13 @@
 <div>
 <a href="{{ url_for('annonaview') }}">Build Custom view</a>
 </div>
-{% if session['customviews'] | length == 0 %}
+{% if session['annocustomviews'] | length == 0 %}
 <b>Currently there are no custom views</b>
 {% endif %}
 <div class="gridparent">
-{% for view in session['customviews'] %}
+{% for key, allviews in session['annocustomviews'].items() %}
+{% if key %}
+{% for view in allviews %}
 <div class="customview">
 {% if 'filename' in view %}
 {% if 'slug' not in view %}
@@ -61,9 +63,11 @@
 {% endif %}
 {% else %}
 <a href="{{view}}" target="_blank">{{view.replace('.html', '')}}</a>
-<iframe src="{{view}}" id="{{view.replace('.html', '')}}" style="height: 660px;"></iframe>
+<iframe src="{{view}}" id="{{view.replace('.html', '')}}" style="height: 660px; width: 100%;"></iframe>
 {% endif %}
 </div> 
+{% endfor %}
+{% endif %}
 {% endfor %}
 </div>
 {% endblock %}
