@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import unittest
-from unittest.mock import Mock
+from unittest.mock import Mock, MagicMock
 from unittest.mock import patch
 import flask_github
 
@@ -59,6 +59,26 @@ class TestGitHub(unittest.TestCase):
             ''
         )
         self.assertEqual(datadict['data']['sha'], 'sha-abcdef')
+
+    # test deletion of session annotations that have been deleted in Github repo (e.g. by another user)
+    keep_annotation = { "name": "annotation_to_keep", "filename": "http://test/annotation_to_keep" }
+    delete_annotation =   { "name": "annotation_to_delete", "filename": "http://test/annotation_to_delete" }
+
+    mock_raw_request = MagicMock()
+    mock_raw_request.return_value = [keep_annotation]
+    @patch('annonatate.utils.github.GitHubAnno.get', mock_raw_request)
+    def test_updateAnnos(self):
+        test_session = {
+            'currentworkspace': {
+                'contents_url': 'https://api.github.com/repos/testuser/annonatate/contents/{+path}'
+            },
+            'annotations': [self.keep_annotation, self.delete_annotation]
+        }
+        filepath = '_annotations' # TODO: make sure this is assigned properly
+        self.github.updateAnnos(test_session, filepath)
+        self.assertIn('annotations', test_session)
+        self.assertEqual(len(test_session['annotations']), 1) # one has been deleted
+        self.assertEqual(test_session['annotations'][0]['name'], self.keep_annotation['name']) # right one has been kept
 
 if __name__ == '__main__':
     # begin the unittest.main()

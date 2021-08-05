@@ -631,13 +631,13 @@ def getannotations():
         session['customviews'] = content['customviews']
         parsecustomviews(content)
         session['annotime'] = datetime.now()
-        github.updateAnnos(session)
+        github.updateAnnos(session, filepath)
         annotations = session['annotations']
         if status > 299:
             session['annotations'] = ''
     else:
         annotations = session['annotations']
-        githubresponse = github.updateAnnos(session)
+        githubresponse = github.updateAnnos(session, filepath)
         if githubresponse:
             filenames = list(map(lambda x: x['filename'].split('/')[-1], session['annotations']))
             notinsession = list(filter(lambda x: x['name'] not in filenames and '-list' not in x['name'],githubresponse))

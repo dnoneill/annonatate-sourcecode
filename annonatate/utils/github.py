@@ -37,12 +37,11 @@ class GitHubAnno(GitHub):
             data['sha'] = sha
         return {'data':data, 'url':full_url}
 
-    def updateAnnos(self, session):
-        annotations = session['annotations']
+    def updateAnnos(self, session, filepath):
         try:
             githubresponse = self.get(session['currentworkspace']['contents_url'].replace('{+path}', filepath))
             githubfilenames = list(map(lambda x: x['name'], githubresponse))
-            session['annotations'] = list(filter(lambda x: x['filename'].split('/')[-1] in githubfilenames,annotations))
+            session['annotations'] = list(filter(lambda x: x['filename'].split('/')[-1] in githubfilenames, session['annotations']))
             return githubresponse
         finally:
             return False
