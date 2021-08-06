@@ -615,6 +615,8 @@ def getannotations():
     if 'annotime' in session.keys():
         now = datetime.now()
         duration = (now - session['annotime']).total_seconds()
+# diagnostic:
+    print("Duration: " + str(duration))
     if 'annotations' not in session.keys() or session['annotations'] == '' or  duration > 35:
         content, status = origin_contents()
         for item in content['annotations']:
@@ -631,14 +633,21 @@ def getannotations():
         session['customviews'] = content['customviews']
         parsecustomviews(content)
         session['annotime'] = datetime.now()
+# diagnostic:
+        print("A: Annotations before: " + str(len(session['annotations'])))
         github.updateAnnos(session, filepath)
+        print("A: Annotations after: " + str(len(session['annotations'])))
         annotations = session['annotations']
         if status > 299:
             session['annotations'] = ''
     else:
         annotations = session['annotations']
+# diagnostic:
+        print("B: Annotations before: " + str(len(session['annotations'])))
         githubresponse = github.updateAnnos(session, filepath)
+        print("B: Annotations after: " + str(len(session['annotations'])))
         if githubresponse:
+            print("githubresponse after: " + str(len(githubresponse)))
             filenames = list(map(lambda x: x['filename'].split('/')[-1], session['annotations']))
             notinsession = list(filter(lambda x: x['name'] not in filenames and '-list' not in x['name'],githubresponse))
             #beforefilenames = list(map(lambda x: x['filename'].split('/')[-1], annotations))

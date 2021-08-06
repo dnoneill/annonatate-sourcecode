@@ -43,5 +43,5 @@ class GitHubAnno(GitHub):
             githubfilenames = list(map(lambda x: x['name'], githubresponse))
             session['annotations'] = list(filter(lambda x: x['filename'].split('/')[-1] in githubfilenames, session['annotations']))
             return githubresponse
-        finally:
+        except:
             return False
