@@ -615,19 +615,13 @@ def getannotations():
         session['customviews'] = content['customviews']
         parsecustomviews(content)
         session['annotime'] = datetime.now()
-# diagnostic:
-        print("A: Annotations before: " + str(len(session['annotations'])))
         github.updateAnnos(session, filepath)
-        print("A: Annotations after: " + str(len(session['annotations'])))
         annotations = session['annotations']
         if status > 299:
             session['annotations'] = ''
     else:
         annotations = session['annotations']
-# diagnostic:
-        print("B: Annotations before: " + str(len(session['annotations'])))
         githubresponse = github.updateAnnos(session, filepath)
-        print("B: Annotations after: " + str(len(session['annotations'])))
         if githubresponse:
             print("githubresponse after: " + str(len(githubresponse)))
             filenames = list(map(lambda x: x['filename'].split('/')[-1], session['annotations']))
