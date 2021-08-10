@@ -27,8 +27,7 @@ from utils.search import get_search, encodedecode, Search
 from utils.image import Image
 
 app = Flask(__name__,
-            static_url_path='',
-            static_folder='static',)
+            static_url_path='',)
 app.config.update(
                   SESSION_TYPE = 'filesystem',
                   GITHUB_CLIENT_ID = client_id,
