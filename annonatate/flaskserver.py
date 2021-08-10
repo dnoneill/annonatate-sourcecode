@@ -350,24 +350,6 @@ def delete_anno():
         delete_annos(listfilename(canvas))
     return jsonify({"File Removed": True}), response
 
-@app.route('/write_annotation/', methods=['POST'])
-def write_annotation():
-    data = json.loads(request.data)
-    json_data = data['json']
-    file = filepath if data['type'] == 'annotation' else '_ranges'
-    filename = os.path.join(file, data['filename'])
-    for id in data['deleteids']:
-        fileid = cleanid(id)
-        deletefiles = [os.path.join(filepath, fileid)]
-        delete_annos(deletefiles)
-    if 'list' in json_data['type'].lower() or 'page' in json_data['type'].lower():
-        for anno in json_data['resources']:
-            id = cleanid(anno['id'])
-            single_filename = os.path.join(file, id)
-            writetogithub(single_filename, anno)
-    writetogithub(filename, json_data)
-    return jsonify({"Annotations Written": True}), 201
-
 @app.route('/profile/')
 def getprofiledata():
     invites = github.get('{}/repository_invitations'.format(githubuserapi))
@@ -600,7 +582,7 @@ def getContents():
     tags = []
     for canvas in canvases:
         loadcanvas = canvas['json']
-        if 'resources' not in loadcanvas.keys():
+        if 'resources' not in loadcanvas.keys() and 'items' not in loadcanvas.keys():
             searchfields = get_search(loadcanvas)
             tags += searchfields['facets']['tags']
             loadcanvas['order'] = canvas['order']
@@ -662,9 +644,10 @@ def getannotations():
                 indexof = [idx for idx, annotation in enumerate(session['annotations']) if filenamelist in annotation['filename']]
                 session['annotations'].append(yamlparse)
                 if len(indexof) > 0:
-                    session['annotations'][indexof[0]]['json']['resources'].append(yamlparse['json'])
+                    itemskey = 'items' if 'items' in session['annotations'][indexof[0]]['json'].keys() else 'resources'
+                    session['annotations'][indexof[0]]['json'][itemskey].append(yamlparse['json'])
                 else:
-                    session['annotations'].append({'filename': filenamelist, 'order': None, 'json': {"@context": "http://iiif.io/api/presentation/2/context.json","id": "{}".format(filenamelist),"type": "AnnotationPage","items": [yamlparse['json']]}, 'canvas': ''})
+                    session['annotations'].append({'filename': filenamelist, 'order': None, 'json': {"@context": "http://iiif.io/api/presentation/3/context.json","id": "{}".format(filenamelist),"type": "AnnotationPage","items": [yamlparse['json']]}, 'canvas': ''})
             annotations = session['annotations']
     return annotations
 
@@ -773,9 +756,10 @@ def writetogithub(filename, annotation, order):
         if len(existinglist) > 0:
             annolistindex = session['annotations'].index(existinglist[0])
             canvasannos = list(filter(lambda n: canvas == n.get('canvas'), session['annotations']))
-            session['annotations'][annolistindex]['json']['resources'] = list(map(lambda k: k.get('json'), canvasannos))
+            itemskey = 'items' if 'items' in session['annotations'][annolistindex]['json'].keys() else 'resources'
+            session['annotations'][annolistindex]['json'][itemskey] = list(map(lambda k: k.get('json'), canvasannos))
         else:
-            listdata = {'json': {'resources': [data['json']]}, 'filename':annolistfilename, 'canvas': ''}
+            listdata = {'json': {'items': [data['json']]}, 'filename':annolistfilename, 'canvas': ''}
             session['annotations'].append(listdata)
         if canvas not in canvases:
             createlistpage(canvas)
@@ -784,7 +768,7 @@ def writetogithub(filename, annotation, order):
 
 def createlistpage(canvas):
     filename = listfilename(canvas)
-    text = '---\ncanvas_id: "' + canvas + '"\n---\n{% assign annotations = site.annotations | where: "canvas", page.canvas_id | sort: "order" | map: "content" %}\n{\n"@context": "http://iiif.io/api/presentation/2/context.json",\n"id": "{{ site.url }}{{ site.baseurl }}{{page.url}}",\n"type": "AnnotationPage",\n"resources": [{{ annotations | join: ","}}] }'
+    text = '---\ncanvas_id: "' + canvas + '"\n---\n{% assign annotations = site.annotations | where: "canvas", page.canvas_id | sort: "order" | map: "content" %}\n{\n"@context": "http://iiif.io/api/presentation/3/context.json",\n"id": "{{ site.url }}{{ site.baseurl }}{{page.url}}",\n"type": "AnnotationPage",\n"items": [{{ annotations | join: ","}}] }'
     github.sendgithubrequest(session, filename, text, filepath)
 
 def listfilename(canvas):
