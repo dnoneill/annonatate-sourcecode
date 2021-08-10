@@ -1,0 +1,18 @@
+{
+    "label": "test",
+    "type": "storyboardlist",
+    "items": [
+        {
+            "board": "<iiif-annotation annotationurl='https://dnoneill.github.io/annonatate/annotations/mc00336-1911bldg-may2017-list.json'></iiif-annotation>",
+            "title": "",
+            "description": "",
+            "thumbnail": ""
+        },
+        {
+            "board": "<iiif-storyboard annotationurl='https://dnoneill.github.io/annonatate/annotations/mc00336-1911bldg-may2017-list.json'></iiif-storyboard>",
+            "title": "",
+            "description": "",
+            "thumbnail": ""
+        }
+    ]
+}

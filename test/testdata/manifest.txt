@@ -1,0 +1,47 @@
+{
+   "@context": "http://iiif.io/api/presentation/2/context.json",
+   "@id": "https://testuser.github.io/annonatate/manifests/wh234bz9013%252Fwh234bz9013_05_0001/manifest.json",
+   "@type": "sc:Manifest",
+   "label": "test upload",
+   "metadata": [
+     {
+       "label": "rights",
+       "value": ""
+     }
+   ],
+   "viewingDirection": "left-to-right",
+   "sequences": [
+     {
+       "@type": "sc:Sequence",
+       "canvases": [
+         {
+           "@id": "https://stacks.stanford.edu/image/iiif/wh234bz9013%252Fwh234bz9013_05_0001/info.json",
+           "@type": "sc:Canvas",
+           "label": "test upload",
+           "height": 7647,
+           "width": 8812,
+           "images": [
+             {
+               "@id": "https://testuser.github.io/annonatate/manifests/wh234bz9013%252Fwh234bz9013_05_0001/annotation/1.json",
+               "@type": "oa:Annotation",
+               "motivation": "sc:painting",
+               "resource": {
+                 "@id": "https://stacks.stanford.edu/image/iiif/wh234bz9013%252Fwh234bz9013_05_0001/full/full/0/default.jpg",
+                 "@type": "dctypes:Image",
+                 "format": "image/jpeg",
+                 "height": 7647,
+                 "width": 8812,
+                 "service": {
+                   "@context": "http://iiif.io/api/image/2/context.json",
+                   "@id": "https://stacks.stanford.edu/image/iiif/wh234bz9013%252Fwh234bz9013_05_0001",
+                   "profile": "http://iiif.io/api/image/2/level2.json"
+                 }
+               },
+               "on": "https://stacks.stanford.edu/image/iiif/wh234bz9013%252Fwh234bz9013_05_0001/info.json"
+             }
+           ]
+         }
+       ]
+     }
+   ]
+ } 

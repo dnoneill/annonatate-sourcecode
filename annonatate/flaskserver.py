@@ -124,7 +124,7 @@ def uploadstatus():
         if checknum == '1':
             triggerbuild()
         elif checknum == '2':
-            updateindex(False)
+            updateindex()
         return 'failure', 404
     if uploadtype == 'customviews':
         deleteItemAnnonCustomViews(url, 'slug')
@@ -262,7 +262,7 @@ def createcollection(collectionid=''):
         sendgithubrequest('{}.json'.format(title), contents, session['defaults']['collections'])
         return redirect('/collections')
     else:
-        formvalues = CollectionForm(collectionid, request, session['collections']).formvalues
+        formvalues = CollectionForm(collectionid, request.args, session['collections']).formvalues
         return render_template('createcollection.html', formvalues=formvalues)
 
 @app.route('/collections')
@@ -319,7 +319,7 @@ def changeworkspace():
     if status_code < 299:
         getContents()
     else:
-        if 'wax' in session['currentworkspace']['description'].lower():
+        if session['defaults']['iswax']:
             try:
                 github.get(session['currentworkspace']['contents_url'].replace('/{+path}', session['defaults']['apiurl']))
             except:
@@ -727,7 +727,7 @@ def parsecollections(content):
     else:
         updateindex()
 
-def updateindex(updateConfig=True):
+def updateindex():
     index = session['defaults']['index']
     contents = open(index).read()
     sendgithubrequest(index.replace(githubfilefolder, ''), contents)

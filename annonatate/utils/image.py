@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import re
+import re, json
 from iiif_prezi.factory import ManifestFactory
 from iiif_prezi.loader import ManifestReader
 import requests
@@ -73,11 +73,14 @@ class Image:
 
 
 def addAnnotationList(manifest, matchcanvas, annotationlist, originurl):
-    manifest = parseManifest(manifest)
-    for canvas in manifest.sequences[0].canvases:
-        if canvas.id == matchcanvas:
-            canvas.annotationList(annotationlist)
-    stringmanifest = manifest.toString(compact=False).replace(originurl, "{{ '/' | absolute_url }}")
+    try:
+        manifest = parseManifest(manifest)
+        for canvas in manifest.sequences[0].canvases:
+            if canvas.id == matchcanvas:
+                canvas.annotationList(annotationlist)
+        stringmanifest = manifest.toString(compact=False).replace(originurl, "{{ '/' | absolute_url }}")
+    except:
+        stringmanifest = json.dumps(manifest)
     pagecontent = '---\nlayout: none\n---\n' + stringmanifest
     return pagecontent
 

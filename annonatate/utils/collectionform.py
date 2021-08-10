@@ -2,9 +2,9 @@
 # -*- coding: utf-8 -*-
 import json, re
 class CollectionForm:
-    def __init__(self, collectionid, request, collections):
+    def __init__(self, collectionid, requestargs, collections):
         self.formvalues = {}
-        self.args = request.args
+        self.args = requestargs
         self.formvalues['annotations'] = []
         self.collections = collections
         self.collectionid = collectionid
