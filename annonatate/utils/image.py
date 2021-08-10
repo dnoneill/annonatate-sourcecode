@@ -3,6 +3,7 @@
 
 import re
 from iiif_prezi.factory import ManifestFactory
+from iiif_prezi.loader import ManifestReader
 import requests
 
 class Image:
@@ -69,4 +70,19 @@ class Image:
         cvs.height = img.height
         cvs.width = img.width
         return manifest
+
+
+def addAnnotationList(manifest, matchcanvas, annotationlist, originurl):
+    manifest = parseManifest(manifest)
+    for canvas in manifest.sequences[0].canvases:
+        if canvas.id == matchcanvas:
+            canvas.annotationList(annotationlist)
+    stringmanifest = manifest.toString(compact=False).replace(originurl, "{{ '/' | absolute_url }}")
+    pagecontent = '---\nlayout: none\n---\n' + stringmanifest
+    return pagecontent
+
+def parseManifest(manifest):
+    reader = ManifestReader(manifest)
+    manifest = reader.read()
+    return manifest
         

@@ -14,8 +14,7 @@ from datetime import datetime
 import os
 
 from utils.search import get_search, encodedecode, Search
-from utils.image import Image
-from utils.iiiffunctions import addAnnotationList
+from utils.image import Image, addAnnotationList
 from utils.collectionform import CollectionForm, parseboard, parsetype
 
 app = Flask(__name__,
@@ -641,7 +640,7 @@ def getContents():
     tags = []
     for canvas in canvases:
         loadcanvas = canvas['json']
-        if 'resources' not in loadcanvas.keys():
+        if 'resources' not in loadcanvas.keys() and 'items' not in loadcanvas.keys():
             searchfields = get_search(loadcanvas)
             tags += searchfields['facets']['tags']
             loadcanvas['order'] = canvas['order']
@@ -693,9 +692,10 @@ def getannotations():
                 indexof = [idx for idx, annotation in enumerate(session['annotations']) if filenamelist in annotation['filename']]
                 session['annotations'].append(yamlparse)
                 if len(indexof) > 0:
-                    session['annotations'][indexof[0]]['json']['resources'].append(yamlparse['json'])
+                    itemskey = 'items' if 'items' in session['annotations'][indexof[0]]['json'].keys() else 'resources'
+                    session['annotations'][indexof[0]]['json'][itemskey].append(yamlparse['json'])
                 else:
-                    session['annotations'].append({'filename': filenamelist, 'order': None, 'json': {"@context": "http://iiif.io/api/presentation/2/context.json","id": "{}".format(filenamelist),"type": "AnnotationPage","items": [yamlparse['json']]}, 'canvas': ''})
+                    session['annotations'].append({'filename': filenamelist, 'order': None, 'json': {"@context": "http://iiif.io/api/presentation/3/context.json","id": "{}".format(filenamelist),"type": "AnnotationPage","items": [yamlparse['json']]}, 'canvas': ''})
             annotations = session['annotations']
     return annotations
 
@@ -820,9 +820,10 @@ def writetogithub(filename, annotation, order):
         if len(existinglist) > 0:
             annolistindex = session['annotations'].index(existinglist[0])
             canvasannos = list(filter(lambda n: canvas == n.get('canvas'), session['annotations']))
-            session['annotations'][annolistindex]['json']['resources'] = list(map(lambda k: k.get('json'), canvasannos))
+            itemskey = 'items' if 'items' in session['annotations'][annolistindex]['json'].keys() else 'resources'
+            session['annotations'][annolistindex]['json'][itemskey] = list(map(lambda k: k.get('json'), canvasannos))
         else:
-            listdata = {'json': {'resources': [data['json']]}, 'filename':annolistfilename, 'canvas': ''}
+            listdata = {'json': {'items': [data['json']]}, 'filename':annolistfilename, 'canvas': ''}
             session['annotations'].append(listdata)
         response = requests.get(manifest)
         if canvas not in canvases:
@@ -839,7 +840,7 @@ def sendgithubrequest(filename, annotation, path='', order=''):
 def createlistpage(canvas, manifest):
     filenameforlist = listfilename(canvas)
     filename = os.path.join(session['defaults']['annotations'], filenameforlist)
-    text = '---\ncanvas_id: "' + canvas + '"\n---\n{% assign annotations = site.annotations | where: "canvas", page.canvas_id | sort: "order" | map: "content" %}\n{\n"@context": "http://iiif.io/api/presentation/2/context.json",\n"id": "{{ site.url }}{{ site.baseurl }}{{page.url}}",\n"type": "AnnotationPage",\n"resources": [{{ annotations | join: ","}}] }'
+    text = '---\ncanvas_id: "' + canvas + '"\n---\n{% assign annotations = site.annotations | where: "canvas", page.canvas_id | sort: "order" | map: "content" %}\n{\n"@context": "http://iiif.io/api/presentation/2/context.json",\n"id": "{{ site.url }}{{ site.baseurl }}{{page.url}}",\n"type": "AnnotationPage",\n"items": [{{ annotations | join: ","}}] }'
     sendgithubrequest(filename, text)
     if manifest in session['upload']['manifests']:
         response = requests.get(manifest)
