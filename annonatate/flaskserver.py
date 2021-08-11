@@ -184,7 +184,7 @@ def createimage():
     if not image.isimage:
         if type(image.manifest) == dict:
             return render_template('upload.html', error=image.manifest['error'])
-        response = github.sendgithubrequest("manifest.json", image.manifest_markdown, image.manifestpath).json()
+        response = github.sendgithubrequest(session, "manifest.json", image.manifest_markdown, image.manifestpath).json()
         uploadtype = 'manifest'
         if 'content' in response.keys():
             uploadurl ='{}{}'.format(image.origin_url, response['content']['path'].replace('_manifest', 'manifest'))
@@ -207,7 +207,7 @@ def createimage():
 def processwaxcollection():
     collectionname = request.form['waxcollection']
     csvfile = request.files['collectioncsv'].stream.read()
-    sendgithubrequest('{}.csv'.format(collectionname), csvfile, '_data')
+    github.sendgithubrequest(session, '{}.csv'.format(collectionname), csvfile, '_data')
     reader = csv.DictReader(csvfile.decode().splitlines())
     actions = github.get('{}/actions/workflows'.format(session['currentworkspace']['url']))
     hasaction = list(filter(lambda action: action['name'] == collectionname, actions['workflows']))
@@ -218,7 +218,7 @@ def processwaxcollection():
         yamlcontents = open(os.path.join(githubfilefolder, 'action.yml')).read()
         yamlcontents = yamlcontents.replace('replacewithcollection', collectionname)
         yamlcontents = yamlcontents.replace('replacewithbranch', session['currentworkspace']['default_branch'])
-        response = sendgithubrequest('.github/workflows/{}.yml'.format(collectionname), yamlcontents)
+        response = github.sendgithubrequest(session, '.github/workflows/{}.yml'.format(collectionname), yamlcontents)
         if response.status_code < 299:
             time.sleep(1)
             triggerAction(response.json()['content']['name'])
@@ -300,7 +300,6 @@ def errorchecking(request):
         return render_template('error.html', message='There was a problem enabling GitHub pages on your site. Please follow the <a href="https://annonatate.github.io/annonatate-help/getting-started#troubleshooting">troubleshooting instructions to fix this problem.</a>')
     else:
         triggerbuild()
-        #sendgithubrequest('index.html', open(indexfile, "r").read(), '')
         return render_template('error.html', message='''<b>If this
         is your first time logging into your website, is still being built
         and that is why you are seeing this error page.
@@ -351,7 +350,7 @@ def updateconfig(collection='', searchfields=''):
     if 'url' in contentsyaml.keys() and 'minicomp.github.io' in contentsyaml['url']:
         del contentsyaml['url']
     updatedcontents = yaml.dump(contentsyaml)
-    sendgithubrequest(configfilenames, updatedcontents)
+    github.sendgithubrequest(session, configfilenames, updatedcontents)
 
 def updateworkspace(workspace):
     clearSessionWorkspaces()
