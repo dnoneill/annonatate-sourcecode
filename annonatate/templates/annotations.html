@@ -30,6 +30,8 @@
 {% for anno in annotations %}
 {% if 'resources' in anno['json'].keys()%}
 {% set annodata = anno['json']['resources'][0] %}
+{% elif 'items' in anno['json'].keys()%}
+{% set annodata = anno['json']['items'][0] %}
 {% else %}
 {% set annodata = anno['json'] %}
 {% endif %}
