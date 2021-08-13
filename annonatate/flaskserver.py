@@ -14,7 +14,7 @@ from datetime import datetime
 import os
 
 from utils.search import get_search, encodedecode, Search
-from utils.image import Image, addAnnotationList
+from utils.image import Image, addAnnotationList, listfilename
 from utils.collectionform import CollectionForm, parseboard, parsetype
 from utils.github import GitHubAnno
 
@@ -336,7 +336,7 @@ def updateWax():
 def updateconfig(collection='', searchfields=''):
     configfilenames = '_config.yml'
     config = github.get(session['currentworkspace']['contents_url'].replace('/{+path}', configfilenames))
-    decodedcontents = base64.b64decode(config['content']).decode('utf-8')
+    decodedcontents = github.decodeContent(config['content'])
     contentsyaml = yaml.load(decodedcontents, Loader=yaml.FullLoader)
     if collection:
         contentsyaml['collections'][collection] = {'output': True, 'layout': 'qatar_item',
@@ -376,7 +376,7 @@ def create_anno():
     cleanobject = cleananno(data_object)
     canvas = cleanobject['target']['source']
     listlength = len(list(filter(lambda n: canvas == n.get('canvas'), session['annotations'])))
-    response = writetogithub(filename, cleanobject, listlength+1)
+    response = writetogithub(data_object['id'], cleanobject, listlength+1)
     returnvalue = response.content if response.status_code > 399 else data_object
     returnvalue['order'] = listlength+1
     return jsonify(returnvalue), response.status_code
@@ -463,7 +463,6 @@ def acceptinvite():
 @app.route('/search')
 def search():
     search = Search(request.args, session['annotations'])
-
     if request.args.get('format') == 'json':
         return jsonify(search.items), 200
     else:
@@ -528,6 +527,7 @@ def updatedata():
     github.sendgithubrequest(session, 'preload.yml', yamldata, '_data')
     session['preloaded'] = jsondata
     return redirect('/profile?tab=data')
+
 @github.access_token_getter
 def token_getter():
     if 'user_token' in session.keys():
@@ -728,7 +728,7 @@ def parsecollections(content):
 def updateindex():
     index = session['defaults']['index']
     contents = open(index).read()
-    github.sendgithubrequest(session, 'index.html', contents, '')
+    github.sendgithubrequest(session, index.replace(githubfilefolder, ''), contents)
 
 def origin_contents():
     apiurl = session['origin_url'] + session['defaults']['apiurl']
@@ -809,20 +809,13 @@ def createlistpage(canvas, manifest):
     text = '---\ncanvas_id: "' + canvas + '"\n---\n{% assign annotations = site.annotations | where: "canvas", page.canvas_id | sort: "order" | map: "content" %}\n{\n"@context": "http://iiif.io/api/presentation/2/context.json",\n"id": "{{ site.url }}{{ site.baseurl }}{{page.url}}",\n"type": "AnnotationPage",\n"items": [{{ annotations | join: ","}}] }'
     github.sendgithubrequest(session, filename, text)
     if manifest in session['upload']['manifests']:
-        response = requests.get(manifest)
-        urlforlist = os.path.join(session['origin_url'], session['defaults']['annotations'].replace('_', ''), filenameforlist)
-        manifestwithlist = addAnnotationList(response.json(), canvas, urlforlist, session['origin_url'])
+        response = requests.get(manifest).json()
+        manifestwithlist = addAnnotationList(json.dumps(response), session)
         manifestfilename = manifest.replace(session['origin_url'], '')
-        response = github.sendgithubrequest(session, manifestfilename, manifestwithlist)
+        if json.loads(manifestwithlist) != response:
+            manifestwithlist = '---\nlayout: none\n---\n' + manifestwithlist.replace(session['origin_url'], "{{ '/' | absolute_url }}")
+            response = github.sendgithubrequest(session, manifestfilename, manifestwithlist)
 
-def listfilename(canvas):
-    r = re.compile("\d+")
-    canvas = canvas.replace('.json', '')
-    canvaslist = canvas.split('/')
-    withnumbs = list(filter(r.search, canvaslist))
-    filename = "-".join(withnumbs) if len(withnumbs) > 0 else canvaslist[-1]
-    filename = re.sub('[^A-Za-z0-9]+', '-', filename).lower()
-    return filename + '-list.json'
 app.jinja_env.filters['listfilename'] = listfilename
 
 # def listfilenamelink(canvas):
