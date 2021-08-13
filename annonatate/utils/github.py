@@ -37,6 +37,9 @@ class GitHubAnno(GitHub):
             data['sha'] = sha
         return {'data':data, 'url':full_url}
 
+    def decodeContent(self, content):
+        return base64.b64decode(content).decode('utf-8')
+
     def updateAnnos(self, session):
         try:
             githubresponse = self.get(session['currentworkspace']['contents_url'].replace('{+path}', session['defaults']['annotations']))

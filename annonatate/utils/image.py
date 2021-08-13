@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import re, json
+from os.path import join as pathjoin
 from iiif_prezi.factory import ManifestFactory
 from iiif_prezi.loader import ManifestReader
 import requests
@@ -72,20 +73,32 @@ class Image:
         return manifest
 
 
-def addAnnotationList(manifest, matchcanvas, annotationlist, originurl):
+def addAnnotationList(manifest, session):
     try:
-        manifest = parseManifest(manifest)
+        originurl = session['origin_url']
+        cleanmanifest = manifest.replace("{{ '/' | absolute_url }}", originurl)
+        cleanmanifest = json.loads(cleanmanifest)
+        manifest = parseManifest(cleanmanifest)
         for canvas in manifest.sequences[0].canvases:
-            if canvas.id == matchcanvas:
+            annotationlist = pathjoin(originurl, session['defaults']['annotations'].strip('_'), listfilename(canvas.id))
+            othercontentids = list(map(lambda x: x.id, canvas.otherContent))
+            if annotationlist not in othercontentids:
                 canvas.annotationList(annotationlist)
-        stringmanifest = manifest.toString(compact=False).replace(originurl, "{{ '/' | absolute_url }}")
+        stringmanifest = manifest.toString(compact=False)
     except:
         stringmanifest = json.dumps(manifest)
-    pagecontent = '---\nlayout: none\n---\n' + stringmanifest
-    return pagecontent
+    return stringmanifest
 
 def parseManifest(manifest):
     reader = ManifestReader(manifest)
     manifest = reader.read()
     return manifest
         
+def listfilename(canvas):
+    r = re.compile("\d+")
+    canvas = canvas.replace('.json', '')
+    canvaslist = canvas.split('/')
+    withnumbs = list(filter(r.search, canvaslist))
+    filename = "-".join(withnumbs) if len(withnumbs) > 0 else canvaslist[-1]
+    filename = re.sub('[^A-Za-z0-9]+', '-', filename).lower()
+    return filename + '-list.json'
