@@ -73,10 +73,10 @@ class TestGitHub(unittest.TestCase):
             'currentworkspace': {
                 'contents_url': 'https://api.github.com/repos/testuser/annonatate/contents/{+path}'
             },
+            'defaults': {'annotations': '_annotations'},
             'annotations': [self.keep_annotation_session, self.delete_annotation_session]
         }
-        filepath = '_annotations'
-        self.github.updateAnnos(test_session, filepath)
+        self.github.updateAnnos(test_session)
         self.assertEqual(len(test_session['annotations']), 1) # one has been deleted
         self.assertEqual(test_session['annotations'][0]['filename'], self.keep_annotation_session['filename']) # right one has been kept
 

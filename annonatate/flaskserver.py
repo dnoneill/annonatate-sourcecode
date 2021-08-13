@@ -372,8 +372,7 @@ def add_collaborator():
 def create_anno():
     response = json.loads(request.data)
     data_object = response['json']
-    filename = data_object['id'].replace("#", "") + '.json'
-    data_object['id'] = "{{site.url}}{{site.baseurl}}/%s/%s"%(filepath.replace("_", ""), filename)
+    data_object['id'] = data_object['id'].replace("#", "") + '.json'
     cleanobject = cleananno(data_object)
     canvas = cleanobject['target']['source']
     listlength = len(list(filter(lambda n: canvas == n.get('canvas'), session['annotations'])))
@@ -387,9 +386,8 @@ def update_anno():
     response = json.loads(request.data)
     data_object = response['json']
     order = data_object['order']
-    id = cleanid(data_object['id'])
     cleanobject = cleananno(data_object)
-    response = writetogithub(id, cleanobject, response['order'])
+    response = writetogithub(data_object['id'], cleanobject, response['order'])
     returnvalue = response.content if response.status_code > 399 else data_object
     returnvalue['order'] = order
     return jsonify(returnvalue), response.status_code
@@ -397,7 +395,7 @@ def update_anno():
 @app.route('/delete_annotations/', methods=['DELETE', 'POST'])
 def delete_anno():
     response = json.loads(request.data)
-    id = cleanid(response['id'])
+    id = response['id']
     annotatons = getannotations()
     canvas = list(filter(lambda x: id in x['filename'], session['annotations']))[0]['canvas']
     canvases = getContents()['contents']
@@ -481,7 +479,7 @@ def listannotations(annoid=''):
     else:
         lists = list(filter(lambda x: '-list' not in x['filename'], items)) if request.args.get('annotype') == 'single' else list(filter(lambda x: '-list' in x['filename'], items))
     format = request.args.get('viewtype') if request.args.get('viewtype') else 'annotation'
-    return render_template('annotations.html', annotations=lists, format=format, filepath=filepath, annoid=annoid)
+    return render_template('annotations.html', annotations=lists, format=format, filepath=session['defaults']['annotations'], annoid=annoid)
 
 @app.route('/customviews')
 def customviews():
@@ -655,8 +653,6 @@ def getannotations():
     if 'annotime' in session.keys():
         now = datetime.now()
         duration = (now - session['annotime']).total_seconds()
-# diagnostic:
-    print("Duration: " + str(duration))
     if 'annotations' not in session.keys() or session['annotations'] == '' or  duration > 35:
         content, status = origin_contents()
         for item in content['annotations']:
@@ -672,15 +668,14 @@ def getannotations():
             session['upload'] = {'images': content['images'], 'manifests': content['manifests']}
         parsecustomviews(content)
         session['annotime'] = datetime.now()
-        github.updateAnnos(session, filepath)
+        github.updateAnnos(session)
         annotations = session['annotations']
         if status > 299:
             session['annotations'] = ''
     else:
         annotations = session['annotations']
-        githubresponse = github.updateAnnos(session, filepath)
+        githubresponse = github.updateAnnos(session)
         if githubresponse:
-            print("githubresponse after: " + str(len(githubresponse)))
             filenames = list(map(lambda x: x['filename'].split('/')[-1], session['annotations']))
             notinsession = list(filter(lambda x: x['name'] not in filenames and '-list' not in x['name'],githubresponse))
             #beforefilenames = list(map(lambda x: x['filename'].split('/')[-1], annotations))
@@ -733,7 +728,7 @@ def parsecollections(content):
 def updateindex():
     index = session['defaults']['index']
     contents = open(index).read()
-    github.sendgithubrequest(session, 'index.html', contents, '', filepath)
+    github.sendgithubrequest(session, 'index.html', contents, '')
 
 def origin_contents():
     apiurl = session['origin_url'] + session['defaults']['apiurl']
@@ -759,11 +754,8 @@ def cleananno(data_object):
                 item[charfield] =  item[charfield].replace(rep.group(), replacestring)
     return data_object
 
-def cleanid(id):
-    return id.split('/')[-1].replace('.json', '') + '.json'
-
 def delete_annos(anno):
-    data = github.createdatadict(session, anno, 'delete', filepath)
+    data = github.createdatadict(session, anno, 'delete', session['defaults']['annotations'])
     if 'sha' in data['data'].keys():
         payload = {'ref': session['github_branch']}
         response = github.raw_request('delete', data['url'], data=json.dumps(data['data']), params=payload)

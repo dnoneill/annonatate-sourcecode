@@ -2,7 +2,6 @@ import os
 from dotenv import load_dotenv
 
 load_dotenv()
-filepath = "_annotations"
 client_id = os.environ.get('ANNONATATE_CLIENT_ID')
 client_secret = os.environ.get('ANNONATATE_CLIENT_SECRET')
 print(client_id)
