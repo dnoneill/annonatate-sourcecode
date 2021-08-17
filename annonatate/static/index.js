@@ -65,7 +65,7 @@ const annoview = Vue.component('annoview', {
   data: function() {
   	return {
       inputurl: '',
-      drawtools: [{'name': 'rect', 'label':'Rectangle'},{'name': 'polygon', 'label':'Polygon'}],
+      drawtools: [],
       currentdrawtool: 'rect',
       anno: '',
       viewer: '',
@@ -144,6 +144,13 @@ const annoview = Vue.component('annoview', {
     // Load annotations in W3C WebAnnotation format
       if (existing){
         var annotation = this.anno.setAnnotations(existing); 
+      }
+      Annotorious.SelectorPack(this.anno);
+      const drawingtools = this.anno.listDrawingTools();
+      for (var dt=0; dt<drawingtools.length; dt++){
+        const name = drawingtools[dt];
+        const label = name == 'rect' ? 'Rectangle' : name.charAt(0).toUpperCase() + name.slice(1);
+        this.drawtools.push({'name': name, 'label': label})
       }
       this.addListeners();
       this.anno.setAuthInfo({
