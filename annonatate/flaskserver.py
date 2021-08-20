@@ -31,25 +31,30 @@ github = GitHubAnno(app)
 ALLOWED_EXTENSIONS = set(['png', 'jpg', 'jpeg'])
 app.config['UPLOAD_FOLDER'] = uploadfolder
 githubfilefolder = 'annonatate/static/githubfiles/'
+
+#Before every page loads this runs a series of tests
 @app.before_request
 def before_request():
-    user = None
+    #pages that should have have a landing page when not logged in
     nolandingpage = ['login', 'authorized', 'logout', 'static']
-    if 'user_id' in session:
-        user = session['user_id']
-    elif request.endpoint not in nolandingpage:
+    # if not logged in and the page is no the login/authorized/logout or static file show landing page
+    if 'user_id' not in session.keys() and request.endpoint not in nolandingpage:
         return render_template('landingpage.html')
     g.error = ''
+    # If the user has been logged in for longer than 3 days, clear the session and log them back in
     if 'login_time' in session.keys():
         timediff = (datetime.now() - datetime.strptime(session['login_time'], '%Y-%m-%d %H:%M:%S.%f')).seconds
         if timediff > 259200:
             session.clear()
             return redirect('/login')
+    # if the site is not building for the first time and it is not the login/authorized/logout/static item,
+    #and there is a workplace selected check to make sure the user still had access to the workspace (hasn't been deleted, access has been revoked)
     if request.args.get('firstbuild') != 'True' and request.endpoint not in nolandingpage and 'currentworkspace' in session.keys() and session['currentworkspace']:
         check = workspaceCheck(request.method)
         if check == 'problem':
             return 'You have lost access to {}, please go to the profile page to change workspaces or refresh this page to have it automatically choose a new workspace for you.'.format(session['currentworkspace']['full_name']), 400
-    
+
+# check defaults, sets defaults for an annontate repo/wax repo
 def getDefaults():
     if 'currentworkspace' in session.keys():
         currentworkspace = session['currentworkspace']
@@ -71,17 +76,23 @@ def getDefaults():
             'index': os.path.join(githubfilefolder, 'index.html')
             }
 
+#logins in by redirecting to the authorize route which is part of GitHub flask library
+#feeds redirect url to authorize function
 @app.route('/login')
 def login():
     argsnext = urllib.parse.quote(request.args.get('next')) if request.args.get('next') else url_for('index')
     nexturl = url_for('authorized', _external=True) + "?next={}".format(argsnext)
     return github.authorize(scope="repo,workflow", redirect_uri=nexturl)
 
+# clears session, redirects to github logout
 @app.route('/logout')
 def logout():
     session.clear()
     return redirect('https://github.com/logout')
 
+#After logging into GitHub, library returns oauth token, load that token into session
+#add login time, get defaults, get/build workspaces
+# if it is not first build get the contents of the API, else go to the first build page
 @app.route('/authorize')
 @github.authorized_handler
 def authorized(oauth_token):
@@ -100,10 +111,13 @@ def authorized(oauth_token):
         next_url =  url_for('index', firstbuild=isfirstbuild)
     return redirect(next_url)
 
+# render upload template
 @app.route('/upload')
 def upload():
     return render_template('upload.html')
 
+# check the status of the github site
+# if the site returns error code and you have not just logged in, send trigger code to GitHub pages
 @app.route('/sitestatus')
 def sitestatus():
     content, status_code = origin_contents()
@@ -113,6 +127,10 @@ def sitestatus():
     time.sleep(1)
     return content, status_code
 
+# Check the status of uploads (custom views/images/manifests)
+# If an upload is not rendering, after the second try, trigger a site rebuild,
+# after the third try, write the index in hopes of triggering a build
+# If successfully able to reach the item, return 200 status code
 @app.route('/uploadstatus')
 def uploadstatus():
     url = request.args.get('url')
@@ -131,6 +149,7 @@ def uploadstatus():
         deleteItemAnnonCustomViews(url, 'slug')
     return 'success', 200
 
+# Delete items from annocustomviews by URL
 def deleteItemAnnonCustomViews(url, deletetype=''):
     for key, value in session['annocustomviews'].items():
         for index, item in enumerate(value):
@@ -142,6 +161,7 @@ def deleteItemAnnonCustomViews(url, deletetype=''):
                     del session['annocustomviews'][key][index]
                 break
 
+# Rename GitHub repo, update workspaces in session
 @app.route('/rename', methods=['POST'])
 def renameGitHub():
     oldname = request.form['workspace']
@@ -166,6 +186,7 @@ def renameGitHub():
         return redirect('/profile?renameerror={}'.format(error))
     return redirect('/profile')
 
+# Remove collaborator from workspace
 @app.route('/removecollaborator', methods=['POST'])
 def removecollaborator():
     collaburl = session['currentworkspace']['collaborators_url'].split('{')[0]
@@ -177,6 +198,8 @@ def removecollaborator():
         next_url += '?error={}'.format(parseGitHubErrors(response.json()))
     return redirect(next_url)
 
+# take uploaded content from upload form
+# create manifest or upload image
 @app.route('/createimage', methods=['POST', 'GET'])
 def createimage():
     image = Image(request.form, request.files, session['origin_url'])
@@ -202,7 +225,8 @@ def createimage():
     triggerbuild()
     return render_template('uploadsuccess.html', output=output, uploadurl=uploadurl, uploadtype=uploadtype)
 
-
+# upload wax formatted csv. Get headers from CSV. Update config.yml with wax fields
+# create GitHub action for collection and run it.
 @app.route('/processwaxcollection', methods=['POST', 'GET'])
 def processwaxcollection():
     collectionname = request.form['waxcollection']
@@ -224,16 +248,14 @@ def processwaxcollection():
             triggerAction(response.json()['content']['name'])
     return redirect(url_for('upload'))
 
+# Trigger a GitHub action to run
 def triggerAction(ident):
     currrentworkspace = session['currentworkspace']
     response = github.raw_request('post', '{}/actions/workflows/{}/dispatches'.format(currrentworkspace['url'], ident), headers={'Accept': 'application/vnd.github.v3+json'}, data=json.dumps({"ref":currrentworkspace['default_branch']}))
     print(response.content)
 
-@app.route('/download', methods=['POST'])
-def download():
-    path = os.path.join(app.config['UPLOAD_FOLDER'], request.form['path'])
-    return send_file(path, as_attachment=True)
-
+# create collections form if GET.
+# If POST, grab all data from form and create collection JSON
 @app.route('/createcollections', methods=['GET', 'POST'])
 @app.route('/createcollections/<collectionid>', methods=['GET', 'POST'])
 def createcollection(collectionid=''):
@@ -266,6 +288,7 @@ def createcollection(collectionid=''):
         formvalues = CollectionForm(collectionid, request.args, session['collections']).formvalues
         return render_template('createcollection.html', formvalues=formvalues)
 
+# Display created collections, either all collections or a single collection if there is a collection id.
 @app.route('/collections')
 @app.route('/collections/<collectionid>', methods=['GET'])
 def collections(collectionid=''): 
@@ -277,6 +300,7 @@ def collections(collectionid=''):
         collections=session['collections']
     return render_template('collections.html', collections=collections, collectionurl='{}{}'.format(session['origin_url'], session['defaults']['collections']))
 
+# Homepage if logged in. Get contents of API and load into homepage.
 @app.route('/')
 def index():
     if 'user_id' in session:
@@ -292,6 +316,8 @@ def index():
         except:
            return errorchecking(request)
 
+# If it is first build, render the first build page. If there are no workspaces present, render error template.
+# Otherwise trigger build and render error page.
 def errorchecking(request):
     firstbuild = request.args.get('firstbuild')
     if firstbuild == 'True':
@@ -309,6 +335,8 @@ def errorchecking(request):
         please delete or rename your repository
         <a href='{}/settings'>{}/settings</a> and refresh the page.</p>'''.format(session['origin_url'], session['origin_url'], session['currentworkspace']['html_url'], session['currentworkspace']['html_url']))
 
+# Switch workspace. If there is problem updating the workspace,
+#switch to the previous workspace and show error
 @app.route('/changeworkspace', methods=['POST'])
 def changeworkspace():
     workspace = request.form['workspace']
@@ -329,10 +357,13 @@ def changeworkspace():
         updateworkspace(prevworkspace)
     return redirect(next_url)
 
+# update config in wax site and update config
 def updateWax():
     updateconfig()
     updateindex()
 
+# Get decoded contents of _config.yml.
+# If collection, update config with WAX collections. Otherwise update urls for annotations and baseurl
 def updateconfig(collection='', searchfields=''):
     configfilenames = '_config.yml'
     config = github.get(session['currentworkspace']['contents_url'].replace('/{+path}', configfilenames))
@@ -352,12 +383,15 @@ def updateconfig(collection='', searchfields=''):
     updatedcontents = yaml.dump(contentsyaml)
     github.sendgithubrequest(session, configfilenames, updatedcontents)
 
+# clear everything that is not workspaces or user info
+# update currentworkspace, get defaults and populate the workspace
 def updateworkspace(workspace):
     clearSessionWorkspaces()
     session['currentworkspace'] = session['workspaces'][workspace]
     session['defaults'] = getDefaults()
     populateworkspace()
 
+# Add collaborator to the GitHub workspace
 @app.route('/add_collaborator', methods=['POST'])
 def add_collaborator():
     username = request.form['username']
@@ -368,6 +402,7 @@ def add_collaborator():
     next_url = request.args.get('next') or url_for('index')
     return redirect('/profile/')
 
+# Create annotations via Annotorious
 @app.route('/create_annotations/', methods=['POST'])
 def create_anno():
     response = json.loads(request.data)
@@ -381,6 +416,7 @@ def create_anno():
     returnvalue['order'] = listlength+1
     return jsonify(returnvalue), response.status_code
 
+# Update annotations via Annotorious
 @app.route('/update_annotations/', methods=['POST'])
 def update_anno():
     response = json.loads(request.data)
@@ -392,6 +428,7 @@ def update_anno():
     returnvalue['order'] = order
     return jsonify(returnvalue), response.status_code
 
+# Delete annotations via Annotorious
 @app.route('/delete_annotations/', methods=['DELETE', 'POST'])
 def delete_anno():
     response = json.loads(request.data)
@@ -404,6 +441,7 @@ def delete_anno():
         delete_annos(listfilename(canvas))
     return jsonify({"File Removed": True}), response
 
+# Get repository invites, collaborators, user info/organizations, render profile page
 @app.route('/profile/')
 def getprofiledata():
     invites = github.get('{}/repository_invitations'.format(githubuserapi))
@@ -413,6 +451,7 @@ def getprofiledata():
     orgs()
     return render_template('profile.html', userinfo={'name':session['user_name']}, invites=invites, collaborators=collaborators)
 
+# get list of orgs user belongs to
 def orgs():
     if 'orgs' not in session.keys():
         allorgs = [session['user_id']]
@@ -420,6 +459,7 @@ def orgs():
         allorgs += list(map(lambda x: x['login'], orgs))
         session['orgs'] = allorgs
 
+# Used via delete button, delete files from GitHub
 @app.route('/deletefile/', methods=['POST'])
 def deletefile():
     url = request.args.get('file')
@@ -446,13 +486,7 @@ def deletefile():
     session['annotime'] = datetime.now()
     return redirect(request.args.get('next'))
 
-def deletebykey(dictlist, key, match):
-    for index,item in enumerate(dictlist):
-        if item[key].strip('/') == match.strip('/'):
-            del dictlist[index]
-            break
-    return dictlist
-
+# Route for accepting invitations to repositories
 @app.route('/acceptinvite/', methods=['POST'])
 def acceptinvite():
     inviteurl = request.form['inviteurl']
@@ -460,6 +494,7 @@ def acceptinvite():
     populateuserinfo()
     return redirect('/profile')
 
+# search all annotations in session
 @app.route('/search')
 def search():
     search = Search(request.args, session['annotations'])
@@ -469,6 +504,7 @@ def search():
         annolength = len(list(filter(lambda x: '-list' not in x['filename'], session['annotations'])))
         return render_template('search.html', results=search.items, facets=search.facets, query=search.query, annolength=annolength)
 
+# Get list of annotations, if annoid, show only that annotation.
 @app.route('/annotations/', methods=['GET'])
 @app.route('/annotations/<annoid>', methods=['GET'])
 def listannotations(annoid=''):
@@ -480,14 +516,17 @@ def listannotations(annoid=''):
     format = request.args.get('viewtype') if request.args.get('viewtype') else 'annotation'
     return render_template('annotations.html', annotations=lists, format=format, filepath=session['defaults']['annotations'], annoid=annoid)
 
+# render template for customviews
 @app.route('/customviews')
 def customviews():
     return render_template('customviews.html')
 
+# Tag builder page
 @app.route('/annonaview')
 def annonaview():
     return render_template('annonabuilder.html')
 
+# Create cutstom view with tags, if wax add exhibit front matter
 @app.route('/saveannonaview', methods=['POST'])
 def saveannonaview():
     jsonitems = json.loads(request.data)
@@ -519,6 +558,7 @@ def saveannonaview():
             session['annocustomviews'][annourl] = [{'slug': jsonitems['slug'], 'filename': fileurl}]
     return jsonify(response.content), response.status_code
 
+# Update preloaded manifests and images
 @app.route('/updatedata', methods=['POST'])
 def updatedata():
     data = request.form['updatedata']
@@ -528,15 +568,13 @@ def updatedata():
     session['preloaded'] = jsondata
     return redirect('/profile?tab=data')
 
+# Shows GitHub libray how to get token
 @github.access_token_getter
 def token_getter():
     if 'user_token' in session.keys():
         return session['user_token']
 
-def allowed_file(filename):
-    return '.' in filename and \
-        filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
-
+# Build workspaces
 def buildWorkspaces():
     isfirstbuild = populateuserinfo()
     if isfirstbuild != 'noworkspaces':
@@ -546,11 +584,13 @@ def buildWorkspaces():
         populateworkspace()
     return isfirstbuild
 
+# trigger build of GitHub pages website
 def triggerbuild(url=False):
     pagebuild = url if url else session['currentworkspace']['url'] + '/pages'
     return github.raw_request("post", '{}/builds'.format(pagebuild), headers={'Accept': 'application/vnd.github.mister-fantastic-preview+json'})
 
-
+# Get user info from GitHub user api, get all repos user has access to.
+# If no workspaces, fork Annnonatate repo, enable pages
 def populateuserinfo():
     workspaces = {}
     userinfo = github.get(githubuserapi)
@@ -579,11 +619,13 @@ def populateuserinfo():
     session['workspaces'] = workspaces
     return firstbuild
 
+# Function to enable GitHub pages on Repo
 def enablepagesfunc(pagesurl):
     branches = {'source': {'branch': github_branch,'path': '/'}}
     enablepages = github.raw_request('post', '{}/pages'.format(pagesurl), data=json.dumps(branches), headers={'Accept': 'application/vnd.github.switcheroo-preview+json'})
     return enablepages
 
+# Create a new workspace, by using Annonatate's template.
 @app.route('/add_repos', methods=['POST'])
 def add_repos():
     owner = request.form['owner']
@@ -607,21 +649,25 @@ def add_repos():
         return redirect('/profile?tab=profile&error={}'.format(error))
     return redirect('/profile?tab=profile')
 
+# Get error message if there is one in GitHub's API response
 def parseGitHubErrors(response):
     firsterror = response['errors'][0] if 'errors' in response.keys() else response
     error = firsterror['message'] if 'message' in firsterror else firsterror
     return error
 
+# clear everythig that is not users or workspaces from session
 def clearSessionWorkspaces(): 
     for key in list(session.keys()):
         if 'user' not in key and 'workspaces' not in key:
             del session[key]
-            
+
+#  clear everything but user from the session
 def clearSession():
     for key in list(session.keys()):
         if 'user' not in key:
             del session[key]
 
+# Get pages API contents
 def populateworkspace():
     session['github_url'] = session['currentworkspace']['contents_url'].replace('/{+path}', '')
     try:
@@ -632,6 +678,7 @@ def populateworkspace():
     except:
         return render_template('error.html', message="<p>There is a problem with your GitHub pages site. Try <a href='https://docs.github.com/en/github/working-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site'>enabling the website</a> or deleting/renaming the repository <a href='{}/settings'>{}/settings</a></p>".format(session['currentworkspace']['html_url'], session['currentworkspace']['html_url']))
 
+# get all contents from Jekyll API, load contents into search
 def getContents():
     arraydata = {}
     canvases = getannotations()
@@ -648,6 +695,7 @@ def getContents():
             arraydata[canvas['canvas']] = [loadcanvas]
     return {'contents': arraydata, 'tags': tags}
 
+# Get annotation content
 def getannotations():
     duration = 36
     if 'annotime' in session.keys():
@@ -697,6 +745,7 @@ def getannotations():
             annotations = session['annotations']
     return annotations
 
+# Load custom views JSON into a dict that sorts custom views based on the url being read
 def parsecustomviews(content):
     parseddict = {}
     for customview in content['customviews']:
@@ -707,6 +756,7 @@ def parsecustomviews(content):
             parseddict[annourl] = [customview['filename']]
     session['annocustomviews'] = parseddict
 
+# grab all collection names, group collections by url in board, if collection not in api update index
 def parsecollections(content):
     session['collections'] = {}
     session['collectionnames'] = []
@@ -725,11 +775,13 @@ def parsecollections(content):
     else:
         updateindex()
 
+# grab correct index file based on defaults, read and write to GitHub
 def updateindex():
     index = session['defaults']['index']
     contents = open(index).read()
     github.sendgithubrequest(session, index.replace(githubfilefolder, ''), contents)
 
+# Using origin API get contents, if not correct add index.html to request. Parse API contents.
 def origin_contents():
     apiurl = session['origin_url'] + session['defaults']['apiurl']
     response = requests.get(apiurl)
@@ -741,6 +793,7 @@ def origin_contents():
         content = {'annotations': [], 'images': [], 'manifests': [], 'customviews': [], 'collections': []}
     return content, response.status_code
 
+# remove escaped tags
 def cleananno(data_object):
     if 'order' in data_object.keys():
         del data_object['order']
@@ -754,6 +807,7 @@ def cleananno(data_object):
                 item[charfield] =  item[charfield].replace(rep.group(), replacestring)
     return data_object
 
+# function to delete annotations from session and GitHub
 def delete_annos(anno):
     data = github.createdatadict(session, anno, 'delete', session['defaults']['annotations'])
     if 'sha' in data['data'].keys():
@@ -766,11 +820,9 @@ def delete_annos(anno):
     else:
         return 400
 
-def to_pretty_json(value):
-    return json.dumps(value, sort_keys=True,
-                      indent=4, separators=(',', ': '))
-app.jinja_env.filters['tojson_pretty'] = to_pretty_json
-
+# Function for writing annotations to GitHub.
+# If successfully written to GitHub, update session annotations
+# If annotation list doesn't exist, create an annotation list
 def writetogithub(filename, annotation, order):
     githuborder = 'order: {}\n'.format(order)
     folder = session['defaults']['annotations']
@@ -802,7 +854,9 @@ def writetogithub(filename, annotation, order):
         session['annotime'] = datetime.now()
     return response
 
-
+# create Annotation page file, filename based on canvas, and write to GitHub
+# If the manifest for the annotation is an uploaded manifest, write the annotation page to the manifest
+# If the manifest is not the same as the content requested, write to GitHub
 def createlistpage(canvas, manifest):
     filenameforlist = listfilename(canvas)
     filename = os.path.join(session['defaults']['annotations'], filenameforlist)
@@ -818,10 +872,7 @@ def createlistpage(canvas, manifest):
 
 app.jinja_env.filters['listfilename'] = listfilename
 
-# def listfilenamelink(canvas):
-#     return "%s%s/%s"%(session['origin_url'], filepath.replace("_", ""), listfilename(canvas))
-# app.jinja_env.filters['listfilenamelink'] = listfilenamelink
-
+# Check to see if the user has access to the current workspace, check by querying the collaborator url
 def workspaceCheck(method=False):
     collaburl = session['currentworkspace']['collaborators_url'].split('{')[0]
     response = github.raw_request('get', collaburl)
