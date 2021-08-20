@@ -15,6 +15,7 @@
  </head>
 <body>
   <div class="topnav" id="myTopnav">
+    {% if 'user_id' in session.keys() %}
     <a href="{{ url_for('index') }}" aria-label="index link"><i class="fa fa-home" aria-hidden="true"></i>
     </a>
     <a href="{{ url_for('listannotations') }}">Annotations</a>
@@ -35,6 +36,10 @@
     <a href="javascript:void(0);" aria-label="hamburger menu" class="icon" onclick="myFunction()">
       <i class="fa fa-bars"></i>
     </a>
+    {% else %}
+    <a style="float:right" href="{{ url_for('login', next=request.full_path) }}">Login</a>
+    {% endif %}
+
   </div>
   <section class="content">
     <header>

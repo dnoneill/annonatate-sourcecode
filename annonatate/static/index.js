@@ -136,6 +136,7 @@ const annoview = Vue.component('annoview', {
       var existing = this.currentmanifest ? this.filepaths[this.canvas] : this.filepaths[this.inputurl];
       this.anno = OpenSeadragon.Annotorious(viewer, 
         { image: 'openseadragon1',
+          messages: { "Ok": "Save" },
           allowEmpty: true,
           widgets: [ 
                     {widget: 'COMMENT', editable: 'MINE_ONLY', purposeSelector: true},
