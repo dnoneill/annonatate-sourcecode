@@ -147,6 +147,7 @@ const annoview = Vue.component('annoview', {
         var annotation = this.anno.setAnnotations(existing); 
       }
       Annotorious.SelectorPack(this.anno);
+      this.drawtools = []
       const drawingtools = this.anno.listDrawingTools();
       for (var dt=0; dt<drawingtools.length; dt++){
         const name = drawingtools[dt];
