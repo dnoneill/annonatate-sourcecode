@@ -820,6 +820,11 @@ def delete_annos(anno):
     else:
         return 400
 
+def to_pretty_json(value):
+    return json.dumps(value, sort_keys=True,
+                      indent=4, separators=(',', ': '))
+app.jinja_env.filters['tojson_pretty'] = to_pretty_json
+
 # Function for writing annotations to GitHub.
 # If successfully written to GitHub, update session annotations
 # If annotation list doesn't exist, create an annotation list
