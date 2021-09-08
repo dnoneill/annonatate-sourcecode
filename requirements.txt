@@ -10,4 +10,4 @@ iiif-prezi
 pyyaml
 iiif
 gunicorn
-git+https://github.com/dnoneill/pyIIIFpres
+git+https://github.com/giacomomarchioro/pyIIIFpres

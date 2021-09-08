@@ -6,7 +6,7 @@ from os.path import join as pathjoin
 from iiif_prezi.factory import ManifestFactory
 from iiif_prezi.loader import ManifestReader
 import requests
-from IIIFpres.utilities import read_API3_json
+from IIIFpres.utilities import read_API3_json_dict
 
 class Image:
     def __init__(self, request_form, request_files, origin_url):
@@ -88,7 +88,7 @@ def addAnnotationList(manifest, session):
         stringmanifest = manifest.toString(compact=False)
     except:
         try:
-            manifest = read_API3_json(json.loads(manifest))
+            manifest = read_API3_json_dict(json.loads(manifest))
             for item in manifest.items:
                 annotations = list(map(lambda x: x['id'], item.annotations)) if item.annotations else []
                 annotationlist = pathjoin(originurl, session['defaults']['annotations'].strip('_'), listfilename(item.id))
