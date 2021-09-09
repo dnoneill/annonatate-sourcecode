@@ -434,7 +434,7 @@ def delete_anno():
     response = json.loads(request.data)
     id = response['id']
     annotatons = getannotations()
-    canvas = list(filter(lambda x: id in x['filename'], session['annotations']))[0]['canvas']
+    canvas = response['target']['source']
     canvases = getContents()['contents']
     response = delete_annos(id)
     if len(canvases[canvas]) == 1:
@@ -874,6 +874,7 @@ def createlistpage(canvas, manifest):
         if json.loads(manifestwithlist) != response:
             manifestwithlist = '---\nlayout: none\n---\n' + manifestwithlist.replace(session['origin_url'], "{{ '/' | absolute_url }}")
             response = github.sendgithubrequest(session, manifestfilename, manifestwithlist)
+            print(response.content)
 
 app.jinja_env.filters['listfilename'] = listfilename
 

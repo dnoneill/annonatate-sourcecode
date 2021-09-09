@@ -281,7 +281,7 @@ const annoview = Vue.component('annoview', {
       });
 
       this.anno.on('deleteAnnotation', function(annotation) {
-        var senddata = {'id': annotation['id'] }
+        var senddata = annotation;
         vue.write_annotation(senddata, 'delete')
       });
     },
