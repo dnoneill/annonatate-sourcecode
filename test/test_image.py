@@ -53,6 +53,19 @@ class TestAddAnnotationListWithV3(unittest.TestCase):
       self.assertEqual(self.updatedManifest['items'][0]['annotations'][0]['id'], "https://testuser.github.io/annonatate/annotations/0001-mvm-image-p1-list.json")
       self.assertNotEqual(self.updatedManifest, self.manifest)
 
+class TestAddAnnotationListWithNoManifest(unittest.TestCase):
+   def setUp(self):
+      self.session = {'origin_url' : "https://testuser.github.io/annonatate",
+      'defaults': {'annotations': '_annotations'}}
+      self.annotationlist = "https://testuser.github.io/annonatate/annotations/0002386-list.json"
+      self.manifest = {'context': 'https://test.com'}
+      self.matchcanvas = "https://iiif.io/api/cookbook/recipe/0001-mvm-image/page/p1/1"
+      updatedManifest = ImageClass.addAnnotationList(self.manifest, self.session)
+      updatedManifest = ImageClass.addAnnotationList(updatedManifest, self.session)
+      self.updatedManifest = json.loads(updatedManifest)
+      
+   def test_add_annotation(self):
+      self.assertEqual(self.updatedManifest, self.manifest)
 if __name__ == '__main__':
    # begin the unittest.main()
    unittest.main()
