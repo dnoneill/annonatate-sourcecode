@@ -97,7 +97,7 @@ def addAnnotationList(manifest, session):
                     annopage.set_id(annotationlist)
             stringmanifest = manifest.json_dumps()
         except:
-            stringmanifest = json.dumps(manifest)
+            stringmanifest = json.dumps(manifest) if type(manifest) == dict else manifest
     return stringmanifest
 
 def parseManifest(manifest):
