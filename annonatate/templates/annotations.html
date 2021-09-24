@@ -53,8 +53,14 @@
 		<a id="displaystoryboard" target="_blank" href="https://ncsu-libraries.github.io/annona/tools/#/display?url={{anno['filename']}}&viewtype=iiif-annotation">
 			Image View
 		</a>
+		{% if annodata['target']['dcterms:isPartOf'] and annodata['target']['dcterms:isPartOf']['id'] in session['upload']['manifests'] %}
+		| 
+		<a id="displaystoryboard" target="_blank" href="https://ncsu-libraries.github.io/annona/tools/#/display?url={{annodata['target']['dcterms:isPartOf']['id'] | urlencode}}&viewtype=iiif-rangestoryboard&settings=%7B%22fullpage%22%3Atrue%7D">
+			Range Storyboard View
+		</a>
+		{% endif %}
 	</div>
-	<div>	
+	<div>
 	{% if session['annocollections'][anno['filename']] or session['annocustomviews'][anno['filename']] or anno['canvas'] %}
 		<i class="fas fa-clipboard-list"></i> Is part of:
 		<ul id="incollections">

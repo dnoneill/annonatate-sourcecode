@@ -20,7 +20,7 @@ class GitHubAnno(GitHub):
         else:
             return ''
 
-    def sendgithubrequest(self, session, filename, annotation, path, order=''):
+    def sendgithubrequest(self, session, filename, annotation, path='', order=''):
         data = self.createdatadict(session, filename, annotation, path, order)
         response = self.raw_request('put', data['url'], data=json.dumps(data['data'], indent=4))
         return response
@@ -37,9 +37,12 @@ class GitHubAnno(GitHub):
             data['sha'] = sha
         return {'data':data, 'url':full_url}
 
-    def updateAnnos(self, session, filepath):
+    def decodeContent(self, content):
+        return base64.b64decode(content).decode('utf-8')
+
+    def updateAnnos(self, session):
         try:
-            githubresponse = self.get(session['currentworkspace']['contents_url'].replace('{+path}', filepath))
+            githubresponse = self.get(session['currentworkspace']['contents_url'].replace('{+path}', session['defaults']['annotations']))
             githubfilenames = list(map(lambda x: x['name'], githubresponse))
             session['annotations'] = list(filter(lambda x: x['filename'].split('/')[-1] in githubfilenames, session['annotations']))
             return githubresponse

@@ -65,7 +65,7 @@ const annoview = Vue.component('annoview', {
   data: function() {
   	return {
       inputurl: '',
-      drawtools: [{'name': 'rect', 'label':'Rectangle'},{'name': 'polygon', 'label':'Polygon'}],
+      drawtools: [],
       currentdrawtool: 'rect',
       anno: '',
       viewer: '',
@@ -136,6 +136,7 @@ const annoview = Vue.component('annoview', {
       var existing = this.currentmanifest ? this.filepaths[this.canvas] : this.filepaths[this.inputurl];
       this.anno = OpenSeadragon.Annotorious(viewer, 
         { image: 'openseadragon1',
+          messages: { "Ok": "Save" },
           allowEmpty: true,
           widgets: [ 
                     {widget: 'COMMENT', editable: 'MINE_ONLY', purposeSelector: true},
@@ -144,6 +145,14 @@ const annoview = Vue.component('annoview', {
     // Load annotations in W3C WebAnnotation format
       if (existing){
         var annotation = this.anno.setAnnotations(existing); 
+      }
+      Annotorious.SelectorPack(this.anno);
+      this.drawtools = []
+      const drawingtools = this.anno.listDrawingTools();
+      for (var dt=0; dt<drawingtools.length; dt++){
+        const name = drawingtools[dt];
+        const label = name == 'rect' ? 'Rectangle' : name.charAt(0).toUpperCase() + name.slice(1);
+        this.drawtools.push({'name': name, 'label': label})
       }
       this.addListeners();
       this.anno.setAuthInfo({
@@ -183,32 +192,35 @@ const annoview = Vue.component('annoview', {
         type: "GET",
         success: function(data) {
           var images = [];
-          const manifestdata = data.sequences ? data.sequences[0].canvases : data.items;
+          var m = manifesto.parseManifest(data);
+          const sequence = m.getSequenceByIndex(0);
+          const manifestdata = sequence.getCanvases();
           if (!manifestdata) {
             vue.manifestdata = 'failure';
             return;
           }
           for (var i=0; i<manifestdata.length; i++){
             var tiles = [];
-            var canvas = vue.getId(manifestdata[i]);
-            var thumb = manifestdata[i]['thumbnail'] ? manifestdata[i]['thumbnail'] : manifestdata[i]['images'][0]['resource']
-            thumb = thumb['service'] ? thumb['service'] : thumb;
-            thumb = vue.getId(thumb);
-            if (thumb.indexOf('.jpg') == -1){
-              thumb += '/full/100,/0/default.jpg'
-            }
-            const manifestimages = manifestdata[i]['images'];
+            var canvas = manifestdata[i].id;
+            var thumb = manifestdata[i].getThumbnail()
+            thumb ? thumb = thumb['__jsonld'] : ''
+            var manifestimages = manifestdata[i]['__jsonld']['images'] ? manifestdata[i]['__jsonld']['images'] : manifestdata[i]['__jsonld']['items'];
+            manifestimages = manifestimages[0]['items'] ? manifestimages[0]['items'] : manifestimages;
             for (var j=0; j<manifestimages.length; j++){
-              const resourceitem = manifestimages[j]['resource'];
-              const thumb = vue.getId(resourceitem);
-              const id = resourceitem['service']['id'] ? resourceitem['service']['id'] : resourceitem['service']['@id'] + '/info.json';
+              const resourceitem = manifestimages[j]['resource'] ? manifestimages[j]['resource'] : manifestimages[j]['body'];
+              const imagethumb = vue.getId(resourceitem);
+              if (!thumb){
+                thumb = imagethumb;
+              }
+              
+              const id = resourceitem['service']['id'] ? resourceitem['service']['id'] : resourceitem['service']['@id']  ? resourceitem['service']['@id'] + '/info.json' : resourceitem['service'][0]['id'];
               const opacity = j == 0 ? 1 : 0;
               const checked = j == 0 ? true : false;
-              const resourceid = manifestimages[j].resource ? vue.getId(manifestimages[j].resource) : '';
+              const resourceid = resourceitem ? vue.getId(resourceitem) : '';
               var xywh = resourceid && resourceid.constructor.name === 'String' && resourceid.indexOf('xywh') > -1 ? resourceid : vue.on_structure(manifestimages[j]) && vue.on_structure(manifestimages[j])[0].constructor.name === 'String' ? vue.on_structure(manifestimages[j])[0] : '';
               xywh = xywh ? xywh.split("xywh=").slice(-1)[0].split(",") : xywh;
               tiles.push({'id': id, 'label': resourceitem['label'], 
-                thumbnail: thumb.replace('/full/0', '/100,/0'), 'opacity': opacity,
+                thumbnail: imagethumb.replace('/full/0', '/100,/0'), 'opacity': opacity,
                 'checked': checked, 'xywh': xywh
               })
             }
@@ -269,7 +281,7 @@ const annoview = Vue.component('annoview', {
       });
 
       this.anno.on('deleteAnnotation', function(annotation) {
-        var senddata = {'id': annotation['id'] }
+        var senddata = annotation;
         vue.write_annotation(senddata, 'delete')
       });
     },

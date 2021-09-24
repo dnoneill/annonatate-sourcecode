@@ -6,11 +6,13 @@
 <div>
 <a href="{{ url_for('annonaview') }}">Build Custom view</a>
 </div>
-{% if session['customviews'] | length == 0 %}
+{% if session['annocustomviews'] | length == 0 %}
 <b>Currently there are no custom views</b>
 {% endif %}
 <div class="gridparent">
-{% for view in session['customviews'] %}
+{% for key, allviews in session['annocustomviews'].items() %}
+{% if key %}
+{% for view in allviews %}
 <div class="customview">
 {% if 'filename' in view %}
 {% if 'slug' not in view %}
@@ -19,33 +21,6 @@
 <div id="{{view['slug']}}-render">
 {{view['slug']}} is still rendering
 </div>
-<script>
-			var isready = UrlExists(`/uploadstatus?url={{view['filename']}}&checknum=0&uploadtype=customview`);
-			var start = 1;
-      if (isready){
-        success(false)
-      } else {
-        var interval = setInterval(function(){
-          var isready = UrlExists(`/uploadstatus?url={{view['filename']}}&checknum=${start}&uploadtype=customview`);
-          start += 1
-          if (isready){
-            success(true)
-          }
-        }, 40000);
-        function stopFunction() {
-          clearInterval(interval);
-        }
-      }      
-      
-      function success(stopinterval){
-        document.getElementById("{{view['slug']}}-render").innerHTML = `<a href="{{view['filename']}}" target="_blank">{{view['filename']}}</a>`;
-        document.getElementById("{{view['slug']}}-embedview").innerHTML = `
-        <iframe src="{{view['filename']}}" id="{{view['filename'].replace('.html', '')}}" style="height: 600px;width: 100%;"></iframe>`
-        if (stopinterval){
-          stopFunction();
-        }
-      }
-</script>
 {% endif %}
 {% with file=view['filename'], next=request.path %}
 {% include 'deletebutton.html' %}
@@ -58,12 +33,45 @@
 <div id="{{view['slug']}}-embedview" class="embedview">
 
 </div>
+<script>
+  var isready = UrlExists(`/uploadstatus?url={{view['filename']}}&checknum=0&uploadtype=customview`);
+  var start = 1;
+  if (isready){
+    success(false)
+  } else {
+    var interval = setInterval(function(){
+      var isready = UrlExists(`/uploadstatus?url={{view['filename']}}&checknum=${start}&uploadtype=customview`);
+      start += 1
+      if (isready){
+        success(true)
+      }
+    }, 40000);
+    function stopFunction() {
+      clearInterval(interval);
+    }
+  }      
+  
+  function success(stopinterval){
+    console.log('{{view}}')
+    document.getElementById("{{view['slug']}}-render").innerHTML = `<a href="{{view['filename']}}" target="_blank">{{view['filename']}}</a>`;
+    document.getElementById("{{view['slug']}}-embedview").innerHTML = `
+    <iframe src="{{view['filename']}}" id="{{view['filename'].replace('.html', '')}}" style="height: 600px;width: 100%;"></iframe>`
+    if (stopinterval){
+      stopFunction();
+    }
+  }
+</script>
 {% endif %}
 {% else %}
 <a href="{{view}}" target="_blank">{{view.replace('.html', '')}}</a>
-<iframe src="{{view}}" id="{{view.replace('.html', '')}}" style="height: 660px;"></iframe>
+{% with file=view, next=request.path %}
+{% include 'deletebutton.html' %}
+{% endwith %}
+<iframe src="{{view}}" id="{{view.replace('.html', '')}}" style="height: 660px; width: 100%;"></iframe>
 {% endif %}
 </div> 
+{% endfor %}
+{% endif %}
 {% endfor %}
 </div>
 {% endblock %}

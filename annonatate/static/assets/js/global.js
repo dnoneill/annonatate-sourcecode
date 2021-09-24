@@ -32,8 +32,8 @@ function UrlExists(url){
 window.onload = function() {
     
     const defaultOpen = document.getElementById("defaultOpen");
-    let params = new URLSearchParams(window.location.search);
-	let tabid = params.get('tab') + 'tab';
+    let params = Object.fromEntries(new URLSearchParams(window.location.search).entries());
+	let tabid = params['tab'] + 'tab';
 	const tab = document.getElementById(tabid)
     if (tab){
         tab.click();

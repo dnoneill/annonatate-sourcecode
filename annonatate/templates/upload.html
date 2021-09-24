@@ -9,7 +9,10 @@
 	<div class="tab">
 	  <!-- <button class="tablinks" onclick="openTab(event, 'iiifimage')" id="defaultOpen">Create IIIF image</button> -->
 	  <button class="tablinks" onclick="openTab(event, 'manifest')" id="defaultOpen">Create Manifest</button>
-	  <button class="tablinks" onclick="openTab(event, 'image')">Upload Image</button>
+	  <button class="tablinks" onclick="openTab(event, 'image')" id="imagetab">Upload Image</button>
+	  {% if session['defaults']['iswax'] %}
+	  <button class="tablinks" onclick="openTab(event, 'collection')" id="collectiontab">Process Wax Collection</button>
+	  {% endif %}
 	</div>
 <!-- 	
 	<div id="iiifimage" class="tabcontent">
@@ -90,5 +93,36 @@
 	 	</div>
 		<button type="submit">Upload image</button>
 	</form>
+	</div>
+	<div id="collection" class="tabcontent">
+		<h2>Process Wax Collection</h2>
+		{% set wax_url = session['currentworkspace']['html_url'] + '/tree/' + session['currentworkspace']['default_branch'] + '/_data/raw_images'  %}
+		<p>Before uploading, make sure you have:
+			<ol>
+				<li>a folder that has images here: <a href="{{wax_url}}">{{wax_url}}</a>
+				</li>
+				<li>a csv spreadsheet that matches the formats outlined here: <a href="https://minicomp.github.io/wiki/wax/preparing-your-collection-data/metadata/">https://minicomp.github.io/wiki/wax/preparing-your-collection-data/metadata/</a>
+				</li>
+			</ol>
+			If you do not. To upload images to GitHub, <a href="https://newbedev.com/how-to-upload-folders-on-github"></a>drag the folder</a> containing the images from your desktop to <a href="{{wax_url}}">{{wax_url}}</a>. 
+			If you are lost, there is a <a href="https://annonatate.github.io/annonatate-help/wax#how-to-process-a-collection">video walkthrough on our Annonatate Help website</a>.
+			<br>
+			If you have both of these proceed. Make sure you collection name you enter into the form labeled "Collection name:" matches the name of the folder in the first step.
+			What this interface will do once you hit upload is create IIIF derivatives of the images you have uploaded.
+			It will also add all the new items into the search for your Wax website.
+			Additionally, it will create an item page for each item in your collection. 
+			You should see your new images listed on the homepage shortly.
+		</p>
+		<form action="{{ url_for('processwaxcollection') }}" enctype=multipart/form-data method="post">
+		  <div>
+				<label for="collectioncsv">Upload collection csv: </label>
+				<input type=file id="collectioncsv" name="collectioncsv" accept=".csv" required>
+		   </div>
+		   <div>
+			<label for="waxcollection">Collection name:</label>
+			<input type="text"  id="waxcollection" name="waxcollection" required>
+		   </div>
+		  <button type="submit">Upload collection</button>
+	  </form>
 	</div>
 {% endblock %}

@@ -6,8 +6,8 @@
 	<link rel="stylesheet"  type="text/css" href="{{ url_for('static', filename='assets/css/main.css') }}">
 	<link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/icon?family=Material+Icons">
   
-  <script src="https://ncsu-libraries.github.io/annona/dist/annona.js"></script>
-  <link rel="stylesheet" type="text/css" href="https://ncsu-libraries.github.io/annona/dist/annona.css">	
+  <script src="https://ncsu-libraries.github.io/annona/latest/annona.js"></script>
+  <link rel="stylesheet" type="text/css" href="https://ncsu-libraries.github.io/annona/latest/annona.css">	
 	<script src="//cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.js"></script>
   <script src="//cdn.jsdelivr.net/npm/lodash@4.17.11/lodash.min.js"></script>
   <script src="/assets/js/global.js"></script>
@@ -15,6 +15,7 @@
  </head>
 <body>
   <div class="topnav" id="myTopnav">
+    {% if 'user_id' in session.keys() %}
     <a href="{{ url_for('index') }}" aria-label="index link"><i class="fa fa-home" aria-hidden="true"></i>
     </a>
     <a href="{{ url_for('listannotations') }}">Annotations</a>
@@ -35,6 +36,10 @@
     <a href="javascript:void(0);" aria-label="hamburger menu" class="icon" onclick="myFunction()">
       <i class="fa fa-bars"></i>
     </a>
+    {% else %}
+    <a style="float:right" href="{{ url_for('login', next=request.full_path) }}">Login</a>
+    {% endif %}
+
   </div>
   <section class="content">
     <header>

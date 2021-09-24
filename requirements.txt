@@ -6,7 +6,10 @@ requests
 beautifulsoup4
 simplejson
 GitHub-Flask
+pyld==1.0.5
 iiif-prezi
 pyyaml
 iiif
 gunicorn
+git+https://github.com/giacomomarchioro/pyIIIFpres
+python-dotenv

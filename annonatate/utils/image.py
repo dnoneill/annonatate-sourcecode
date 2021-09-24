@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import re
+import re, json
+from os.path import join as pathjoin
 from iiif_prezi.factory import ManifestFactory
+from iiif_prezi.loader import ManifestReader
 import requests
+from IIIFpres.utilities import read_API3_json_dict
 
 class Image:
     def __init__(self, request_form, request_files, origin_url):
@@ -69,4 +72,44 @@ class Image:
         cvs.height = img.height
         cvs.width = img.width
         return manifest
+
+
+def addAnnotationList(manifest, session):
+    try:
+        originurl = session['origin_url']
+        cleanmanifest = manifest.replace("{{ '/' | absolute_url }}", originurl)
+        cleanmanifest = json.loads(cleanmanifest)
+        manifest = parseManifest(cleanmanifest)
+        for canvas in manifest.sequences[0].canvases:
+            annotationlist = pathjoin(originurl, session['defaults']['annotations'].strip('_'), listfilename(canvas.id))
+            othercontentids = list(map(lambda x: x.id, canvas.otherContent))
+            if annotationlist not in othercontentids:
+                canvas.annotationList(annotationlist)
+        stringmanifest = manifest.toString(compact=False)
+    except:
+        try:
+            manifest = read_API3_json_dict(json.loads(manifest))
+            for item in manifest.items:
+                annotations = list(map(lambda x: x['id'], item.annotations)) if item.annotations else []
+                annotationlist = pathjoin(originurl, session['defaults']['annotations'].strip('_'), listfilename(item.id))
+                if annotationlist not in annotations:
+                    annopage = item.add_annotation()
+                    annopage.set_id(annotationlist)
+            stringmanifest = manifest.json_dumps()
+        except:
+            stringmanifest = json.dumps(manifest) if type(manifest) == dict else manifest
+    return stringmanifest
+
+def parseManifest(manifest):
+    reader = ManifestReader(manifest)
+    manifest = reader.read()
+    return manifest
         
+def listfilename(canvas):
+    r = re.compile("\d+")
+    canvas = canvas.replace('.json', '')
+    canvaslist = canvas.split('/')
+    withnumbs = list(filter(r.search, canvaslist))
+    filename = "-".join(withnumbs) if len(withnumbs) > 0 else canvaslist[-1]
+    filename = re.sub('[^A-Za-z0-9]+', '-', filename).lower()
+    return filename + '-list.json'
