@@ -87,9 +87,9 @@
 	  <h2>Upload Image</h2>
 	  <form action="{{ url_for('createimage') }}" enctype=multipart/form-data method="post">
 		<div>
-			<label for="upload-image">Upload file from computer: </label>
+			<label for="upload-image">Upload files from computer: </label>
 			<input type="text"  id="upload-image" name="upload" value="uploadimage" style="display: none">
-		 	<input type=file id="upload-image" name=file accept="image/*" required>
+		 	<input type=file id="upload-image" name=file accept="image/*" required multiple>
 	 	</div>
 		<button type="submit">Upload image</button>
 	</form>

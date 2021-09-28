@@ -29,6 +29,11 @@ class Image:
                 self.manifest_markdown = "---\n---\n{}".format(manifest_markdown)
         else:
             # handle uploaded image
+            files = request_files.getlist("file")
+            self.files = []
+            for filename in request_files.getlist("file"):
+                self.files.append({'filename': filename.filename.replace(' ', ''), 'encodedimage': filename.stream.read()})
+            self.file = request_files
             self.file = request_files['file']
             self.encodedimage = self.file.stream.read()
 

@@ -19,8 +19,7 @@ from utils.collectionform import CollectionForm, parseboard, parsetype
 from utils.github import GitHubAnno
 
 app = Flask(__name__,
-            static_url_path='',
-            )
+            static_url_path='',)
 app.config.update(
                   SESSION_TYPE = 'filesystem',
                   GITHUB_CLIENT_ID = client_id,
@@ -45,7 +44,7 @@ def before_request():
     if 'login_time' in session.keys():
         timediff = (datetime.now() - datetime.strptime(session['login_time'], '%Y-%m-%d %H:%M:%S.%f')).seconds
         if timediff > 259200:
-            session.clear()
+            clearSession('currentworkspace')
             return redirect('/login')
     # if the site is not building for the first time and it is not the login/authorized/logout/static item,
     #and there is a workplace selected check to make sure the user still had access to the workspace (hasn't been deleted, access has been revoked)
@@ -87,7 +86,7 @@ def login():
 # clears session, redirects to github logout
 @app.route('/logout')
 def logout():
-    session.clear()
+    clearSession('currentworkspace')
     return redirect('https://github.com/logout')
 
 #After logging into GitHub, library returns oauth token, load that token into session
@@ -215,13 +214,27 @@ def createimage():
         else:
             output = response['message']
     else:
-        response = github.sendgithubrequest(session, image.file.filename, image.encodedimage, "images").json()
-        uploadtype='image'
-        if 'content' in response.keys():
-            uploadurl = "{}{}".format(image.origin_url, response['content']['path'])
-            output =  True
-        else:
-            output = response['message']
+        iiifimageporition = []
+        for afile in image.files:
+            imagespath = "images"
+            response = github.sendgithubrequest(session, afile['filename'], afile['encodedimage'], imagespath).json()
+            uploadtype='image'
+            if 'content' in response.keys():
+                filename, ext = os.path.splitext(afile['filename'])
+                imagefullpath = os.path.join(imagespath, afile['filename'])
+                uploadurl = "{}{}".format(image.origin_url, response['content']['path'])
+                if ext != 'jpg' or ext != 'jpeg':
+                    iiifimageporition.append('      - name: imagemagick\n        run: sudo apt install imagemagick\n      - name: convert\n        run: convert {} {}.jpg'.format(imagefullpath, os.path.join(imagespath, filename)))
+                    imagefullpath = os.path.join(imagespath, filename + '.jpg')
+                iiifimageporition.append(open(os.path.join(githubfilefolder, 'iiifportion.yml')).read().replace('replacewithimagenoextension', filename).replace('replacewithimage', imagefullpath))
+                output =  True
+            else:
+                output = response['message']
+        convertiiif = open(os.path.join(githubfilefolder, 'imagetoiiif.yml')).read().replace('replacewithportion', "\n".join(iiifimageporition))
+        github.sendgithubrequest(session, 'imagetoiiif.yml', convertiiif, ".github/workflows").json()
+        time.sleep(1)
+        triggerAction('imagetoiiif.yml')
+        
     triggerbuild()
     return render_template('uploadsuccess.html', output=output, uploadurl=uploadurl, uploadtype=uploadtype)
 
@@ -662,10 +675,13 @@ def clearSessionWorkspaces():
             del session[key]
 
 #  clear everything but user from the session
-def clearSession():
-    for key in list(session.keys()):
-        if 'user' not in key:
-            del session[key]
+def clearSession(dontdelete=False):
+    if dontdelete: 
+        for key in list(session.keys()):
+            if dontdelete not in key:
+                del session[key]
+    else:
+        session.clear()
 
 # Get pages API contents
 def populateworkspace():
@@ -885,12 +901,12 @@ def workspaceCheck(method=False):
     if response.status_code > 299:
         prevsession = session['currentworkspace']
         if 'bad credentials' in response.json()['message'].lower():
-            session.clear()
+            clearSession()
             return redirect('/login')
         elif method == 'POST':
             return 'problem'
         else:
-            clearSession()
+            clearSession('user')
         buildWorkspaces()
 
         getContents()

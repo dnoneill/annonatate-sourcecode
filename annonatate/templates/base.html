@@ -25,13 +25,10 @@
     <a href="{{ url_for('collections') }}">Collections</a>
     <a href="https://annonatate.github.io/annonatate-help/" target="_blank">Help</a>
     <a href="/profile" style="float: right;">
-      {% if session['avatar_url'] %}
-      <img src="{{session['avatar_url']}}" style="height: 1em; padding: 0px 6px 0px;" alt="github user icon">
-      {% endif %}
-      {{session['user_name']}}
+      <i class="fas fa-user"></i>
     </a>
      {% if session['workspaces'] | length > 1 %}
-    	<a style="float: right;" href="{{session['currentworkspace']['html_url']}}" target="_blank">{{session['currentworkspace']['full_name']}}</a>
+    	<a style="float: right;" href="{{session['currentworkspace']['html_url']}}" target="_blank">{{session['currentworkspace']['full_name'].split('/')[-1]}}</a>
     {% endif %}
     <a href="javascript:void(0);" aria-label="hamburger menu" class="icon" onclick="myFunction()">
       <i class="fa fa-bars"></i>
