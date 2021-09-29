@@ -44,19 +44,13 @@
 		function checkStatus(checknum){
 			const uploadurl = '{{uploadurl}}' 
 			const uploadtype = '{{uploadtype}}'
+			const successmessage = '{{successmessage |safe }}'
 			var isready = UrlExists(`/uploadstatus?url=${uploadurl}&checknum=${checknum}&uploadtype=${uploadtype}`);
 			if (isready){
 				if (checknum > 0){
 					stopFunction();
 				}
-				if (uploadtype == 'manifest'){
-					var annotateurl = `/?manifesturl=${uploadurl}`
-				} else {
-					var annotateurl = `/?imageurl=${uploadurl}`
-				}
-				const successtext = `<p><a href="${uploadurl}">${uploadurl}</a> is now avaliable.</p>
-				<p><a href="${annotateurl}">Start annotating your ${uploadtype}!</a></p>`
-				document.getElementById('uploadtext').innerHTML = successtext
+				document.getElementById('uploadtext').innerHTML = `<p>${successmessage}</p>`
 			}
 		}
 	})

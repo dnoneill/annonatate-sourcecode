@@ -1,6 +1,0 @@
-      - name: run iiif
-        run: python3 -c 'from iiif.static import IIIFStatic;sg = IIIFStatic(prefix="https://dnoneill.github.io/annonatate/img/derivatives/iiif", dst="img/derivatives/iiif");sggenerate = sg.generate("replacewithimage"); print(sggenerate)'
-      - name: create dir
-        run: cd img/derivatives/iiif/replacewithimagenoextension/full && mkdir full && cd full && mkdir replacewithimagenoextension
-      - name: cp to full
-        run: cp replacewithimage img/derivatives/iiif/replacewithimagenoextension/full/full/0/default.jpg

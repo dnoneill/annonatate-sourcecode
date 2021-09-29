@@ -1,8 +1,8 @@
-name: test
+name: convert images
 on: workflow_dispatch
 
 jobs:
-  test:
+  convertimages:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -12,14 +12,20 @@ jobs:
         run: pip3 install iiif
       - name: install Pillow
         run: pip3 install Pillow
-replacewithportion
+      - name: install IIIFpres
+        run: pip3 install git+https://github.com/giacomomarchioro/pyIIIFpres
+      - name: runscript
+        run: python3 -c "exec(\"replacewithportion\")"
+      - name: add page jekyll to manifest
+        run: echo -e "---\n---\n$(cat img/derivatives/iiif/replacewithfolder/manifest.json)" > img/derivatives/iiif/replacewithfolder/manifest.json
       - name: commit files
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
           git add -A
           git commit -m "update data" -a
-          
+      - name: pull
+        run: git pull origin main
       - name: push changes
         uses: ad-m/github-push-action@v0.6.0
         with:

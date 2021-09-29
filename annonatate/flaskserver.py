@@ -4,7 +4,7 @@ from flask_session import Session
 import urllib.parse
 
 import json, os, glob, requests
-from settings import *
+from annonatate.settings import *
 import yaml, time, csv
 import re
 import simplejson as json
@@ -13,10 +13,10 @@ import shutil
 from datetime import datetime
 import os
 
-from utils.search import get_search, encodedecode, Search
-from utils.image import Image, addAnnotationList, listfilename
-from utils.collectionform import CollectionForm, parseboard, parsetype
-from utils.github import GitHubAnno
+from annonatate.utils.search import get_search, encodedecode, Search
+from annonatate.utils.image import Image, addAnnotationList, listfilename
+from annonatate.utils.collectionform import CollectionForm, parseboard, parsetype
+from annonatate.utils.github import GitHubAnno
 
 app = Flask(__name__,
             static_url_path='',)
@@ -139,9 +139,9 @@ def uploadstatus():
     if uploadtype != 'customviews' and url not in session['upload'][uploadtype]:
         session['upload'][uploadtype].append(url)
     if response.status_code > 299:
-        if checknum == '1':
+        if checknum == '2':
             triggerbuild()
-        elif checknum == '2':
+        elif checknum == '3':
             updateindex()
         return 'failure', 404
     if uploadtype == 'customviews':
@@ -202,7 +202,7 @@ def removecollaborator():
 @app.route('/createimage', methods=['POST', 'GET'])
 def createimage():
     image = Image(request.form, request.files, session['origin_url'])
-
+    successmessage = ''
     if not image.isimage:
         if type(image.manifest) == dict:
             return render_template('upload.html', error=image.manifest['error'])
@@ -210,34 +210,32 @@ def createimage():
         uploadtype = 'manifest'
         if 'content' in response.keys():
             uploadurl ='{}{}'.format(image.origin_url, response['content']['path'].replace('_manifest', 'manifest'))
+            successmessage = successtext(uploadurl, uploadtype)
             output = True
         else:
             output = response['message']
     else:
-        iiifimageporition = []
+        filenames = []
         for afile in image.files:
             imagespath = "images"
             response = github.sendgithubrequest(session, afile['filename'], afile['encodedimage'], imagespath).json()
-            uploadtype='image'
+            uploadtype='manifest'
             if 'content' in response.keys():
-                filename, ext = os.path.splitext(afile['filename'])
-                imagefullpath = os.path.join(imagespath, afile['filename'])
-                uploadurl = "{}{}".format(image.origin_url, response['content']['path'])
-                if ext != 'jpg' or ext != 'jpeg':
-                    iiifimageporition.append('      - name: imagemagick\n        run: sudo apt install imagemagick\n      - name: convert\n        run: convert {} {}.jpg'.format(imagefullpath, os.path.join(imagespath, filename)))
-                    imagefullpath = os.path.join(imagespath, filename + '.jpg')
-                iiifimageporition.append(open(os.path.join(githubfilefolder, 'iiifportion.yml')).read().replace('replacewithimagenoextension', filename).replace('replacewithimage', imagefullpath))
+                uploadurl = "{}img/derivatives/iiif/{}/manifest.json".format(image.origin_url, image.request_form['folder'])
+                successmessage = successtext(uploadurl, uploadtype)
+                filenames.append(os.path.join(imagespath, afile['filename']))
                 output =  True
             else:
                 output = response['message']
-        convertiiif = open(os.path.join(githubfilefolder, 'imagetoiiif.yml')).read().replace('replacewithportion', "\n".join(iiifimageporition))
+        convertiiif = image.createActionScript(githubfilefolder, str(filenames))
         github.sendgithubrequest(session, 'imagetoiiif.yml', convertiiif, ".github/workflows").json()
         time.sleep(1)
         triggerAction('imagetoiiif.yml')
-        
     triggerbuild()
-    return render_template('uploadsuccess.html', output=output, uploadurl=uploadurl, uploadtype=uploadtype)
+    return render_template('uploadsuccess.html', output=output, uploadurl=uploadurl, successmessage=successmessage, uploadtype=uploadtype)
 
+def successtext(uploadurl, uploadtype):
+    return '<a href="{}">{}</a> is now avaliable.</p><p><a href="/?{}url={}">Start annotating your {}!</a></p>'.format(uploadurl, uploadurl, uploadtype, uploadurl, uploadtype)
 # upload wax formatted csv. Get headers from CSV. Update config.yml with wax fields
 # create GitHub action for collection and run it.
 @app.route('/processwaxcollection', methods=['POST', 'GET'])
@@ -912,5 +910,3 @@ def workspaceCheck(method=False):
         getContents()
         g.error = '<i class="fas fa-exclamation-triangle"></i> You have lost access to {}, we have updated your workspace to {}'.format(prevsession['full_name'], session['currentworkspace']['full_name'])
         
-if __name__ == "__main__":
-    app.run(debug=True)

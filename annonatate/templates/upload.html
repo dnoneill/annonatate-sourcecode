@@ -90,6 +90,33 @@
 			<label for="upload-image">Upload files from computer: </label>
 			<input type="text"  id="upload-image" name="upload" value="uploadimage" style="display: none">
 		 	<input type=file id="upload-image" name=file accept="image/*" required multiple>
+			 <div>
+				<label for="label">Title of Image (Required): </label>
+				<input value="" id="label" name="label" required>
+				</div>
+				<div>
+					<label for="label">Folder: </label>
+					<input value="" id="folder" name="folder" required>
+				</div>
+			   <div>
+				<label for="description">Description: </label>
+				<input value="" id="description" name="description">
+			   </div>
+				<div>
+				<label for="rights">Rights: </label>
+				<input value="" id="rights" name="rights">
+				</div>
+				<div>
+					<label for="language">Language code (default is en): </label>
+					<input value="" id="language" name="language">
+				</div>
+			<div>
+				<label for="direction">Viewing Direction: </label>
+				<select id="direction" name="direction">
+					<option value="left-to-right" selected>left-to-right</option>
+					<option value="right-to-left">right-to-left</option>
+				</select>
+			</div>
 	 	</div>
 		<button type="submit">Upload image</button>
 	</form>
