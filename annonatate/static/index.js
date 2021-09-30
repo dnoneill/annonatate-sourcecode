@@ -76,6 +76,7 @@ const annoview = Vue.component('annoview', {
       currentmanifest: '',
       showManThumbs: false,
       canvas: '',
+      title: '',
       alltiles: []
   	}
   },
