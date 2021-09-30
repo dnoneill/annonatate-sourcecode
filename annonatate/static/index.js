@@ -53,6 +53,9 @@ const annoview = Vue.component('annoview', {
       <img :src="item['thumbnail']" style="max-width:100px;padding:5px;"  alt="tile thumbnail">
     </div>
   </div>
+  <div v-if="title" style="font-weight:900">{{title[0]['value']}}: 
+  <span v-if="alltiles && alltiles[0]['label']">{{alltiles[0]['label']}}</span>
+  </div>
   <div id="openseadragon1" v-bind:class="{'active' : inputurl !== ''}"></div>
   </div>
   `,
@@ -217,7 +220,8 @@ const annoview = Vue.component('annoview', {
               const resourceid = resourceitem ? vue.getId(resourceitem) : '';
               var xywh = resourceid && resourceid.constructor.name === 'String' && resourceid.indexOf('xywh') > -1 ? resourceid : vue.on_structure(manifestimages[j]) && vue.on_structure(manifestimages[j])[0].constructor.name === 'String' ? vue.on_structure(manifestimages[j])[0] : '';
               xywh = xywh ? xywh.split("xywh=").slice(-1)[0].split(",") : xywh;
-              tiles.push({'id': id, 'label': resourceitem['label'], 
+              const tilelabel = manifestdata[i].getLabel() ? manifestdata[i].getLabel()[0]['value'] : ""
+              tiles.push({'id': id, 'label': tilelabel,
                 thumbnail: imagethumb.replace('/full/0', '/100,/0'), 'opacity': opacity,
                 'checked': checked, 'xywh': xywh
               })
