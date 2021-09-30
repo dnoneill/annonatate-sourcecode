@@ -71,7 +71,7 @@ const annoview = Vue.component('annoview', {
       viewer: '',
       manifestdata: '',
       currentmanifest: '',
-      showManThumbs: true,
+      showManThumbs: false,
       canvas: '',
       alltiles: []
   	}
@@ -95,9 +95,6 @@ const annoview = Vue.component('annoview', {
       this.inputurl = item['tiles'][0]['id'];
       this.alltiles = item['tiles'];
       this.loadAnno()
-      if (this.manifestdata.length == 1){
-        this.showManThumbs = false;
-      }
     },
     loadAnno: function() {
       document.getElementById('openseadragon1').innerHTML = '';
@@ -184,7 +181,6 @@ const annoview = Vue.component('annoview', {
     },
     getManifest: function(manifest, loadcanvas=false) {
       this.currentmanifest = manifest;
-      this.showManThumbs = true;
       this.manifestdata = [];
       var vue = this;
       jQuery.ajax({
@@ -193,6 +189,7 @@ const annoview = Vue.component('annoview', {
         success: function(data) {
           var images = [];
           var m = manifesto.parseManifest(data);
+          vue.title = m.getLabel();
           const sequence = m.getSequenceByIndex(0);
           const manifestdata = sequence.getCanvases();
           if (!manifestdata) {
@@ -202,8 +199,8 @@ const annoview = Vue.component('annoview', {
           for (var i=0; i<manifestdata.length; i++){
             var tiles = [];
             var canvas = manifestdata[i].id;
-            var thumb = manifestdata[i].getThumbnail()
-            thumb ? thumb = thumb['__jsonld'] : ''
+            var thumb = manifestdata[i].getThumbnail();
+            thumb ? thumb = vue.getId(thumb['__jsonld']) : ''
             var manifestimages = manifestdata[i]['__jsonld']['images'] ? manifestdata[i]['__jsonld']['images'] : manifestdata[i]['__jsonld']['items'];
             manifestimages = manifestimages[0]['items'] ? manifestimages[0]['items'] : manifestimages;
             for (var j=0; j<manifestimages.length; j++){
@@ -213,7 +210,8 @@ const annoview = Vue.component('annoview', {
                 thumb = imagethumb;
               }
               
-              const id = resourceitem['service']['id'] ? resourceitem['service']['id'] : resourceitem['service']['@id']  ? resourceitem['service']['@id'] + '/info.json' : resourceitem['service'][0]['id'];
+              var id = resourceitem['service']['id'] ? resourceitem['service']['id'] : resourceitem['service']['@id']  ? resourceitem['service']['@id'] + '/info.json' : resourceitem['service'][0]['id'];
+              id = id.split('/info')[0] + '/info.json';
               const opacity = j == 0 ? 1 : 0;
               const checked = j == 0 ? true : false;
               const resourceid = resourceitem ? vue.getId(resourceitem) : '';
@@ -230,7 +228,11 @@ const annoview = Vue.component('annoview', {
               vue.manifestLoad({'image': thumb, 'canvas': canvas, 'tiles': tiles})
             }
           }
+          if (images.length > 1){
+            vue.showManThumbs = true;
+          }
           vue.manifestdata = images;
+          vue.manifestLoad(images[0]);
         },
         error: function(err) {
           vue.manifestdata = 'failure';

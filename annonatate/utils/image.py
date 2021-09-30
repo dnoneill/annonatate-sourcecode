@@ -3,6 +3,7 @@
 
 import re, json
 from os.path import join as pathjoin
+from os.path import splitext as pathsplitext
 from iiif_prezi.factory import ManifestFactory
 from iiif_prezi.loader import ManifestReader
 import requests
@@ -32,7 +33,7 @@ class Image:
             files = request_files.getlist("file")
             self.files = []
             for filename in request_files.getlist("file"):
-                filenameonly, ext = os.path.splitext(filename.filename)
+                filenameonly, ext = pathsplitext(filename.filename)
                 if ext != '.jpg' and ext != '.jpeg':
                     ext =  '.jpg'
                 cleanfilename = "".join(re.findall(r'[0-9A-Za-z]+', filenameonly)) +  ext

@@ -4,7 +4,7 @@ from PIL import Image
 import os
 
 files = replacewithfilelist
-manifestlabel = 'replacewithlabel'
+manifestlabel = '''replacewithlabel'''
 dst = os.path.join('img/derivatives/iiif/', 'replacewithfolder') + '/'
 baseurl = os.path.join('replacewithoriginurl', dst)
 data = []
@@ -30,14 +30,9 @@ manifest = iiifpapi3.Manifest()
 manifest.set_id(extendbase_url='manifest.json')
 manifest.add_label('replacewithlanguage',manifestlabel)
 manifest.add_behavior('paged')
-description = manifest.add_summary('replacewithlanguage', 'replacewithdescription')
-thumbnail = manifest.add_thumbnail()
-filteredallfiles = [f for f in os.listdir(os.path.join(dst, filename, 'full')) if f != 'full' and int(f.split(',')[0]) > 70]
-filteredallfiles.sort()
-size = filteredallfiles[0] if len(filteredallfiles) > 0 else '80,'
-thumbnail.set_id('{}/full/{}/0/default.jpg'.format(data[0][3], size))
+description = manifest.add_summary('replacewithlanguage', '''replacewithdescription''')
 manifest.set_viewingDirection('replacewithdirection')
-rights = 'replacewithrights'
+rights = '''replacewithrights'''
 if rights:
     try:
         manifest.set_rights(rights)
@@ -48,10 +43,15 @@ data = tuple(data)
 for idx,d in enumerate(data):
     idx+=1
     canvas = manifest.add_canvas_to_items()
-    canvas.set_id(extendbase_url='canvas/p%s'%idx)
+    canvas.set_id(extendbase_url='canvas/replacewithfolder-%s'%idx)
     canvas.set_height(d[2])
     canvas.set_width(d[1])
     canvas.add_label('en',d[0])
+    filteredallfiles = [f for f in os.listdir(os.path.join(dst, d[0], 'full')) if f != 'full' and int(f.split(',')[0]) > 70]
+    filteredallfiles.sort()
+    size = filteredallfiles[0] if len(filteredallfiles) > 0 else '80,'
+    thumbnail = canvas.add_thumbnail()
+    thumbnail.set_id('{}/full/{}/0/default.jpg'.format(d[3], size))
     annopage = canvas.add_annotationpage_to_items()
     annopage.set_id(extendbase_url='page/p%s/1' %idx)
     annotation = annopage.add_annotation_to_items(target=canvas.id)

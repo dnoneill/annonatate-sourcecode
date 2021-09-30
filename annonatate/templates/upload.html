@@ -85,9 +85,13 @@
 	
 	<div id="image" class="tabcontent">
 	  <h2>Upload Image</h2>
+	  <p>
+	  When you upload an image/s this will create
+	  a IIIF derivative of the image/s with a corresponding manifest with the metadata you enter in the form below.
+	</p>
 	  <form action="{{ url_for('createimage') }}" enctype=multipart/form-data method="post">
 		<div>
-			<label for="upload-image">Upload files from computer: </label>
+			<label for="upload-image">Upload files from computer (must be 25MB or smaller): </label>
 			<input type="text"  id="upload-image" name="upload" value="uploadimage" style="display: none">
 		 	<input type=file id="upload-image" name=file accept="image/*" required multiple>
 			 <div>
@@ -95,7 +99,7 @@
 				<input value="" id="label" name="label" required>
 				</div>
 				<div>
-					<label for="label">Folder: </label>
+					<label for="label">short folder name (will populate the url of the image) (Required): </label>
 					<input value="" id="folder" name="folder" required>
 				</div>
 			   <div>

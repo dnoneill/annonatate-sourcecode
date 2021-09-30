@@ -203,6 +203,7 @@ def removecollaborator():
 def createimage():
     image = Image(request.form, request.files, session['origin_url'])
     successmessage = ''
+    uploadurl = ''
     if not image.isimage:
         if type(image.manifest) == dict:
             return render_template('upload.html', error=image.manifest['error'])
@@ -488,6 +489,13 @@ def deletefile():
         for key, value in session['annocollections'].items():
             if collectionname in value:
                 session['annocollections'][key].remove(collectionname)
+    elif 'img/derivatives/iiif' in path:
+        deletescript = open(os.path.join(githubfilefolder, 'deleteimage.yml')).read()
+        deletescript = deletescript.replace("replacewithimagepath", path)
+        github.sendgithubrequest(session, 'deleteimage.yml', deletescript, ".github/workflows").json()
+        time.sleep(1)
+        triggerAction('deleteimage.yml')
+        session['upload']['manifests'].remove(url)
     else:
         uploadtype = path.split('/')[0]
         session['upload'][uploadtype].remove(url)
