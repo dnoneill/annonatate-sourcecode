@@ -38,14 +38,14 @@ class Image:
                     ext =  '.jpg'
                 cleanfilename = "".join(re.findall(r'[0-9A-Za-z]+', filenameonly)) +  ext
                 self.files.append({'filename': cleanfilename, 'encodedimage': filename.stream.read()})
-            self.file = request_files['file']
-            self.encodedimage = self.file.stream.read()
 
     def createActionScript(self, githubfilefolder, filenamelist):
-        iiifscript = open(pathjoin(githubfilefolder, 'iiifportion.txt')).read().replace('\n', '\\n')
-        iiifscript = open(pathjoin(githubfilefolder, 'imagetoiiif.yml')).read().replace('replacewithportion', iiifscript)
+        with open(pathjoin(githubfilefolder, 'iiifportion.txt')) as f:
+            iiifscript = f.read().replace('\n', '\\n')
+        with open(pathjoin(githubfilefolder, 'imagetoiiif.yml')) as gf:
+            iiifscript = gf.read().replace('replacewithportion', iiifscript)
         iiifscript = iiifscript.replace('replacewithoriginurl', self.origin_url)
-        iiifscript = iiifscript.replace('replacewithfilelist', filenamelist)
+        iiifscript = iiifscript.replace('replacewithfilelist', str(filenamelist))
         replacefields = ["label", "folder", "description", "rights", "language", "direction"]
         for field in replacefields:
             replacestring = "replacewith{}".format(field)

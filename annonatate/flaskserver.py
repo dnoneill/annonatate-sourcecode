@@ -228,7 +228,7 @@ def createimage():
                 output =  True
             else:
                 output = response['message']
-        convertiiif = image.createActionScript(githubfilefolder, str(filenames))
+        convertiiif = image.createActionScript(githubfilefolder, filenames)
         github.sendgithubrequest(session, 'imagetoiiif.yml', convertiiif, ".github/workflows").json()
         time.sleep(1)
         triggerAction('imagetoiiif.yml')
