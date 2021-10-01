@@ -54,7 +54,7 @@ const annoview = Vue.component('annoview', {
     </div>
   </div>
   <div v-if="title" style="font-weight:900">{{title[0]['value']}}: 
-  <span v-if="alltiles && alltiles[0]['label']">{{alltiles[0]['label']}}</span>
+  <span v-if="alltiles.length > 0 && alltiles[0]['label']">{{alltiles[0]['label']}}</span>
   </div>
   <div id="openseadragon1" v-bind:class="{'active' : inputurl !== ''}"></div>
   </div>
