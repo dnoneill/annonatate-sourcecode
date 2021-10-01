@@ -7,7 +7,7 @@ const annoview = Vue.component('annoview', {
       </button>
     </div>
     <div v-for="image in existing['images']">
-      <button class="linkbutton" v-on:click="inputurl = image; currentmanifest='';loadAnno()">
+      <button class="linkbutton" v-on:click="inputurl = image; loadImage()">
         {{image}}
       </button>
     </div>
@@ -30,7 +30,7 @@ const annoview = Vue.component('annoview', {
   </div>
   <div>
     <label for="imageurl">Image URL</label>
-    <input id="imageurl" v-on:change="currentmanifest = '';loadAnno()" v-model="inputurl"></input>
+    <input id="imageurl" v-on:change="loadImage()" v-model="inputurl"></input>
   </div>
   <div class="drawingtools" v-if="anno">
     <label for="current-tool">Current Annotation drawing shape: </label>
@@ -94,6 +94,11 @@ const annoview = Vue.component('annoview', {
     }
   },
   methods: {
+    loadImage: function() {
+      this.currentmanifest='';
+      this.title = '';
+      this.loadAnno();
+    },
     manifestLoad: function(item) {
       this.canvas = item['canvas'];
       this.inputurl = item['tiles'][0]['id'];
