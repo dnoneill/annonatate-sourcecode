@@ -57,29 +57,10 @@
 	  <h2>Create Manifest using existing image</h2>
 	  <form action="{{ url_for('createimage') }}" enctype=multipart/form-data method="post">
 	  	<div>
-			<label for="upload-manifest">Existing IIIF image (without /info.json) </label>
+			<label for="upload-manifest">Existing IIIF manifest </label>
 			<input id="upload-manifest" name="upload" required>
 		</div>
-		<div>
-			<label for="label">Title of Image (Required): </label>
-			<input value="" id="label" name="label" required>
-		</div>
-   		<div>
-			<label for="description">Description: </label>
-			<input value="" id="description" name="description">
-   		</div>
-		<div>
-			<label for="rights">Rights: </label>
-			<input value="" id="rights" name="rights">
-		</div>
-		<div>
-			<label for="direction">Viewing Direction: </label>
-			<select id="direction" name="direction">
-				<option value="left-to-right" selected>left-to-right</option>
-				<option value="right-to-left">right-to-left</option>
-			</select>
-		</div>
-		<button type="submit">Create IIIF Manifest</button>
+		<button type="submit">Copy IIIF Manifest</button>
 		</form>
 	</div>
 	
