@@ -21,6 +21,7 @@ for file in files:
         os.remove(file)
     elif ext != 'jpg' and ext != 'jpeg':
         os.system('convert {} {}.jpg'.format(file, filepath))
+        files.append('%s.jpg'%filepath)
         files.remove(file)
         os.remove(file)
 for file in files:
