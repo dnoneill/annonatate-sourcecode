@@ -72,9 +72,9 @@
 	</p>
 	  <form action="{{ url_for('createimage') }}" enctype=multipart/form-data method="post">
 		<div>
-			<label for="upload-image">Upload files from computer (must be 25MB or smaller): </label>
+			<label for="upload-image">Upload image or PDF files from computer (each file must be 25MB or smaller): </label>
 			<input type="text"  id="upload-image" name="upload" value="uploadimage" style="display: none">
-		 	<input type=file id="upload-image" name=file accept="image/*" required multiple>
+		 	<input type=file id="upload-image" name=file accept="image/* pdf/*" required multiple>
 			 <div>
 				<label for="label">Title of Image (Required): </label>
 				<input value="" id="label" name="label" required>

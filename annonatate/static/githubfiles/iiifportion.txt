@@ -2,6 +2,7 @@ from iiif.static import IIIFStatic
 from IIIFpres import iiifpapi3
 from PIL import Image
 import os
+from pdf2image import convert_from_path
 
 files = replacewithfilelist
 manifestlabel = '''replacewithlabel'''
@@ -10,8 +11,22 @@ baseurl = os.path.join('replacewithoriginurl', dst)
 data = []
 for file in files:
     filepath,ext = file.rsplit('.', 1)
+    if ext == 'pdf':
+        images = convert_from_path(file)
+        for i in range(len(images)):
+            imagefilename = filepath + '-' + str(i) +'.jpg'
+            images[i].save(imagefilename, 'JPEG')
+            files.append(imagefilename)
+        files.remove(file)
+        os.remove(file)
+    elif ext != 'jpg' and ext != 'jpeg':
+        os.system('convert {} {}.jpg'.format(file, filepath))
+        files.remove(file)
+        os.remove(file)
+for file in files:
+    filepath,ext = file.rsplit('.', 1)
     filename = os.path.basename(filepath)
-    if ext != '.jpg' and ext != '.jpeg':
+    if ext != 'jpg' and ext != 'jpeg':
         os.system('convert {} {}.jpg'.format(file, filepath))
     sg = IIIFStatic(prefix=baseurl, dst=dst)
     sggenerate = sg.generate(file)

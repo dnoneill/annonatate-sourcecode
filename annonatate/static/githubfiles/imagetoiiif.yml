@@ -8,12 +8,12 @@ jobs:
       - uses: actions/checkout@v2
         with:
           fetch-depth: 1
-      - name: install
-        run: pip3 install iiif
-      - name: install Pillow
-        run: pip3 install Pillow
-      - name: install IIIFpres
-        run: pip3 install git+https://github.com/giacomomarchioro/pyIIIFpres
+      - name: PDF fix
+        run: sudo mv /etc/ImageMagick-6/policy.xml /etc/ImageMagick-6/policy.xml.off && sudo apt-get update && sudo apt-get install -y ghostscript-x
+      - name: poppler
+        run: sudo apt-get install -y poppler-utils
+      - name: pip install
+        run: pip3 install iiif pdf2image Pillow git+https://github.com/giacomomarchioro/pyIIIFpres
       - name: runscript
         run: python3 -c "exec(\"replacewithportion\")"
       - name: add page jekyll to manifest
