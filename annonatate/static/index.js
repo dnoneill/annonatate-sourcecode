@@ -162,7 +162,7 @@ const annoview = Vue.component('annoview', {
         this.drawtools.push({'name': name, 'label': label})
       }
       this.addListeners();
-      this.anno.setDrawingEnabled(true);
+      this.enableDrawing();
       this.anno.setAuthInfo({
         id: this.userinfo["id"],
         displayName: this.userinfo["name"]
@@ -266,7 +266,7 @@ const annoview = Vue.component('annoview', {
     },
     updateDrawTool: function() {
       this.anno.setDrawingTool(this.currentdrawtool);
-      this.anno.setDrawingEnabled(true);
+      this.enableDrawing();
     },
     addManifestAnnotation: function(annotation){
       var target = this.inputurl;
@@ -280,24 +280,36 @@ const annoview = Vue.component('annoview', {
       annotation.target.source = target;
       return annotation;
     },
+    enableDrawing: function(){
+      console.log(navigator.userAgent)
+      if (/Mobi/.test(navigator.userAgent)){
+        this.anno.setDrawingEnabled(true);
+      }
+    },
     addListeners: function() {
       // Attach handlers to listen to events
       var vue = this;
+      this.anno.on('cancelSelected', function() {
+        vue.enableDrawing();
+      });
       this.anno.on('createAnnotation', function(annotation) {
         var annotation = vue.addManifestAnnotation(annotation);
         var senddata = {'json': annotation }
-        vue.write_annotation(senddata, 'create', annotation)
+        vue.write_annotation(senddata, 'create', annotation);
+        vue.enableDrawing();
       });
     
       this.anno.on('updateAnnotation', function(annotation) {
         var annotation = vue.addManifestAnnotation(annotation);
         var senddata = {'json': annotation,'id': annotation['id'], 'order': annotation['order']}
-        vue.write_annotation(senddata, 'update')
+        vue.write_annotation(senddata, 'update');
+        vue.enableDrawing();
       });
 
       this.anno.on('deleteAnnotation', function(annotation) {
         var senddata = annotation;
-        vue.write_annotation(senddata, 'delete')
+        vue.write_annotation(senddata, 'delete');
+        vue.enableDrawing();
       });
     },
     write_annotation: function(senddata, method, annotation=false) {
