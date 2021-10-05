@@ -40,9 +40,10 @@ const annoview = Vue.component('annoview', {
         <span>{{drawtool.label}}</span></label>
     </div>
     <p>
-      <b>Hold <code>SHIFT</code> while clicking and dragging the mouse to create a new annotation.
+      <b>On Desktop: Hold <code>SHIFT</code> while clicking and dragging the mouse to create a new annotation.
+      <br>On a touch screen: tap and drag to create new annotation</b>
       <br>
-      To stop Polygon annotation selection double click.</b>
+      To stop Polygon annotation selection double click (on Desktop) and long touch (on touch screen).</b>
     </p>
   </div>
   <div class="layers gridparent">

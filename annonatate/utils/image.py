@@ -19,7 +19,8 @@ class Image:
             # handle uploaded url
             self.imgurl, self.iiiffolder = self.iiifimage.rsplit("manifest", 1)[0].strip('/').split('/', 1)
             self.imgurl += '/'
-            self.manifestpath = pathjoin("manifests/", self.iiiffolder.strip("/"))
+            folderpath = self.iiiffolder.strip("/").split("/")
+            self.manifestpath = pathjoin("manifests/", "/".join(folderpath[-2:]))
             self.manifesturl = "{}{}/manifest.json".format(self.origin_url, self.manifestpath)
             self.manifest = self.createmanifest()
             if type(self.manifest) != dict: # manifest creation failed
@@ -50,7 +51,12 @@ class Image:
         return iiifscript
 
     def createmanifest(self):
-        manifest = json.dumps(requests.get(self.iiifimage).json(), indent=2)
+        manifestresponse = requests.get(self.iiifimage).json()
+        if '@id' in manifestresponse.keys():
+            manifestresponse['@id'] = self.manifesturl
+        elif 'id' in manifestresponse.keys():
+            manifestresponse['id'] = self.manifesturl
+        manifest = json.dumps(manifestresponse, indent=2)
         return manifest
 
 
