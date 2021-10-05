@@ -161,6 +161,7 @@ const annoview = Vue.component('annoview', {
         this.drawtools.push({'name': name, 'label': label})
       }
       this.addListeners();
+      this.anno.setDrawingEnabled(true);
       this.anno.setAuthInfo({
         id: this.userinfo["id"],
         displayName: this.userinfo["name"]
@@ -264,6 +265,7 @@ const annoview = Vue.component('annoview', {
     },
     updateDrawTool: function() {
       this.anno.setDrawingTool(this.currentdrawtool);
+      this.anno.setDrawingEnabled(true);
     },
     addManifestAnnotation: function(annotation){
       var target = this.inputurl;
