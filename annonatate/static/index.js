@@ -39,15 +39,20 @@ const annoview = Vue.component('annoview', {
         <input type="radio" v-bind:id="drawtool.name" v-bind:name="drawtool.name" v-bind:value="drawtool.name" v-model="currentdrawtool">
         <span>{{drawtool.label}}</span></label>
     </div>
-    <p>
-      <b>On Desktop: Hold <code>SHIFT</code> while clicking and dragging the mouse to create a new annotation.
-      <br>On a touch screen: tap and drag to create new annotation</b>
+    <p v-if="isMobile">
+      <b>Tap and drag to create new annotation
       <br>
-      To stop Polygon annotation selection double click (on Desktop) and long touch (on touch screen).</b>
+      To stop Polygon annotation selection long touch the screen.</b>
+    </p>
+    <p v-else>
+      <b>Hold <code>SHIFT</code> while clicking and dragging the mouse to create a new annotation.
+      <br>
+      To stop Polygon annotation selection double click.
+      </b>
     </p>
   </div>
-  <div class="layers gridparent">
-    <div v-for="item in alltiles" v-if="alltiles.length > 1">
+  <div class="layers gridparent" v-if="alltiles.length > 1">
+    <div v-for="item in alltiles">
       <input type="checkbox" class="tagscheck" v-on:click="setOpacity(item)" v-model="item.checked">
       <span v-html="item.label"></span>
       <div class="slidecontainer">Opacity: <input v-on:change="setOpacity(item, $event)" type="range" min="0" max="100" v-bind:value="item.opacity*100" class="slider"></div>
@@ -78,10 +83,12 @@ const annoview = Vue.component('annoview', {
       showManThumbs: false,
       canvas: '',
       title: '',
+      isMobile: false,
       alltiles: []
   	}
   },
   mounted() {
+    this.isMobile = /Mobi/.test(navigator.userAgent);
     const params = new URLSearchParams(window.location.search);
     const manifesturl = params.get('manifesturl');
     const imageurl = params.get('imageurl');
@@ -282,7 +289,7 @@ const annoview = Vue.component('annoview', {
     },
     enableDrawing: function(){
       console.log(navigator.userAgent)
-      if (/Mobi/.test(navigator.userAgent)){
+      if (this.isMobile){
         this.anno.setDrawingEnabled(true);
       }
     },
