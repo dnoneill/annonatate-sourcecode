@@ -2,24 +2,26 @@ import unittest
 
 import annonatate.utils.image as ImageClass
 import requests
-import requests_mock
+from unittest.mock import patch
 import json, io, yaml
 from werkzeug.datastructures import FileStorage, ImmutableMultiDict
 
 class TestManifest(unittest.TestCase):
    def setUp(self):
-      self.request_form = {'upload': 'file:test/testdata/imagetest', 'label': 'This is the label', 'direction': 'left-to-right', 'description': 'This is the description', 'rights': 'This is the rights'}
-      self.request_files = []
-      self.request_url = 'http://session/origin_url/'
-      self.image = ImageClass.Image(self.request_form, self.request_files, self.request_url)
-      self.manifest = self.image.manifest.toJSON(top=True)
-
+      self.request_form = {'upload': 'test/testdata/manifest.json'}
+      with patch('requests.get') as mock_request:
+         url = self.request_form['upload']
+         mock_request.return_value.status_code = 200
+         with open(url) as f:
+            mock_request.return_value.json.return_value = json.loads(f.read())
+         self.request_files = []
+         self.request_url = 'http://session/origin_url/'
+         self.image = ImageClass.Image(self.request_form, self.request_files, self.request_url)
+         self.manifest = json.loads(self.image.manifest)
    def test_manifest_iiif(self):
       self.assertFalse(self.image.isimage)
-      self.assertEqual(self.image.manifest.label, 'This is the label')
-      self.assertEqual(self.manifest['sequences'][0]['canvases'][0]['width']
-, 1784)
-      self.assertEqual(self.manifest['sequences'][0]['canvases'][0]['images'][0]['@id'], 'http://session/origin_url/manifests/imagetest/annotation/1.json')
+      self.assertEqual(self.manifest['label'], 'test upload')
+      self.assertEqual(self.manifest['@id'], 'http://session/origin_url/manifests/testdata/manifest.json')
 
 class TestImage(unittest.TestCase):
    def setUp(self):
@@ -36,7 +38,7 @@ class TestImage(unittest.TestCase):
       self.actionscript = self.image.createActionScript('annonatate/static/githubfiles/', self.filenamelist)
    def test_manifest_iiif(self):
       self.assertTrue(self.image.isimage)
-      self.assertEqual(self.image.files, [{'filename': 'filename.jpg', 'encodedimage': b'my file contents'}, {'filename': 'filename2.jpg', 'encodedimage': b'my file contents'}])
+      self.assertEqual(self.image.files, [{'filename': 'filename.jpg', 'encodedimage': b'my file contents'}, {'filename': 'filename2.png', 'encodedimage': b'my file contents'}])
       self.maxDiff = None
       self.parsedActionScript= yaml.load(self.actionscript, Loader=yaml.FullLoader)['jobs']['convertimages']['steps']
       self.assertEqual(self.parsedActionScript[5]['run'], 'echo -e "---\\n---\\n$(cat img/derivatives/iiif/testing/manifest.json)" > img/derivatives/iiif/testing/manifest.json')
