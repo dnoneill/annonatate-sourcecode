@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 {% block header %}
-  <h1>{% block title %}Upload {%if uploadurl %}Success {% else %} Failure {% endif %}{% endblock %}</h1>
+  <h1>{% block title %}Upload {%if uploadurl or output == True %}Success {% else %} Failure {% endif %}{% endblock %}</h1>
 {% endblock %}
 {% block content %}
 	{% if uploadurl %}
@@ -9,24 +9,11 @@
 			This can take a minute to load. 
 			This page will update with the URL of the {{uploadtype}} when the {{uploadtype}} is avaliable.
 		</p>
+	{% elif output == True %}
+		Upload of {{uploadtype | title}} Success!
 	{% elif '.zip' not in output%}
 		<p>Something went wrong writing to GitHub, please try again.
 		Message from GitHub: {{output | safe}}</p>
-	{% elif '.zip' in output %}
-	<b>Image creation a success!</b>
-	Please follow the instructions below to add image to site
-	<ol>
-	<li>
-		Download IIIF image derivatives
-		<form action="{{ url_for('download') }}" method="post">
-		   <button name="path" value="{{output}}">Download image</button>
-		</form>
-	</li>
-	<li>Go to <a href="{{session['currentworkspace']['html_url']}}" target="_blank">{{session['currentworkspace']['html_url']}}</a></li>
-	<li><a href="https://help.github.com/en/github/managing-files-in-a-repository/adding-a-file-to-a-repository" target="_blank">Upload Downloaded file.</a> 
-		<p><b>Note: you might want to create a folder to hold all of you custom images. To do this put the downloaded image into a folder. Then upload that folder to the GitHub repository </b></p></li>
-	<li>Go to <a href="{{ url_for('index') }}">homepage</a>. The new image should show in the list of images in the viewer.
-	</ol>
 	{% endif %}
 <script>
 	$(window).on('load', function() {

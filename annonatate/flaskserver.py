@@ -12,6 +12,7 @@ import simplejson as json
 import shutil
 from datetime import datetime
 import os
+from io import StringIO
 
 from annonatate.utils.search import get_search, encodedecode, Search
 from annonatate.utils.image import Image, addAnnotationList, listfilename
@@ -197,6 +198,22 @@ def removecollaborator():
         next_url += '?error={}'.format(parseGitHubErrors(response.json()))
     return redirect(next_url)
 
+@app.route('/uploadvocab', methods=['POST'])
+def uploadvocab():
+    filevocab = request.files['vocabcsv']
+    csvcontents = StringIO(filevocab.stream.read().decode("UTF8"), newline=None)
+    reader = csv.DictReader(csvcontents)
+    vocab = []
+    for row in reader:
+        row = dict(row)
+        if row['uri']:
+            vocab.append(row)
+        else:
+            vocab.append(row['label'])
+    vocab =  vocab + [i for i in session['preloaded']['vocab'] if i not in vocab] if session['preloaded'] and 'vocab' in session['preloaded'].keys() else vocab
+    session['preloaded']['vocab'] = vocab
+    github.sendgithubrequest(session, 'preload.yml', yaml.dump(session['preloaded']), '_data')
+    return render_template('uploadsuccess.html', output=True, uploadurl=False, successmessage="success!", uploadtype="vocab")
 # take uploaded content from upload form
 # create manifest or upload image
 @app.route('/createimage', methods=['POST', 'GET'])
@@ -324,18 +341,21 @@ def index():
             manifests = session['preloaded']['manifests'] + session['upload']['manifests']
             images = session['preloaded']['images'] + session['upload']['images']
             existing = {'manifests': manifests, 'images': images}
-            return render_template('index.html', existingitems=existing, filepaths=arraydata['contents'], tags=list(set(arraydata['tags'])), userinfo={'name': session['user_name'], 'id': session['user_id']})
-        except:
-           return errorchecking(request)
+            vocabtags = arraydata['tags'] if 'vocab' not in session['preloaded'].keys() else session['preloaded']['vocab'] + arraydata['tags']
+            return render_template('index.html', existingitems=existing, filepaths=arraydata['contents'], tags=vocabtags, userinfo={'name': session['user_name'], 'id': session['user_id']})
+        except Exception as e:
+           return errorchecking(request, e)
 
 # If it is first build, render the first build page. If there are no workspaces present, render error template.
 # Otherwise trigger build and render error page.
-def errorchecking(request):
+def errorchecking(request, error=False):
     firstbuild = request.args.get('firstbuild')
     if firstbuild == 'True':
         return render_template('firstbuild.html')
     elif firstbuild == 'noworkspaces':
         return render_template('error.html', message='There was a problem enabling GitHub pages on your site. Please follow the <a href="https://annonatate.github.io/annonatate-help/getting-started#troubleshooting">troubleshooting instructions to fix this problem.</a>')
+    elif error:
+        render_template('error.html', message=error)
     else:
         triggerbuild()
         return render_template('error.html', message='''<b>If this
@@ -875,7 +895,6 @@ def writetogithub(filename, annotation, order):
         else:
             listdata = {'json': {'items': [data['json']]}, 'filename':annolistfilename, 'canvas': ''}
             session['annotations'].append(listdata)
-        response = requests.get(manifest)
         if canvas not in canvases:
             createlistpage(canvas, manifest)
         session['annotime'] = datetime.now()
