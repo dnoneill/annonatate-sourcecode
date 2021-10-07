@@ -239,6 +239,7 @@ tbody {
   width: 95%;
   overflow: auto;
   margin-bottom: 8px;
+  word-break: break-all;
 }
 
 .manifestimages::-webkit-scrollbar {
