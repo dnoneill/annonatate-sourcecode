@@ -31,7 +31,7 @@ class Image:
             self.files = []
             for filename in request_files.getlist("file"):
                 filenameonly, ext = pathsplitext(filename.filename)
-                cleanfilename = "".join(re.findall(r'[0-9A-Za-z]+', filenameonly)) +  ext
+                cleanfilename = "".join(re.findall(r'[0-9A-Za-z ]+', filenameonly)) +  ext
                 self.files.append({'filename': cleanfilename, 'encodedimage': filename.stream.read()})
 
     def createActionScript(self, githubfilefolder, filenamelist):
