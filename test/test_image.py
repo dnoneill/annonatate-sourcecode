@@ -38,7 +38,7 @@ class TestImage(unittest.TestCase):
       self.actionscript = self.image.createActionScript('annonatate/static/githubfiles/', self.filenamelist)
    def test_manifest_iiif(self):
       self.assertTrue(self.image.isimage)
-      self.assertEqual(self.image.files, [{'filename': 'filename.jpg', 'encodedimage': b'my file contents'}, {'filename': 'filename2.png', 'encodedimage': b'my file contents'}])
+      self.assertEqual(self.image.files, [{'filename': 'filename.jpg', 'encodedimage': b'my file contents', 'label': 'filename'}, {'filename': 'filename2.png', 'encodedimage': b'my file contents', 'label': 'filename2'}])
       self.maxDiff = None
       self.parsedActionScript= yaml.load(self.actionscript, Loader=yaml.FullLoader)['jobs']['convertimages']['steps']
       self.assertEqual(self.parsedActionScript[5]['run'], 'echo -e "---\\n---\\n$(cat img/derivatives/iiif/testing/manifest.json)" > img/derivatives/iiif/testing/manifest.json')
