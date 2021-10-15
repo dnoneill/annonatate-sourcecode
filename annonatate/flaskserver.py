@@ -241,7 +241,7 @@ def createimage():
             if 'content' in response.keys():
                 uploadurl = "{}img/derivatives/iiif/{}/manifest.json".format(image.origin_url, image.request_form['folder'])
                 successmessage = successtext(uploadurl, uploadtype)
-                filenames.append(os.path.join(imagespath, afile['filename']))
+                filenames.append((os.path.join(imagespath, afile['filename']), afile['label']))
                 output =  True
             else:
                 output = response['message']

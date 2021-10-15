@@ -31,8 +31,8 @@ class Image:
             self.files = []
             for filename in request_files.getlist("file"):
                 filenameonly, ext = pathsplitext(filename.filename)
-                cleanfilename = "".join(re.findall(r'[0-9A-Za-z ]+', filenameonly)) +  ext
-                self.files.append({'filename': cleanfilename, 'encodedimage': filename.stream.read()})
+                cleanfilename = "".join(re.findall(r'[0-9A-Za-z]+', filenameonly)) +  ext
+                self.files.append({'filename': cleanfilename, 'encodedimage': filename.stream.read(), 'label': filenameonly})
 
     def createActionScript(self, githubfilefolder, filenamelist):
         with open(pathjoin(githubfilefolder, 'iiifportion.txt')) as f:

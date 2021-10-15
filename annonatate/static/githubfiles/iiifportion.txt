@@ -9,22 +9,24 @@ manifestlabel = '''replacewithlabel'''
 dst = os.path.join('img/derivatives/iiif/', 'replacewithfolder') + '/'
 baseurl = os.path.join('replacewithoriginurl', dst)
 data = []
-for file in files:
+for idx, filedict in enumerate(files):
+    file = filedict[0]
     filepath,ext = file.rsplit('.', 1)
     if ext == 'pdf':
         images = convert_from_path(file)
         for i in range(len(images)):
             imagefilename = filepath + '-' + str(i) +'.jpg'
             images[i].save(imagefilename, 'JPEG')
-            files.append(imagefilename)
-        files.remove(file)
+            files.append([imagefilename, filedict[1]])
+        del files[idx]
         os.remove(file)
     elif ext != 'jpg' and ext != 'jpeg':
         os.system('convert {} {}.jpg'.format(file, filepath))
         files.append('%s.jpg'%filepath)
-        files.remove(file)
+        del files[idx]
         os.remove(file)
-for file in files:
+for filedict in files:
+    file = filedict[0]
     filepath,ext = file.rsplit('.', 1)
     filename = os.path.basename(filepath)
     if ext != 'jpg' and ext != 'jpeg':
@@ -32,7 +34,7 @@ for file in files:
     sg = IIIFStatic(prefix=baseurl, dst=dst)
     sggenerate = sg.generate(file)
     img = Image.open(file)
-    data.append((filename, img.width, img.height, os.path.join(baseurl, filename),'/full/full/0/default.jpg'))
+    data.append((filename, img.width, img.height, os.path.join(baseurl, filename),'/full/full/0/default.jpg', filedict[1]))
     iiiffulldir = os.path.join(dst, filename, 'full/full')
     if not os.path.isdir(iiiffulldir):
         os.mkdir(iiiffulldir)
@@ -62,7 +64,7 @@ for idx,d in enumerate(data):
     canvas.set_id(extendbase_url='canvas/replacewithfolder-%s'%idx)
     canvas.set_height(d[2])
     canvas.set_width(d[1])
-    canvas.add_label('en',d[0])
+    canvas.add_label('replacewithlanguage', d[5])
     filteredallfiles = [f for f in os.listdir(os.path.join(dst, d[0], 'full')) if f != 'full' and int(f.split(',')[0]) > 70]
     filteredallfiles.sort()
     size = filteredallfiles[0] if len(filteredallfiles) > 0 else '80,'
@@ -73,7 +75,7 @@ for idx,d in enumerate(data):
     annotation = annopage.add_annotation_to_items(target=canvas.id)
     annotation.set_id(extendbase_url='annotation/p%s-image'%str(idx).zfill(4))
     annotation.set_motivation('painting')
-    annotation.body.set_id(''.join(d[3:]))
+    annotation.body.set_id(''.join(d[3:5]))
     annotation.body.set_type('Image')
     annotation.body.set_format('image/jpeg')
     annotation.body.set_width(d[1])
