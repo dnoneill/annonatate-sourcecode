@@ -136,17 +136,20 @@ def uploadstatus():
     url = request.args.get('url')
     checknum = request.args.get('checknum')
     uploadtype = request.args.get('uploadtype') + 's'
+    isprofile = request.args.get('isprofile')
     response = requests.get(url)
-    if uploadtype != 'customviews' and url not in session['upload'][uploadtype]:
-        session['upload'][uploadtype].append(url)
     if response.status_code > 299:
-        if checknum == '2':
+        if checknum == '2' and 'derivatives' not in url:
             triggerbuild()
-        elif checknum == '3':
+        elif checknum == '3' and 'derivatives' not in url:
             updateindex()
         return 'failure', 404
     if uploadtype == 'customviews':
         deleteItemAnnonCustomViews(url, 'slug')
+    elif url not in session['upload'][uploadtype]:
+        session['upload'][uploadtype].append(url)
+    if isprofile:
+        session['inprocess'] = list(filter(lambda x: x['url'] != url, session['inprocess']))
     return 'success', 200
 
 # Delete items from annocustomviews by URL
@@ -253,6 +256,12 @@ def createimage():
     return render_template('uploadsuccess.html', output=output, uploadurl=uploadurl, successmessage=successmessage, uploadtype=uploadtype)
 
 def successtext(uploadurl, uploadtype):
+    if uploadurl:
+        uploaddict = {'url': uploadurl, 'uploadtype': uploadtype }
+        if 'inprocess' in session.keys() and uploaddict not in session['inprocess']:
+            session['inprocess'].append(uploaddict)
+        else:
+            session['inprocess'] = [uploaddict]
     return '<a href="{}">{}</a> is now avaliable.</p><p><a href="/?{}url={}">Start annotating your {}!</a></p>'.format(uploadurl, uploadurl, uploadtype, uploadurl, uploadtype)
 # upload wax formatted csv. Get headers from CSV. Update config.yml with wax fields
 # create GitHub action for collection and run it.

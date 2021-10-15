@@ -1,0 +1,38 @@
+<ul>
+{% for upload in session['inprocess'] %}
+<li id="{{upload['url']}}">
+    {{upload['url']}}
+<span class="status"><i class="fas fa-spinner"></i></span>
+</li>
+<script>
+    $(window).on('load', function() {
+    if ('{{upload["url"]}}'){
+			checkStatus(0)
+			var start = 1
+			const interval = setInterval(function(){
+				checkStatus(start)
+				start += 1
+			}, 100000);
+			function stopFunction() {
+				clearInterval(interval);
+			}
+	}
+    function checkStatus(checknum){
+        const uploadurl = '{{upload["url"]}}'
+        const uploadtype = '{{upload["uploadtype"]}}'
+        var isready = UrlExists(`/uploadstatus?url=${uploadurl}&checknum=${checknum}&uploadtype=${uploadtype}&isprofile=True`);
+        if (isready){
+            if (checknum > 0){
+                stopFunction();
+            }
+            document.getElementById(uploadurl).innerHTML = `
+            <a href="${uploadurl}" target="_blank">${uploadurl}</a>
+            <i style="color: green" class="fas fa-check-circle"></i>
+            <a href="/?${uploadtype}url=${uploadurl}">Annotate</a>
+            `
+        }
+	}
+});
+</script>
+{% endfor %}
+</ul>
