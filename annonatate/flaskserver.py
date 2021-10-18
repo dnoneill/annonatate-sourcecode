@@ -143,7 +143,7 @@ def uploadstatus():
             triggerbuild()
         elif checknum == '3' and 'derivatives' not in url:
             updateindex()
-        return 'failure', 404
+        return '{} not rendered yet'.format(url), 404
     if uploadtype == 'customviews':
         deleteItemAnnonCustomViews(url, 'slug')
     elif url not in session['upload'][uploadtype]:
