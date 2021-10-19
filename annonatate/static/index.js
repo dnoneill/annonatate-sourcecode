@@ -1,14 +1,22 @@
 const annoview = Vue.component('annoview', {
   template: `<div>
+  <div v-if="isMobile && anno" style="position:fixed;right: 10px;">
+    <button v-on:click="enableDrawing(!drawingenabled)" style="width: 50px;">
+      <span class="fa-stack fa-2x">
+        <i class="fas fa-pencil-alt fa-stack-1x"></i>
+        <i v-if="drawingenabled" class="fas fa-slash fa-stack-1x" style="color:Tomato"></i>
+      </span>
+    </button>
+  </div>
   <div class="manifestimages">
     <div v-for="manifest in existing['manifests']">
       <button v-if="manifest" class="linkbutton" v-on:click="getManifest(manifest)">
-        - {{manifest}}
+        • {{manifest}}
       </button>
     </div>
     <div v-for="image in existing['images']">
       <button v-if="image" class="linkbutton" v-on:click="inputurl = image; loadImage()">
-        - {{image}}
+        • {{image}}
       </button>
     </div>
   </div>
@@ -84,7 +92,8 @@ const annoview = Vue.component('annoview', {
       canvas: '',
       title: '',
       isMobile: false,
-      alltiles: []
+      alltiles: [],
+      drawingenabled: false
   	}
   },
   mounted() {
@@ -287,10 +296,10 @@ const annoview = Vue.component('annoview', {
       annotation.target.source = target;
       return annotation;
     },
-    enableDrawing: function(){
-      console.log(navigator.userAgent)
+    enableDrawing: function(enable=true){
       if (this.isMobile){
-        this.anno.setDrawingEnabled(true);
+        this.drawingenabled = enable;
+        this.anno.setDrawingEnabled(enable);
       }
     },
     addListeners: function() {
