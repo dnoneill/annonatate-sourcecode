@@ -4,7 +4,7 @@ from flask_session import Session
 import urllib.parse
 
 import json, os, glob, requests
-from settings import *
+from annonatate.settings import *
 import yaml, time, csv
 import re
 import simplejson as json
@@ -12,15 +12,15 @@ import simplejson as json
 import shutil
 from datetime import datetime
 import os
+from io import StringIO
 
-from utils.search import get_search, encodedecode, Search
-from utils.image import Image, addAnnotationList, listfilename
-from utils.collectionform import CollectionForm, parseboard, parsetype
-from utils.github import GitHubAnno
+from annonatate.utils.search import get_search, encodedecode, Search
+from annonatate.utils.image import Image, addAnnotationList, listfilename
+from annonatate.utils.collectionform import CollectionForm, parseboard, parsetype
+from annonatate.utils.github import GitHubAnno
 
 app = Flask(__name__,
-            static_url_path='',
-            )
+            static_url_path='',)
 app.config.update(
                   SESSION_TYPE = 'filesystem',
                   GITHUB_CLIENT_ID = client_id,
@@ -45,7 +45,7 @@ def before_request():
     if 'login_time' in session.keys():
         timediff = (datetime.now() - datetime.strptime(session['login_time'], '%Y-%m-%d %H:%M:%S.%f')).seconds
         if timediff > 259200:
-            session.clear()
+            clearSession('currentworkspace')
             return redirect('/login')
     # if the site is not building for the first time and it is not the login/authorized/logout/static item,
     #and there is a workplace selected check to make sure the user still had access to the workspace (hasn't been deleted, access has been revoked)
@@ -87,7 +87,7 @@ def login():
 # clears session, redirects to github logout
 @app.route('/logout')
 def logout():
-    session.clear()
+    clearSession('currentworkspace')
     return redirect('https://github.com/logout')
 
 #After logging into GitHub, library returns oauth token, load that token into session
@@ -136,17 +136,20 @@ def uploadstatus():
     url = request.args.get('url')
     checknum = request.args.get('checknum')
     uploadtype = request.args.get('uploadtype') + 's'
+    isprofile = request.args.get('isprofile')
     response = requests.get(url)
-    if uploadtype != 'customviews' and url not in session['upload'][uploadtype]:
-        session['upload'][uploadtype].append(url)
     if response.status_code > 299:
-        if checknum == '1':
+        if checknum == '2' and 'derivatives' not in url:
             triggerbuild()
-        elif checknum == '2':
+        elif checknum == '3' and 'derivatives' not in url:
             updateindex()
-        return 'failure', 404
+        return '{} not rendered yet'.format(url), 404
     if uploadtype == 'customviews':
         deleteItemAnnonCustomViews(url, 'slug')
+    elif url not in session['upload'][uploadtype]:
+        session['upload'][uploadtype].append(url)
+    if isprofile:
+        session['inprocess'] = list(filter(lambda x: x['url'] != url, session['inprocess']))
     return 'success', 200
 
 # Delete items from annocustomviews by URL
@@ -198,12 +201,29 @@ def removecollaborator():
         next_url += '?error={}'.format(parseGitHubErrors(response.json()))
     return redirect(next_url)
 
+@app.route('/uploadvocab', methods=['POST'])
+def uploadvocab():
+    filevocab = request.files['vocabcsv']
+    csvcontents = StringIO(filevocab.stream.read().decode("UTF8"), newline=None)
+    reader = csv.DictReader(csvcontents)
+    vocab = []
+    for row in reader:
+        row = dict(row)
+        if row['uri']:
+            vocab.append(row)
+        else:
+            vocab.append(row['label'])
+    vocab =  vocab + [i for i in session['preloaded']['vocab'] if i not in vocab] if session['preloaded'] and 'vocab' in session['preloaded'].keys() else vocab
+    session['preloaded']['vocab'] = vocab
+    github.sendgithubrequest(session, 'preload.yml', yaml.dump(session['preloaded']), '_data')
+    return render_template('uploadsuccess.html', output=True, uploadurl=False, successmessage="success!", uploadtype="vocab")
 # take uploaded content from upload form
 # create manifest or upload image
 @app.route('/createimage', methods=['POST', 'GET'])
 def createimage():
     image = Image(request.form, request.files, session['origin_url'])
-
+    successmessage = ''
+    uploadurl = ''
     if not image.isimage:
         if type(image.manifest) == dict:
             return render_template('upload.html', error=image.manifest['error'])
@@ -211,20 +231,38 @@ def createimage():
         uploadtype = 'manifest'
         if 'content' in response.keys():
             uploadurl ='{}{}'.format(image.origin_url, response['content']['path'].replace('_manifest', 'manifest'))
+            successmessage = successtext(uploadurl, uploadtype)
             output = True
         else:
             output = response['message']
     else:
-        response = github.sendgithubrequest(session, image.file.filename, image.encodedimage, "images").json()
-        uploadtype='image'
-        if 'content' in response.keys():
-            uploadurl = "{}{}".format(image.origin_url, response['content']['path'])
-            output =  True
-        else:
-            output = response['message']
+        filenames = []
+        for afile in image.files:
+            imagespath = "images"
+            response = github.sendgithubrequest(session, afile['filename'], afile['encodedimage'], imagespath).json()
+            uploadtype='manifest'
+            if 'content' in response.keys():
+                uploadurl = "{}img/derivatives/iiif/{}/manifest.json".format(image.origin_url, image.request_form['folder'])
+                successmessage = successtext(uploadurl, uploadtype)
+                filenames.append((os.path.join(imagespath, afile['filename']), afile['label']))
+                output =  True
+            else:
+                output = response['message']
+        convertiiif = image.createActionScript(githubfilefolder, filenames)
+        github.sendgithubrequest(session, 'imagetoiiif.yml', convertiiif, ".github/workflows").json()
+        time.sleep(1)
+        triggerAction('imagetoiiif.yml')
     triggerbuild()
-    return render_template('uploadsuccess.html', output=output, uploadurl=uploadurl, uploadtype=uploadtype)
+    return render_template('uploadsuccess.html', output=output, uploadurl=uploadurl, successmessage=successmessage, uploadtype=uploadtype)
 
+def successtext(uploadurl, uploadtype):
+    if uploadurl:
+        uploaddict = {'url': uploadurl, 'uploadtype': uploadtype }
+        if 'inprocess' in session.keys() and uploaddict not in session['inprocess']:
+            session['inprocess'].append(uploaddict)
+        else:
+            session['inprocess'] = [uploaddict]
+    return '<a href="{}">{}</a> is now avaliable.</p><p><a href="/?{}url={}">Start annotating your {}!</a></p>'.format(uploadurl, uploadurl, uploadtype, uploadurl, uploadtype)
 # upload wax formatted csv. Get headers from CSV. Update config.yml with wax fields
 # create GitHub action for collection and run it.
 @app.route('/processwaxcollection', methods=['POST', 'GET'])
@@ -312,18 +350,23 @@ def index():
             manifests = session['preloaded']['manifests'] + session['upload']['manifests']
             images = session['preloaded']['images'] + session['upload']['images']
             existing = {'manifests': manifests, 'images': images}
-            return render_template('index.html', existingitems=existing, filepaths=arraydata['contents'], tags=list(set(arraydata['tags'])), userinfo={'name': session['user_name'], 'id': session['user_id']})
-        except:
-           return errorchecking(request)
+            if 'vocab' in session['preloaded'].keys():
+                labelonlyvocab = [item['label'] if type(item) == dict else item for item in session['preloaded']['vocab']]
+            vocabtags = arraydata['tags'] if 'vocab' not in session['preloaded'].keys() else session['preloaded']['vocab'] + list(filter(lambda tag: tag not in labelonlyvocab, arraydata['tags']))
+            return render_template('index.html', existingitems=existing, filepaths=arraydata['contents'], tags=vocabtags, userinfo={'name': session['user_name'], 'id': session['user_id']})
+        except Exception as e:
+           return errorchecking(request, e)
 
 # If it is first build, render the first build page. If there are no workspaces present, render error template.
 # Otherwise trigger build and render error page.
-def errorchecking(request):
+def errorchecking(request, error=False):
     firstbuild = request.args.get('firstbuild')
     if firstbuild == 'True':
         return render_template('firstbuild.html')
     elif firstbuild == 'noworkspaces':
         return render_template('error.html', message='There was a problem enabling GitHub pages on your site. Please follow the <a href="https://annonatate.github.io/annonatate-help/getting-started#troubleshooting">troubleshooting instructions to fix this problem.</a>')
+    elif error:
+        render_template('error.html', message=error)
     else:
         triggerbuild()
         return render_template('error.html', message='''<b>If this
@@ -477,6 +520,13 @@ def deletefile():
         for key, value in session['annocollections'].items():
             if collectionname in value:
                 session['annocollections'][key].remove(collectionname)
+    elif 'img/derivatives/iiif' in path:
+        deletescript = open(os.path.join(githubfilefolder, 'deleteimage.yml')).read()
+        deletescript = deletescript.replace("replacewithimagepath", path)
+        github.sendgithubrequest(session, 'deleteimage.yml', deletescript, ".github/workflows").json()
+        time.sleep(1)
+        triggerAction('deleteimage.yml')
+        session['upload']['manifests'].remove(url)
     else:
         uploadtype = path.split('/')[0]
         session['upload'][uploadtype].remove(url)
@@ -662,10 +712,13 @@ def clearSessionWorkspaces():
             del session[key]
 
 #  clear everything but user from the session
-def clearSession():
-    for key in list(session.keys()):
-        if 'user' not in key:
-            del session[key]
+def clearSession(dontdelete=False):
+    if dontdelete: 
+        for key in list(session.keys()):
+            if dontdelete not in key:
+                del session[key]
+    else:
+        session.clear()
 
 # Get pages API contents
 def populateworkspace():
@@ -853,7 +906,6 @@ def writetogithub(filename, annotation, order):
         else:
             listdata = {'json': {'items': [data['json']]}, 'filename':annolistfilename, 'canvas': ''}
             session['annotations'].append(listdata)
-        response = requests.get(manifest)
         if canvas not in canvases:
             createlistpage(canvas, manifest)
         session['annotime'] = datetime.now()
@@ -885,16 +937,14 @@ def workspaceCheck(method=False):
     if response.status_code > 299:
         prevsession = session['currentworkspace']
         if 'bad credentials' in response.json()['message'].lower():
-            session.clear()
+            clearSession()
             return redirect('/login')
         elif method == 'POST':
             return 'problem'
         else:
-            clearSession()
+            clearSession('user')
         buildWorkspaces()
 
         getContents()
         g.error = '<i class="fas fa-exclamation-triangle"></i> You have lost access to {}, we have updated your workspace to {}'.format(prevsession['full_name'], session['currentworkspace']['full_name'])
         
-if __name__ == "__main__":
-    app.run(debug=True)

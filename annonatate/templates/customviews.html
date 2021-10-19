@@ -52,7 +52,6 @@
   }      
   
   function success(stopinterval){
-    console.log('{{view}}')
     document.getElementById("{{view['slug']}}-render").innerHTML = `<a href="{{view['filename']}}" target="_blank">{{view['filename']}}</a>`;
     document.getElementById("{{view['slug']}}-embedview").innerHTML = `
     <iframe src="{{view['filename']}}" id="{{view['filename'].replace('.html', '')}}" style="height: 600px;width: 100%;"></iframe>`

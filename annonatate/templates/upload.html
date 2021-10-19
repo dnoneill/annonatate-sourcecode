@@ -7,92 +7,83 @@
 	<body>
 	{{error}}
 	<div class="tab">
-	  <!-- <button class="tablinks" onclick="openTab(event, 'iiifimage')" id="defaultOpen">Create IIIF image</button> -->
 	  <button class="tablinks" onclick="openTab(event, 'manifest')" id="defaultOpen">Create Manifest</button>
 	  <button class="tablinks" onclick="openTab(event, 'image')" id="imagetab">Upload Image</button>
+	  <button class="tablinks" onclick="openTab(event, 'vocab')" id="imagetab">Upload Vocabulary</button>
 	  {% if session['defaults']['iswax'] %}
 	  <button class="tablinks" onclick="openTab(event, 'collection')" id="collectiontab">Process Wax Collection</button>
 	  {% endif %}
 	</div>
-<!-- 	
-	<div id="iiifimage" class="tabcontent">
-		<h2>Create Tiled IIIF image</h2>
-		<p>
-	  <b>
-		This process only works with JPEG and JPG images.
-		<br>
-		Note: This process can take a while. Do not leave this page until the success page appears</b>
-	  </p>
-	  
-		<form action="{{ url_for('createimage') }}" enctype=multipart/form-data method="post">
-		<div>
-			<label for="upload-tile">Upload file from computer: </label>
-			<input type="text" id="upload-tile" name="upload" value="uploadiiif" style="display: none">
-		 	<input type=file name=file accept="image/jpeg" required>
-	 	</div>
-		 <div>
-			<label for="label">Title of Image (Required): </label>
-			<input value="" name="label" id="label" required>
-		</div>
-   		<div>
-			<label for="description">Description: </label>
-			<input value="" name="description">
-   		</div>
-		<div>
-			<label for="rights">Rights: </label>
-			<input value="" name="rights">
-		</div>
-		<div>
-			<label for="rights">Viewing Direction: </label>
-			<select id="direction" name="direction">
-				<option value="left-to-right" selected>left-to-right</option>
-				<option value="right-to-left">right-to-left</option>
-			</select>
-		</div>
-		<button type="submit">Create IIIF image</button>
-		</form>
-	</div> -->
-	
 	<div id="manifest" class="tabcontent">
 	  <h2>Create Manifest using existing image</h2>
 	  <form action="{{ url_for('createimage') }}" enctype=multipart/form-data method="post">
 	  	<div>
-			<label for="upload-manifest">Existing IIIF image (without /info.json) </label>
+			<label for="upload-manifest">Existing IIIF manifest </label>
 			<input id="upload-manifest" name="upload" required>
 		</div>
-		<div>
-			<label for="label">Title of Image (Required): </label>
-			<input value="" id="label" name="label" required>
-		</div>
-   		<div>
-			<label for="description">Description: </label>
-			<input value="" id="description" name="description">
-   		</div>
-		<div>
-			<label for="rights">Rights: </label>
-			<input value="" id="rights" name="rights">
-		</div>
-		<div>
-			<label for="direction">Viewing Direction: </label>
-			<select id="direction" name="direction">
-				<option value="left-to-right" selected>left-to-right</option>
-				<option value="right-to-left">right-to-left</option>
-			</select>
-		</div>
-		<button type="submit">Create IIIF Manifest</button>
+		<button type="submit">Copy IIIF Manifest</button>
 		</form>
 	</div>
 	
 	<div id="image" class="tabcontent">
 	  <h2>Upload Image</h2>
+	  <p>
+	  When you upload an image/s this will create
+	  a IIIF derivative of the image/s with a corresponding manifest with the metadata you enter in the form below.
+	</p>
 	  <form action="{{ url_for('createimage') }}" enctype=multipart/form-data method="post">
 		<div>
-			<label for="upload-image">Upload file from computer: </label>
+			<label for="upload-image">Upload image or PDF files from computer (each file must be 25MB or smaller): </label>
 			<input type="text"  id="upload-image" name="upload" value="uploadimage" style="display: none">
-		 	<input type=file id="upload-image" name=file accept="image/*" required>
+		 	<input type=file id="upload-image" name=file accept="image/* pdf/*" required multiple>
+			 <div>
+				<label for="label">Title of Image (Required): </label>
+				<input value="" id="label" name="label" required>
+				</div>
+				<div>
+					<label for="label">short folder name (will populate the url of the image) (Required): </label>
+					<input value="" id="folder" name="folder" required>
+				</div>
+			   <div>
+				<label for="description">Description: </label>
+				<input value="" id="description" name="description">
+			   </div>
+				<div>
+				<label for="rights">Rights: </label>
+				<input value="" id="rights" name="rights">
+				</div>
+				<div>
+					<label for="language">Language code (default is en): </label>
+					<input value="" id="language" name="language">
+				</div>
+			<div>
+				<label for="direction">Viewing Direction: </label>
+				<select id="direction" name="direction">
+					<option value="left-to-right" selected>left-to-right</option>
+					<option value="right-to-left">right-to-left</option>
+				</select>
+			</div>
 	 	</div>
 		<button type="submit">Upload image</button>
 	</form>
+	</div>
+
+	<div id="vocab" class="tabcontent">
+		<p>
+			Vocab spreadsheets should have a "label" and "uri" column.
+			The "label" column will have a list of words that you want to be added to the dropdown vocabulary on the homepage.
+			This allows users to choose a tag from a dropdown that shows up when they start typing in a tag.
+			The "uri" column is optional to fill out, this is a link to a controlled vocabulary (VIAF, WikiData, etc.) for the work in the corresponding "label" column.
+			This is case sensitive so please make sure "label" and "uri" are lowercase and there are no extra spaces.
+		</p>
+		<h2>Upload Vocab</h2>
+		<form action="{{ url_for('uploadvocab') }}" enctype=multipart/form-data method="post">
+			<div>
+				  <label for="vocabcsv">Upload vocab csv: </label>
+				  <input type=file id="vocabcsv" name="vocabcsv" accept=".csv" required>
+			 </div>
+			<button type="submit">Upload vocab</button>
+		</form>
 	</div>
 	<div id="collection" class="tabcontent">
 		<h2>Process Wax Collection</h2>

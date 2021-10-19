@@ -2,13 +2,13 @@ const annoview = Vue.component('annoview', {
   template: `<div>
   <div class="manifestimages">
     <div v-for="manifest in existing['manifests']">
-      <button class="linkbutton" v-on:click="getManifest(manifest)">
-        {{manifest}}
+      <button v-if="manifest" class="linkbutton" v-on:click="getManifest(manifest)">
+        - {{manifest}}
       </button>
     </div>
     <div v-for="image in existing['images']">
-      <button class="linkbutton" v-on:click="inputurl = image; currentmanifest='';loadAnno()">
-        {{image}}
+      <button v-if="image" class="linkbutton" v-on:click="inputurl = image; loadImage()">
+        - {{image}}
       </button>
     </div>
   </div>
@@ -30,7 +30,7 @@ const annoview = Vue.component('annoview', {
   </div>
   <div>
     <label for="imageurl">Image URL</label>
-    <input id="imageurl" v-on:change="currentmanifest = '';loadAnno()" v-model="inputurl"></input>
+    <input id="imageurl" v-on:change="loadImage()" v-model="inputurl"></input>
   </div>
   <div class="drawingtools" v-if="anno">
     <label for="current-tool">Current Annotation drawing shape: </label>
@@ -39,19 +39,28 @@ const annoview = Vue.component('annoview', {
         <input type="radio" v-bind:id="drawtool.name" v-bind:name="drawtool.name" v-bind:value="drawtool.name" v-model="currentdrawtool">
         <span>{{drawtool.label}}</span></label>
     </div>
-    <p>
+    <p v-if="isMobile">
+      <b>Tap and drag to create new annotation
+      <br>
+      To stop Polygon annotation selection long touch the screen.</b>
+    </p>
+    <p v-else>
       <b>Hold <code>SHIFT</code> while clicking and dragging the mouse to create a new annotation.
       <br>
-      To stop Polygon annotation selection double click.</b>
+      To stop Polygon annotation selection double click.
+      </b>
     </p>
   </div>
-  <div class="layers gridparent">
-    <div v-for="item in alltiles" v-if="alltiles.length > 1">
+  <div class="layers gridparent" v-if="alltiles.length > 1">
+    <div v-for="item in alltiles">
       <input type="checkbox" class="tagscheck" v-on:click="setOpacity(item)" v-model="item.checked">
       <span v-html="item.label"></span>
       <div class="slidecontainer">Opacity: <input v-on:change="setOpacity(item, $event)" type="range" min="0" max="100" v-bind:value="item.opacity*100" class="slider"></div>
       <img :src="item['thumbnail']" style="max-width:100px;padding:5px;"  alt="tile thumbnail">
     </div>
+  </div>
+  <div v-if="title" style="font-weight:900">{{title[0]['value']}}: 
+  <span v-if="alltiles.length > 0 && alltiles[0]['label']">{{alltiles[0]['label']}}</span>
   </div>
   <div id="openseadragon1" v-bind:class="{'active' : inputurl !== ''}"></div>
   </div>
@@ -71,12 +80,15 @@ const annoview = Vue.component('annoview', {
       viewer: '',
       manifestdata: '',
       currentmanifest: '',
-      showManThumbs: true,
+      showManThumbs: false,
       canvas: '',
+      title: '',
+      isMobile: false,
       alltiles: []
   	}
   },
   mounted() {
+    this.isMobile = /Mobi/.test(navigator.userAgent);
     const params = new URLSearchParams(window.location.search);
     const manifesturl = params.get('manifesturl');
     const imageurl = params.get('imageurl');
@@ -90,14 +102,16 @@ const annoview = Vue.component('annoview', {
     }
   },
   methods: {
+    loadImage: function() {
+      this.currentmanifest='';
+      this.title = '';
+      this.loadAnno();
+    },
     manifestLoad: function(item) {
       this.canvas = item['canvas'];
       this.inputurl = item['tiles'][0]['id'];
       this.alltiles = item['tiles'];
       this.loadAnno()
-      if (this.manifestdata.length == 1){
-        this.showManThumbs = false;
-      }
     },
     loadAnno: function() {
       document.getElementById('openseadragon1').innerHTML = '';
@@ -155,6 +169,7 @@ const annoview = Vue.component('annoview', {
         this.drawtools.push({'name': name, 'label': label})
       }
       this.addListeners();
+      this.enableDrawing();
       this.anno.setAuthInfo({
         id: this.userinfo["id"],
         displayName: this.userinfo["name"]
@@ -184,7 +199,6 @@ const annoview = Vue.component('annoview', {
     },
     getManifest: function(manifest, loadcanvas=false) {
       this.currentmanifest = manifest;
-      this.showManThumbs = true;
       this.manifestdata = [];
       var vue = this;
       jQuery.ajax({
@@ -193,6 +207,7 @@ const annoview = Vue.component('annoview', {
         success: function(data) {
           var images = [];
           var m = manifesto.parseManifest(data);
+          vue.title = m.getLabel();
           const sequence = m.getSequenceByIndex(0);
           const manifestdata = sequence.getCanvases();
           if (!manifestdata) {
@@ -202,8 +217,8 @@ const annoview = Vue.component('annoview', {
           for (var i=0; i<manifestdata.length; i++){
             var tiles = [];
             var canvas = manifestdata[i].id;
-            var thumb = manifestdata[i].getThumbnail()
-            thumb ? thumb = thumb['__jsonld'] : ''
+            var thumb = manifestdata[i].getThumbnail();
+            thumb ? thumb = vue.getId(thumb['__jsonld']) : ''
             var manifestimages = manifestdata[i]['__jsonld']['images'] ? manifestdata[i]['__jsonld']['images'] : manifestdata[i]['__jsonld']['items'];
             manifestimages = manifestimages[0]['items'] ? manifestimages[0]['items'] : manifestimages;
             for (var j=0; j<manifestimages.length; j++){
@@ -213,13 +228,15 @@ const annoview = Vue.component('annoview', {
                 thumb = imagethumb;
               }
               
-              const id = resourceitem['service']['id'] ? resourceitem['service']['id'] : resourceitem['service']['@id']  ? resourceitem['service']['@id'] + '/info.json' : resourceitem['service'][0]['id'];
+              var id = resourceitem['service']['id'] ? resourceitem['service']['id'] : resourceitem['service']['@id']  ? resourceitem['service']['@id'] + '/info.json' : resourceitem['service'][0]['id'];
+              id = id.split('/info')[0] + '/info.json';
               const opacity = j == 0 ? 1 : 0;
               const checked = j == 0 ? true : false;
               const resourceid = resourceitem ? vue.getId(resourceitem) : '';
               var xywh = resourceid && resourceid.constructor.name === 'String' && resourceid.indexOf('xywh') > -1 ? resourceid : vue.on_structure(manifestimages[j]) && vue.on_structure(manifestimages[j])[0].constructor.name === 'String' ? vue.on_structure(manifestimages[j])[0] : '';
               xywh = xywh ? xywh.split("xywh=").slice(-1)[0].split(",") : xywh;
-              tiles.push({'id': id, 'label': resourceitem['label'], 
+              const tilelabel = manifestdata[i].getLabel() ? manifestdata[i].getLabel()[0]['value'] : ""
+              tiles.push({'id': id, 'label': tilelabel,
                 thumbnail: imagethumb.replace('/full/0', '/100,/0'), 'opacity': opacity,
                 'checked': checked, 'xywh': xywh
               })
@@ -230,7 +247,11 @@ const annoview = Vue.component('annoview', {
               vue.manifestLoad({'image': thumb, 'canvas': canvas, 'tiles': tiles})
             }
           }
+          if (images.length > 1){
+            vue.showManThumbs = true;
+          }
           vue.manifestdata = images;
+          vue.manifestLoad(images[0]);
         },
         error: function(err) {
           vue.manifestdata = 'failure';
@@ -252,6 +273,7 @@ const annoview = Vue.component('annoview', {
     },
     updateDrawTool: function() {
       this.anno.setDrawingTool(this.currentdrawtool);
+      this.enableDrawing();
     },
     addManifestAnnotation: function(annotation){
       var target = this.inputurl;
@@ -265,24 +287,36 @@ const annoview = Vue.component('annoview', {
       annotation.target.source = target;
       return annotation;
     },
+    enableDrawing: function(){
+      console.log(navigator.userAgent)
+      if (this.isMobile){
+        this.anno.setDrawingEnabled(true);
+      }
+    },
     addListeners: function() {
       // Attach handlers to listen to events
       var vue = this;
+      this.anno.on('cancelSelected', function() {
+        vue.enableDrawing();
+      });
       this.anno.on('createAnnotation', function(annotation) {
         var annotation = vue.addManifestAnnotation(annotation);
         var senddata = {'json': annotation }
-        vue.write_annotation(senddata, 'create', annotation)
+        vue.write_annotation(senddata, 'create', annotation);
+        vue.enableDrawing();
       });
     
       this.anno.on('updateAnnotation', function(annotation) {
         var annotation = vue.addManifestAnnotation(annotation);
         var senddata = {'json': annotation,'id': annotation['id'], 'order': annotation['order']}
-        vue.write_annotation(senddata, 'update')
+        vue.write_annotation(senddata, 'update');
+        vue.enableDrawing();
       });
 
       this.anno.on('deleteAnnotation', function(annotation) {
         var senddata = annotation;
-        vue.write_annotation(senddata, 'delete')
+        vue.write_annotation(senddata, 'delete');
+        vue.enableDrawing();
       });
     },
     write_annotation: function(senddata, method, annotation=false) {

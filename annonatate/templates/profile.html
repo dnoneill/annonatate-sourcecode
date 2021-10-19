@@ -8,10 +8,16 @@
 	</div>
 	<div class="tab">
 		<!-- <button class="tablinks" onclick="openTab(event, 'iiifimage')" id="defaultOpen">Create IIIF image</button> -->
+		{% if 'inprocess' in session.keys() and session['inprocess']|length > 0 %}
+		<button class="tablinks" onclick="openTab(event, 'status')" id="defaultOpen">Upload Status</button>
+		{% endif %}
 		<button class="tablinks" onclick="openTab(event, 'profile')" id="defaultOpen">Edit Profile and Workspaces</button>
 		<button class="tablinks" onclick="openTab(event, 'data')" id="datatab">Edit preloaded manifests/images</button>
 		<button class="tablinks" onclick="openTab(event, 'uploads')" id="uploadstab">Edit uploaded manifests/images</button>
 	  </div>
+	<div id="status" class="tabcontent">
+		{% include 'profilestatus.html' %}
+	</div>
 	<div id="profile" class="tabcontent">
 	{% include 'profiletab.html' %}
 	</div>

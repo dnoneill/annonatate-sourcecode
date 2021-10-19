@@ -1,0 +1,33 @@
+name: convert images
+on: workflow_dispatch
+
+jobs:
+  convertimages:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 1
+      - name: PDF fix
+        run: sudo mv /etc/ImageMagick-6/policy.xml /etc/ImageMagick-6/policy.xml.off && sudo apt-get update && sudo apt-get install -y ghostscript-x
+      - name: poppler
+        run: sudo apt-get install -y poppler-utils
+      - name: pip install
+        run: pip3 install iiif pdf2image Pillow git+https://github.com/giacomomarchioro/pyIIIFpres
+      - name: runscript
+        run: python3 -c "exec(\"replacewithportion\")"
+      - name: add page jekyll to manifest
+        run: echo -e "---\n---\n$(cat img/derivatives/iiif/replacewithfolder/manifest.json)" > img/derivatives/iiif/replacewithfolder/manifest.json
+      - name: commit files
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add -A
+          git commit -m "Create replacewithfolder manifest and IIIF derivatives" -a
+      - name: pull
+        run: git pull origin main
+      - name: push changes
+        uses: ad-m/github-push-action@v0.6.0
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          branch: main 

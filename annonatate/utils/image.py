@@ -3,7 +3,7 @@
 
 import re, json
 from os.path import join as pathjoin
-from iiif_prezi.factory import ManifestFactory
+from os.path import splitext as pathsplitext
 from iiif_prezi.loader import ManifestReader
 import requests
 from IIIFpres.utilities import read_API3_json_dict
@@ -17,60 +17,46 @@ class Image:
         self.request_files = request_files
         if not self.isimage:
             # handle uploaded url
-            self.imgurl, self.iiiffolder = self.iiifimage.rstrip('/').rsplit('/', 1)
+            self.imgurl, self.iiiffolder = self.iiifimage.rsplit("manifest", 1)[0].strip('/').split('/', 1)
             self.imgurl += '/'
-            self.manifestpath = "manifests/{}".format(self.iiiffolder)
-            self.url = self.iiifimage
-            self.tmpfilepath = False
+            folderpath = self.iiiffolder.strip("/").split("/")
+            self.manifestpath = pathjoin("manifests/", "/".join(folderpath[-2:]))
             self.manifesturl = "{}{}/manifest.json".format(self.origin_url, self.manifestpath)
             self.manifest = self.createmanifest()
             if type(self.manifest) != dict: # manifest creation failed
-                manifest_markdown = self.manifest.toString(compact=False).replace('canvas/info.json', 'info.json').replace('https://{{site.url}}', '{{site.url}}')
-                self.manifest_markdown = "---\n---\n{}".format(manifest_markdown)
+                self.manifest_markdown = "---\n---\n{}".format(self.manifest)
         else:
             # handle uploaded image
-            self.file = request_files['file']
-            self.encodedimage = self.file.stream.read()
+            files = request_files.getlist("file")
+            self.files = []
+            for filename in request_files.getlist("file"):
+                filenameonly, ext = pathsplitext(filename.filename)
+                cleanfilename = "".join(re.findall(r'[0-9A-Za-z]+', filenameonly)) +  ext
+                self.files.append({'filename': cleanfilename, 'encodedimage': filename.stream.read(), 'label': filenameonly})
+
+    def createActionScript(self, githubfilefolder, filenamelist):
+        with open(pathjoin(githubfilefolder, 'iiifportion.txt')) as f:
+            iiifscript = f.read().replace('\n', '\\n')
+        with open(pathjoin(githubfilefolder, 'imagetoiiif.yml')) as gf:
+            iiifscript = gf.read().replace('replacewithportion', iiifscript)
+        iiifscript = iiifscript.replace('replacewithoriginurl', self.origin_url)
+        iiifscript = iiifscript.replace('replacewithfilelist', str(filenamelist))
+        replacefields = ["label", "folder", "description", "rights", "language", "direction"]
+        for field in replacefields:
+            replacestring = "replacewith{}".format(field)
+            formvalue = self.request_form[field]
+            if field == "language" and not formvalue:
+                formvalue = "en"
+            iiifscript = iiifscript.replace(replacestring, formvalue)
+        return iiifscript
 
     def createmanifest(self):
-        try:
-            fac = ManifestFactory()
-            fac.set_base_prezi_uri(self.url)
-            fac.set_base_image_uri(self.imgurl)
-            fac.set_iiif_image_info(2.0, 2)
-            manifest = fac.manifest(ident=self.manifesturl, label=self.request_form['label'])
-            manifest.viewingDirection = self.request_form['direction']
-            manifest.description = self.request_form['description']
-            manifest.set_metadata({"rights": self.request_form['rights']})
-            seq = manifest.sequence()
-            cvs = seq.canvas(ident='info', label=self.request_form['label'])
-            anno = cvs.annotation(ident="{}{}/annotation/1.json".format(self.origin_url, self.manifestpath))
-            img = anno.image(self.iiiffolder, iiif=True)
-        except Exception as e:
-            return {'error': e}
-        if self.tmpfilepath:
-            img.set_hw_from_file(self.tmpfilepath)
-        else:
-            try:
-                img.set_hw_from_iiif()
-            except:
-                try:
-                    response = requests.get("{}{}/info.json".format(self.imgurl, self.iiiffolder))
-                    if response.status_code > 299:
-                        response = requests.get("{}{}".format(self.imgurl, self.iiiffolder))
-                    try:
-                        content = response.json()
-                    except:
-                        return {'error': 'No IIIF image exists at {}{}'.format(self.imgurl, self.iiiffolder)}
-                        # im = Image.open(BytesIO(response.content))
-                        # print(im.size)
-                        # content = {'height': im.size[1], 'width': im.size[0]}
-                    img.height = content['height']
-                    img.width = content['width']
-                except:
-                    return {'error': 'Unable to get height/width for image located at {}{}'.format(self.imgurl, self.iiiffolder)}
-        cvs.height = img.height
-        cvs.width = img.width
+        manifestresponse = requests.get(self.iiifimage).json()
+        if '@id' in manifestresponse.keys():
+            manifestresponse['@id'] = self.manifesturl
+        elif 'id' in manifestresponse.keys():
+            manifestresponse['id'] = self.manifesturl
+        manifest = json.dumps(manifestresponse, indent=2)
         return manifest
 
 
