@@ -2,13 +2,13 @@ const annoview = Vue.component('annoview', {
   template: `<div>
   <div class="manifestimages">
     <div v-for="manifest in existing['manifests']">
-      <button class="linkbutton" v-on:click="getManifest(manifest)">
-        {{manifest}}
+      <button v-if="manifest" class="linkbutton" v-on:click="getManifest(manifest)">
+        - {{manifest}}
       </button>
     </div>
     <div v-for="image in existing['images']">
-      <button class="linkbutton" v-on:click="inputurl = image; loadImage()">
-        {{image}}
+      <button v-if="image" class="linkbutton" v-on:click="inputurl = image; loadImage()">
+        - {{image}}
       </button>
     </div>
   </div>
