@@ -50,15 +50,15 @@ const annoview = Vue.component('annoview', {
     <div v-if="isMobile">
       <b>Tap and drag to create new annotation
       <span v-if="currentdrawtool == 'polygon'">
-      <br>
-      To stop Polygon annotation selection long touch the screen.</b>
+        <br>
+        To stop Polygon annotation selection long touch the screen.</b>
       </span>
     </div>
     <div v-else>
       <b>Hold <code>SHIFT</code> while clicking and dragging the mouse to create a new annotation.
       <span v-if="currentdrawtool == 'polygon'">
-      <br>
-      To stop Polygon annotation selection double click.
+        <br>
+        To stop Polygon annotation selection double click.
       </span>
       </b>
     </div>
@@ -287,7 +287,6 @@ const annoview = Vue.component('annoview', {
     },
     updateDrawTool: function() {
       this.anno.setDrawingTool(this.currentdrawtool);
-      this.enableDrawing();
     },
     addManifestAnnotation: function(annotation){
       var target = this.inputurl;
