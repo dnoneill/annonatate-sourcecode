@@ -26,7 +26,7 @@
 {% endif %}
 <input type=submit value=Submit>
 </form>
-
+{% set styling = "" %}
 {% for anno in annotations %}
 {% if 'resources' in anno['json'].keys()%}
 {% set annodata = anno['json']['resources'][0] %}
@@ -34,6 +34,7 @@
 {% set annodata = anno['json']['items'][0] %}
 {% else %}
 {% set annodata = anno['json'] %}
+{% set styling = "startposition: 1; toggleoverlay: true; hide_nextbuttons:true;" %}
 {% endif %}
 {% if annodata %}
 <div class="annoitem">
@@ -120,7 +121,7 @@ GitHub URL for {{anno['filename']}} will be loaded in a minute.
 <script type="application/json" id="{{anno['filename']}}">
 	{{anno['json'] | tojson_pretty | safe}}
 </script>
-<iiif-{{format}} annotationurl="{{anno['filename']}}"></iiif-{{format}}>
+<iiif-{{format}} annotationurl="{{anno['filename']}}" styling="{{styling}}"></iiif-{{format}}>
 </div>
 </div>
 <hr>
