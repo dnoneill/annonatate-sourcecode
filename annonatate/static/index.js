@@ -1,10 +1,10 @@
 const annoview = Vue.component('annoview', {
   template: `<div>
-  <div v-if="isMobile && anno" style="position:fixed;right: 10px;">
-    <button v-on:click="enableDrawing(!drawingenabled)" style="width: 50px;">
+  <div v-if="isMobile && anno" style="position:fixed;right: 8px;">
+    <button v-on:click="enableDrawing(!drawingenabled)" style="width: 50px;height:50px;border-radius: 10px;">
       <span class="fa-stack fa-2x">
         <i class="fas fa-pencil-alt fa-stack-1x"></i>
-        <i v-if="drawingenabled" class="fas fa-slash fa-stack-1x" style="color:Tomato"></i>
+        <i v-if="!drawingenabled" class="fas fa-slash fa-stack-1x" style="color:Tomato"></i>
       </span>
     </button>
   </div>
@@ -47,17 +47,21 @@ const annoview = Vue.component('annoview', {
         <input type="radio" v-bind:id="drawtool.name" v-bind:name="drawtool.name" v-bind:value="drawtool.name" v-model="currentdrawtool">
         <span>{{drawtool.label}}</span></label>
     </div>
-    <p v-if="isMobile">
+    <div v-if="isMobile">
       <b>Tap and drag to create new annotation
+      <span v-if="currentdrawtool == 'polygon'">
       <br>
       To stop Polygon annotation selection long touch the screen.</b>
-    </p>
-    <p v-else>
+      </span>
+    </div>
+    <div v-else>
       <b>Hold <code>SHIFT</code> while clicking and dragging the mouse to create a new annotation.
+      <span v-if="currentdrawtool == 'polygon'">
       <br>
       To stop Polygon annotation selection double click.
+      </span>
       </b>
-    </p>
+    </div>
   </div>
   <div class="layers gridparent" v-if="alltiles.length > 1">
     <div v-for="item in alltiles">
@@ -98,6 +102,7 @@ const annoview = Vue.component('annoview', {
   },
   mounted() {
     this.isMobile = /Mobi/.test(navigator.userAgent);
+    console.log(navigator.userAgent)
     const params = new URLSearchParams(window.location.search);
     const manifesturl = params.get('manifesturl');
     const imageurl = params.get('imageurl');
@@ -178,7 +183,7 @@ const annoview = Vue.component('annoview', {
         this.drawtools.push({'name': name, 'label': label})
       }
       this.addListeners();
-      this.enableDrawing();
+      this.enableDrawing(this.drawingenabled);
       this.anno.setAuthInfo({
         id: this.userinfo["id"],
         displayName: this.userinfo["name"]
