@@ -22,7 +22,7 @@
     <a href="{{ url_for('listannotations') }}">Annotations</a>
     <a href="{{ url_for('search') }}">Search</a>
     <a href="{{ url_for('upload') }}">Upload</a>
-    <a href="{{ url_for('customviews') }}">List custom views</a>
+    <a href="{{ url_for('customviews') }}">Custom views</a>
     <a href="{{ url_for('collections') }}">Collections</a>
     <a href="https://annonatate.github.io/annonatate-help/" target="_blank">Help</a>
     <a href="/profile" style="float: right;">
@@ -44,7 +44,15 @@
       {% block header %}{% endblock %}
     </header>
     <p class="error">{{g.error | safe}}</p>
+    {% if session['tempuser'] != True %}
     {% block content %}{% endblock %}
+    {% else %}
+    <form action="{{ url_for('updatetempuser') }}" method="post" enctype=multipart/form-data style="display: inline-block;">
+      <label for="tempusername">Enter Username: </label>
+			<input type="text"  id="tempusername" name="tempusername">
+      <button type="submit" class="button">Submit</button>
+    </form>
+    {% endif %}
   </section>
   <script>
     function myFunction() {

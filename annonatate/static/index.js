@@ -15,14 +15,14 @@ const annoview = Vue.component('annoview', {
       </button>
     </div>
     <div v-for="image in existing['images']">
-      <button v-if="image" class="linkbutton" v-on:click="inputurl = image; loadImage()">
+      <button v-if="image" class="linkbutton" v-on:click="inputurl = image; ingesturl = image; loadImage()">
         • {{image}}
       </button>
     </div>
   </div>
   <div>
-    <label for="manifesturl">Manifest</label>
-    <input id="manifesturl" v-on:change="getManifest(currentmanifest)" v-model="currentmanifest"></input>
+    <label for="ingesturl">Manifest or Image URL</label>
+    <input id="ingesturl" v-on:change="getManifest(ingesturl)" v-model="ingesturl"></input>
     <button v-on:click="showManThumbs = !showManThumbs" v-if="currentmanifest">
       <span v-if="showManThumbs">Hide</span><span v-else>Show</span> Manifest Thumbnails
     </button>
@@ -35,10 +35,6 @@ const annoview = Vue.component('annoview', {
         <img :src="item['image']" style="max-width:100px;padding:5px;" alt="manifest thumbnail">
       </button>
     </div>
-  </div>
-  <div>
-    <label for="imageurl">Image URL</label>
-    <input id="imageurl" v-on:change="loadImage()" v-model="inputurl"></input>
   </div>
   <div class="drawingtools" v-if="anno">
     <label for="current-tool">Current Annotation drawing shape: </label>
@@ -98,7 +94,8 @@ const annoview = Vue.component('annoview', {
       title: '',
       isMobile: false,
       alltiles: [],
-      drawingenabled: false
+      drawingenabled: false,
+      ingesturl: ''
   	}
   },
   mounted() {
@@ -215,11 +212,17 @@ const annoview = Vue.component('annoview', {
     getManifest: function(manifest, loadcanvas=false) {
       this.currentmanifest = manifest;
       this.manifestdata = [];
+      this.ingesturl = manifest;
       var vue = this;
       jQuery.ajax({
         url: manifest,
         type: "GET",
         success: function(data) {
+          if (data.constructor.name == 'String' || data['@context'] && data['@context'].indexOf('presentation') == -1){
+            vue.inputurl = manifest;
+            vue.currentmanifest = '';
+            vue.loadImage();
+          }
           var images = [];
           var m = manifesto.parseManifest(data);
           vue.title = m.getLabel();

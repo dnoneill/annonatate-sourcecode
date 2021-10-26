@@ -43,11 +43,12 @@ Showing {{results | length}} annotations out of {{annolength}} annotations
 <ul id="resultslist">
 {% for result in results %}
 <li id="result">
-{% if 'http' in result.id %}
 <div class="thumbnail">
-<iiif-annotation annotationurl="{{result.id}}" styling="image_only:true; height: 100;"></iiif-annotation>
+<script id="search_result_{{result.id}}" type="json">
+  {{result['json'] | tojson_pretty | safe}}
+</script>
+<iiif-annotation annotationurl="search_result_{{result.id}}" styling="image_only:true; height: 100;"></iiif-annotation>
 </div>
-{% endif %}
 <h2><a href="{{ url_for('listannotations', annoid=result.basename, annotype='single') }}">{{result.basename}}</a></h2>
 <div class="results_data">
   <div class="searchResultMetadata">
