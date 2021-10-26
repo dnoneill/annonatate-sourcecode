@@ -28,7 +28,8 @@ class TestSearch(unittest.TestCase):
       search = anno.Search({'q': '', 'creator': 'Test User', 'tag': ''}, self.annotations)
 
       self.assertEqual(len(search.items), 2)
-      self.assertEqual(search.items[0]['basename'], '142a41cd-6bb8-4052-a2b3-a300bfd15a9a.json')
+      self.assertEqual(search.items[0]['basename'], '19547cb3-f588-4724-878b-e4f81415fa86.json')
+      self.assertEqual(search.items[1]['basename'], '142a41cd-6bb8-4052-a2b3-a300bfd15a9a.json')
 
     def test_search_tag(self):
       search = anno.Search({'q': '', 'creator': '', 'tag': 'Machinery'}, self.annotations)
