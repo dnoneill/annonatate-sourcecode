@@ -269,7 +269,9 @@ const annoview = Vue.component('annoview', {
             vue.showManThumbs = true;
           }
           vue.manifestdata = images;
-          vue.manifestLoad(images[0]);
+          if (!loadcanvas){
+            vue.manifestLoad(images[0]);
+          }
         },
         error: function(err) {
           vue.manifestdata = 'failure';
