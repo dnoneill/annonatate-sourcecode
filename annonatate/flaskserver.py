@@ -58,7 +58,9 @@ def before_request():
 def getDefaults():
     if 'currentworkspace' in session.keys():
         currentworkspace = session['currentworkspace']
-        topicdescription = currentworkspace['topics'] + [currentworkspace['description']]
+        topicdescription = currentworkspace['topics']
+        if currentworkspace['description']:
+            topicdescription.append(currentworkspace['description'].lower())
         if 'annonatate-wax' in topicdescription:
             apiurl = 'api/all.json'
             return {'annotations': '_annotations', 
