@@ -10,7 +10,7 @@ import re
 import simplejson as json
 #from flask_github import GitHub
 import shutil
-from datetime import datetime
+from datetime import datetime, timedelta
 import os
 from io import StringIO
 
@@ -24,7 +24,8 @@ app = Flask(__name__,
 app.config.update(
                   SESSION_TYPE = 'filesystem',
                   GITHUB_CLIENT_ID = client_id,
-                  GITHUB_CLIENT_SECRET = client_secret
+                  GITHUB_CLIENT_SECRET = client_secret,
+                  PERMANENT_SESSION_LIFETIME = timedelta(days=3)
                   )
 Session(app)
 github = GitHubAnno(app)

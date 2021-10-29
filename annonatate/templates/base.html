@@ -35,7 +35,7 @@
       <i class="fa fa-bars"></i>
     </a>
     {% else %}
-    <a style="float:right" href="{{ url_for('login', next=request.full_path) }}">Login</a>
+    <a style="float:right" href="{{ url_for('login', next=request.url) }}">Login</a>
     {% endif %}
 
   </div>
