@@ -44,7 +44,7 @@
       {% block header %}{% endblock %}
     </header>
     <p class="error">{{g.error | safe}}</p>
-    {% if session['tempuser'] != True %}
+    {% if 'preloaded' not in session.keys() or 'settings' not in session['preloaded'].keys() or (session['preloaded']['settings']['tempuser'] != True) %}
     {% block content %}{% endblock %}
     {% else %}
     <form action="{{ url_for('updatetempuser') }}" method="post" enctype=multipart/form-data style="display: inline-block;">

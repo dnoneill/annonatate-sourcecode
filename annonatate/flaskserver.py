@@ -18,14 +18,13 @@ from annonatate.utils.search import get_search, encodedecode, Search
 from annonatate.utils.image import Image, addAnnotationList, listfilename
 from annonatate.utils.collectionform import CollectionForm, parseboard, parsetype
 from annonatate.utils.github import GitHubAnno
-
+from annonatate.utils.annogetters import getCanvas, getManifest
 app = Flask(__name__,
             static_url_path='',)
 app.config.update(
                   SESSION_TYPE = 'filesystem',
                   GITHUB_CLIENT_ID = client_id,
-                  GITHUB_CLIENT_SECRET = client_secret,
-                  PERMANENT_SESSION_LIFETIME = timedelta(days=3)
+                  GITHUB_CLIENT_SECRET = client_secret
                   )
 Session(app)
 github = GitHubAnno(app)
@@ -357,7 +356,7 @@ def index():
             if 'vocab' in session['preloaded'].keys():
                 labelonlyvocab = [item['label'] if type(item) == dict else item for item in session['preloaded']['vocab']]
             vocabtags = arraydata['tags'] if 'vocab' not in session['preloaded'].keys() else session['preloaded']['vocab'] + list(filter(lambda tag: tag not in labelonlyvocab, arraydata['tags']))
-            return render_template('index.html', existingitems=existing, filepaths=arraydata['contents'], tags=vocabtags, userinfo={'name': session['user_name'], 'id': session['user_id']})
+            return render_template('index.html', existingitems=existing, filepaths=arraydata['contents'], tags=vocabtags, userinfo={'value': session['user_name'], 'id': session['user_id']})
         except Exception as e:
            return errorchecking(request, e)
 
@@ -453,12 +452,13 @@ def add_collaborator():
 @app.route('/create_annotations/', methods=['POST'])
 def create_anno():
     response = json.loads(request.data)
+    canvas = response['canvas']
     data_object = response['json']
-    data_object['id'] = data_object['id'].replace("#", "") + '.json'
+    idfield = '@id' if isMirador() else 'id'
+    data_object[idfield] = data_object[idfield].replace("#", "") + '.json'
     cleanobject = cleananno(data_object)
-    canvas = cleanobject['target']['source']
     listlength = len(list(filter(lambda n: canvas == n.get('canvas'), session['annotations'])))
-    response = writetogithub(data_object['id'], cleanobject, listlength+1)
+    response = writetogithub(data_object[idfield], cleanobject, listlength+1)
     returnvalue = response.content if response.status_code > 399 else data_object
     returnvalue['order'] = listlength+1
     return jsonify(returnvalue), response.status_code
@@ -481,7 +481,7 @@ def delete_anno():
     response = json.loads(request.data)
     id = response['id']
     annotatons = getannotations()
-    canvas = response['target']['source']
+    canvas = getCanvas(response)
     canvases = getContents()['contents']
     response = delete_annos(id)
     if len(canvases[canvas]) == 1:
@@ -497,6 +497,10 @@ def getprofiledata():
     populateuserinfo()
     orgs()
     return render_template('profile.html', userinfo={'name':session['user_name']}, invites=invites, collaborators=collaborators)
+
+def isMirador():
+    ismirador = True if 'settings' in session['preloaded'].keys() and session['preloaded']['settings']['viewer'] and session['preloaded']['settings']['viewer'] == 'mirador' else False
+    return ismirador
 
 # get list of orgs user belongs to
 def orgs():
@@ -659,7 +663,7 @@ def populateuserinfo():
             relevantworkspaces.append(repo)
         elif repo['description'] and 'annonatate' in repo['description'].lower():
             relevantworkspaces.append(repo)
-        if 'default-repo' in repo['topics'] and 'currentworkspace' not in session.keys():
+        if 'default-workspace' in repo['topics'] and 'currentworkspace' not in session.keys():
             session['currentworkspace'] = repo
     for workspace in relevantworkspaces:
         workspaces[workspace['full_name']] = workspace
@@ -673,7 +677,7 @@ def populateuserinfo():
             firstbuild = 'noworkspaces'
             workspaces[response['full_name']] = response
         else:
-            updates = {'homepage': enablepages.json()['html_url']}
+            updates = {'homepage': enablepages.json()['html_url'], 'topics': 'annonatate'}
             updatehomepage = github.raw_request('patch', response['url'], data=json.dumps(updates))
             workspaces[response['full_name']] = response
             firstbuild = True
@@ -691,6 +695,7 @@ def enablepagesfunc(pagesurl):
 def add_repos():
     owner = request.form['owner']
     name = request.form['name']
+    ismirador = True if 'mirador' in request.form else False
     private = True if 'private' in request.form else False
     repodata = {
         'owner': owner,
@@ -705,6 +710,11 @@ def add_repos():
         if enablepages.status_code > 299:
             error = 'problem enabling GitHub pages. Did it manually or delete this repository.'
             return redirect('/profile?tab=profile&error={}'.format(error))
+        else:
+            updates = {'homepage': enablepages.json()['html_url'], 'topics': ['annonatate']}
+            updatehomepage = github.raw_request('patch', response['url'], data=json.dumps(updates))
+        if ismirador:
+            updatepreload = github.sendgithubrequest({'github_url': response['contents_url'].replace('/{+path}', ''), 'github_branch': 'main'}, 'preload.yml', open(os.path.join(githubfilefolder, "miradordata.yml")).read(), '_data')
     else:
         error = parseGitHubErrors(response.json())
         return redirect('/profile?tab=profile&error={}'.format(error))
@@ -714,7 +724,7 @@ def add_repos():
 def updatetempuser():
     tempusername = request.form['tempusername']
     session['user_name'] = tempusername
-    session['tempuser'] = tempusername
+    session['preloaded']['settings']['tempuser'] = tempusername
     session['user_id'] = tempusername
     return redirect(url_for('index'))
 
@@ -776,19 +786,19 @@ def getannotations():
     if 'annotations' not in session.keys() or session['annotations'] == '' or  duration > 35:
         content, status = origin_contents()
         for item in content['annotations']:
-            item['canvas'] = item['json']['target']['source'] if 'target' in item['json'].keys() else ''
+            item['canvas'] = getCanvas(item['json'])
         session['annotations'] = content['annotations']
         if 'preloadedcontent' not in content.keys():
             updateindex()
-            session['preloaded'] = {'manifests': content['manifests'], 'images': content['images']}
+            session['preloaded'] = {'manifests': content['manifests'], 'images': content['images'], 'settings': {}}
             session['upload'] = {'manifests': [], 'images' : []}
         if 'preloadedcontent' in content.keys() and ('preloaded' not in session.keys() or duration > 60):
             parsecollections(content)
-            session['preloaded'] = content['preloadedcontent']
+            session['preloaded'] = {'manifests': [], 'images': [], 'settings': []}
+            for preloadkey in content['preloadedcontent']:
+                if content['preloadedcontent'][preloadkey]:
+                    session['preloaded'][preloadkey] = content['preloadedcontent'][preloadkey]
             session['upload'] = {'images': content['images'], 'manifests': content['manifests']}
-        if 'tempuser' in session['preloaded'].keys():
-            del session['preloaded']['tempuser']
-            session['tempuser'] = True
         parsecustomviews(content)
         session['annotime'] = datetime.now()
         github.updateAnnos(session)
@@ -816,9 +826,19 @@ def getannotations():
                     itemskey = 'items' if 'items' in session['annotations'][indexof[0]]['json'].keys() else 'resources'
                     session['annotations'][indexof[0]]['json'][itemskey].append(yamlparse['json'])
                 else:
-                    session['annotations'].append({'filename': filenamelist, 'order': None, 'json': {"@context": "http://iiif.io/api/presentation/3/context.json","id": "{}".format(filenamelist),"type": "AnnotationPage","items": [yamlparse['json']]}, 'canvas': ''})
+                    context, annotype = contextType()
+                    session['annotations'].append({'filename': filenamelist, 'order': None, 'json': {"@context": context,"id": filenamelist,"type": annotype,"items": [yamlparse['json']]}, 'canvas': ''})
             annotations = session['annotations']
     return annotations
+
+def contextType():
+    if isMirador():
+        context =  "http://iiif.io/api/presentation/2/context.json"
+        annotype = "oa:AnnotationList"
+    else:
+        context = "http://iiif.io/api/presentation/3/context.json"
+        annotype = "AnnotationPage"
+    return context, annotype
 
 # Load custom views JSON into a dict that sorts custom views based on the url being read
 def parsecustomviews(content):
@@ -858,13 +878,16 @@ def updateindex():
 
 # Using origin API get contents, if not correct add index.html to request. Parse API contents.
 def origin_contents():
+    if 'defaults' not in session.keys():
+        session['defaults'] = getDefaults()
     apiurl = session['origin_url'] + session['defaults']['apiurl']
     response = requests.get(apiurl)
     if response.status_code > 299:
         response = requests.get(apiurl + 'index.html')
     try:
         content = json.loads(response.content.decode('utf-8').replace('&lt;', '<').replace('&gt;', '>'))
-    except:
+    except Exception as e:
+        print(e)
         content = {'annotations': [], 'images': [], 'manifests': [], 'customviews': [], 'collections': []}
     return content, response.status_code
 
@@ -900,6 +923,9 @@ def to_pretty_json(value):
                       indent=4, separators=(',', ': '))
 app.jinja_env.filters['tojson_pretty'] = to_pretty_json
 
+app.jinja_env.filters['canvas'] = getCanvas
+app.jinja_env.filters['manifest'] = getManifest
+
 # Function for writing annotations to GitHub.
 # If successfully written to GitHub, update session annotations
 # If annotation list doesn't exist, create an annotation list
@@ -908,8 +934,8 @@ def writetogithub(filename, annotation, order):
     folder = session['defaults']['annotations']
     response = github.sendgithubrequest(session, filename, annotation, folder, githuborder)
     if response.status_code < 400:
-        canvas = annotation['target']['source']
-        manifest = annotation['target']['dcterms:isPartOf']['id'] if 'dcterms:isPartOf' in annotation['target'].keys() else ''
+        canvas = getCanvas(annotation)
+        manifest = getManifest(annotation)
         data = {'canvas':canvas, 'json': annotation, 'filename': filename, 'order': order}
         canvases = list(map(lambda x: x['canvas'], session['annotations']))
         existinganno = list(filter(lambda n: filename in n.get('filename'), session['annotations']))
@@ -939,7 +965,8 @@ def writetogithub(filename, annotation, order):
 def createlistpage(canvas, manifest):
     filenameforlist = listfilename(canvas)
     filename = os.path.join(session['defaults']['annotations'], filenameforlist)
-    text = '---\ncanvas_id: "' + canvas + '"\n---\n{% assign annotations = site.annotations | where: "canvas", page.canvas_id | sort: "order" | map: "content" %}\n{\n"@context": "http://iiif.io/api/presentation/2/context.json",\n"id": "{{ site.url }}{{ site.baseurl }}{{page.url}}",\n"type": "AnnotationPage",\n"items": [{{ annotations | join: ","}}] }'
+    context, annotype = contextType()
+    text = '---\ncanvas_id: "' + canvas + '"\n---\n{% assign annotations = site.annotations | where: "canvas", page.canvas_id | sort: "order" | map: "content" %}\n{\n"@context":' + context + '\n"id": "{{ site.url }}{{ site.baseurl }}{{page.url}}",\n"type": ' + annotype + '\n"items": [{{ annotations | join: ","}}] }'
     github.sendgithubrequest(session, filename, text)
     if manifest in session['upload']['manifests']:
         response = requests.get(manifest).json()

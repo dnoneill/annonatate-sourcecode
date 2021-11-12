@@ -3,11 +3,15 @@
 <div class="listitems" id="{{key}}" contenteditable="true">
   <h2>{{key.title()}}</h2>
   <ul>
-    {% for listitem in session['preloaded'][key] %}
-        <li>{{listitem}}</li>
-    {% endfor %}
-    {% if session['preloaded'][key] | length < 1 %}
-    <li></li>
+    {% if session['preloaded'][key] is iterable and (session['preloaded'][key] is not string and session['preloaded'][key] is not mapping) %}
+        {% for listitem in session['preloaded'][key] %}
+            <li>{{listitem}}</li>
+        {% endfor %}
+        {% if session['preloaded'][key] | length < 1 %}
+        <li></li>
+        {% endif %}
+    {% else %}
+        <li>{{session['preloaded'][key]}}</li>
     {% endif %}
   </ul>
 </div>

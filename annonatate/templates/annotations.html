@@ -54,9 +54,9 @@
 		<a id="displaystoryboard" target="_blank" href="https://ncsu-libraries.github.io/annona/tools/#/display?url={{anno['filename']}}&viewtype=iiif-annotation">
 			Image View
 		</a>
-		{% if annodata['target']['dcterms:isPartOf'] and annodata['target']['dcterms:isPartOf']['id'] in session['upload']['manifests'] %}
+		{% if annodata | manifest in session['upload']['manifests'] %}
 		| 
-		<a id="displaystoryboard" target="_blank" href="https://ncsu-libraries.github.io/annona/tools/#/display?url={{annodata['target']['dcterms:isPartOf']['id'] | urlencode}}&viewtype=iiif-rangestoryboard&settings=%7B%22fullpage%22%3Atrue%7D">
+		<a id="displaystoryboard" target="_blank" href="https://ncsu-libraries.github.io/annona/tools/#/display?url={{annodata | manifest | urlencode}}&viewtype=iiif-rangestoryboard&settings=%7B%22fullpage%22%3Atrue%7D">
 			Range Storyboard View
 		</a>
 		{% endif %}
@@ -109,12 +109,12 @@
 GitHub URL for {{anno['filename']}} will be loaded in a minute.
 {% endif %}
 <i class="fas fa-pen"></i> Edit:  
-{% if annodata['target']['dcterms:isPartOf'] %}
-<a id="annonatate" href="/?manifesturl={{annodata['target']['dcterms:isPartOf']['id']}}&canvas={{annodata['target']['source']}}">
+{% if annodata | manifest %}
+<a id="annonatate" href="/?manifesturl={{annodata | manifest}}&canvas={{annodata | canvas}}">
 	{{anno['filename']}}
 </a>
 {% else %}
-<a id="annonatate" href="/?imageurl={{annodata['target']['source']}}">
+<a id="annonatate" href="/?imageurl={{annodata | canvas}}">
 	{{anno['filename']}}
 </a>
 {% endif %}

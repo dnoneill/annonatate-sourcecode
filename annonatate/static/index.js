@@ -184,7 +184,7 @@ const annoview = Vue.component('annoview', {
       this.enableDrawing(this.drawingenabled);
       this.anno.setAuthInfo({
         id: this.userinfo["id"],
-        displayName: this.userinfo["name"]
+        displayName: this.userinfo["value"]
       });
     },
     setLayers: function(layer, position){
@@ -320,14 +320,14 @@ const annoview = Vue.component('annoview', {
       });
       this.anno.on('createAnnotation', function(annotation) {
         var annotation = vue.addManifestAnnotation(annotation);
-        var senddata = {'json': annotation }
+        var senddata = {'json': annotation, 'canvas': annotation['target']['source']}
         vue.write_annotation(senddata, 'create', annotation);
         vue.enableDrawing();
       });
     
       this.anno.on('updateAnnotation', function(annotation) {
         var annotation = vue.addManifestAnnotation(annotation);
-        var senddata = {'json': annotation,'id': annotation['id'], 'order': annotation['order']}
+        var senddata = {'json': annotation,'id': annotation['id'], 'order': annotation['order'], 'canvas': annotation['target']['source']}
         vue.write_annotation(senddata, 'update');
         vue.enableDrawing();
       });

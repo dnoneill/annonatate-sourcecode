@@ -1,21 +1,32 @@
 {% extends 'base.html' %}
 {% block title %}Home{% endblock %}
 {% block content %}
+{% set ismirador = session['preloaded']['settings'] and session['preloaded']['settings']['viewer'] and session['preloaded']['settings']['viewer'] == 'mirador' %}
+{% if ismirador %}
+<link rel='stylesheet' type='text/css' href='/assets/mirador/css/mirador-combined.css'>
+{% else %}
 <script src="/assets/openseadragon/openseadragon.2.4.2.min.js"></script>
 <script type="text/javascript" src="/assets/iso6391/index.js"></script>
 <link rel="stylesheet" type="text/css" href="/assets/openseadragon/annotorious.min.css">
 <script src="/assets/openseadragon/annotorious-selector-pack.min.js"></script>
 <script src="https://unpkg.com/manifesto.js@3.0.9-pre.1/dist-umd/manifesto.js"></script>
-
 <!-- JS -->
 <!-- <script src="https://cdn.jsdelivr.net/npm/@recogito/annotorious-openseadragon@2.1.0/dist/openseadragon-annotorious.min.js"></script> -->
 <script src="/assets/openseadragon/openseadragon-annotorious.min.js"></script>
+{% endif %}
+
 <script src="https://unpkg.com/vue/dist/vue.js"></script>
 <div id="app">
-
   <annoview :existing='{{existingitems | tojson}}' :filepaths='{{ filepaths|tojson }}' :userinfo='{{userinfo | tojson}}' :tags='{{tags|tojson}}'></annoview>
 </div>
+{% if ismirador %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.js"></script>
+<script src='/assets/mirador/mirador.min.js'></script>
+<script src='/assets/mirador/annotationEndpoint.js'></script>
+<script src="mirador-index.js"></script>
+{% else %}
 <script src="index.js"></script>
+{% endif %}
 <p>
    
 </p>
