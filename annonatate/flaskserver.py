@@ -10,7 +10,7 @@ import re
 import simplejson as json
 #from flask_github import GitHub
 import shutil
-from datetime import datetime, timedelta
+from datetime import datetime
 import os
 from io import StringIO
 
@@ -481,7 +481,7 @@ def delete_anno():
     response = json.loads(request.data)
     id = response['id']
     annotatons = getannotations()
-    canvas = getCanvas(response)
+    canvas = response['canvas']
     canvases = getContents()['contents']
     response = delete_annos(id)
     if len(canvases[canvas]) == 1:

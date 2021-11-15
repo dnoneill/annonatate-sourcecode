@@ -41,7 +41,7 @@
         url: this.server + 'delete_annotations/',
         type: "DELETE",
         contentType: 'application/json',
-        data: JSON.stringify({'id':ID, 'listuri': this.uri}),
+        data: JSON.stringify({'id':ID, 'canvas': this.uri}),
         dataType: "json",
         success: function(data) {
           returnSuccess();

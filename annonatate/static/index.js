@@ -320,25 +320,26 @@ const annoview = Vue.component('annoview', {
       });
       this.anno.on('createAnnotation', function(annotation) {
         var annotation = vue.addManifestAnnotation(annotation);
-        var senddata = {'json': annotation, 'canvas': annotation['target']['source']}
-        vue.write_annotation(senddata, 'create', annotation);
+        vue.write_annotation(annotation, 'create', annotation);
         vue.enableDrawing();
       });
     
       this.anno.on('updateAnnotation', function(annotation) {
         var annotation = vue.addManifestAnnotation(annotation);
-        var senddata = {'json': annotation,'id': annotation['id'], 'order': annotation['order'], 'canvas': annotation['target']['source']}
-        vue.write_annotation(senddata, 'update');
+        vue.write_annotation(annotation, 'update');
         vue.enableDrawing();
       });
 
       this.anno.on('deleteAnnotation', function(annotation) {
-        var senddata = annotation;
-        vue.write_annotation(senddata, 'delete');
+        vue.write_annotation(annotation, 'delete');
         vue.enableDrawing();
       });
     },
-    write_annotation: function(senddata, method, annotation=false) {
+    write_annotation: function(annotation, method, annotation=false) {
+      var senddata = {'json': annotation, 'canvas': annotation['target']['source'], 'id': annotation['id']}
+      if (annotation['order']){
+        senddata['order'] = annotation['order'];
+      }
       jQuery.ajax({
         url: `/${method}_annotations/`,
         type: "POST",
