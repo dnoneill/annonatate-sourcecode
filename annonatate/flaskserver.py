@@ -792,7 +792,7 @@ def getannotations():
             updateindex()
             session['preloaded'] = {'manifests': content['manifests'], 'images': content['images'], 'settings': {}}
             session['upload'] = {'manifests': [], 'images' : []}
-        if 'preloadedcontent' in content.keys() and ('preloaded' not in session.keys() or duration > 60):
+        elif 'preloaded' not in session.keys() or duration > 60:
             parsecollections(content)
             session['preloaded'] = {'manifests': [], 'images': [], 'settings': []}
             for preloadkey in content['preloadedcontent']:
@@ -826,8 +826,8 @@ def getannotations():
                     itemskey = 'items' if 'items' in session['annotations'][indexof[0]]['json'].keys() else 'resources'
                     session['annotations'][indexof[0]]['json'][itemskey].append(yamlparse['json'])
                 else:
-                    context, annotype = contextType()
-                    session['annotations'].append({'filename': filenamelist, 'order': None, 'json': {"@context": context,"id": filenamelist,"type": annotype,"items": [yamlparse['json']]}, 'canvas': ''})
+                    context, annotype, itemskey = contextType()
+                    session['annotations'].append({'filename': filenamelist, 'order': None, 'json': {"@context": context,"id": filenamelist,"type": annotype,itemskey: [yamlparse['json']]}, 'canvas': ''})
             annotations = session['annotations']
     return annotations
 
@@ -835,10 +835,12 @@ def contextType():
     if isMirador():
         context =  "http://iiif.io/api/presentation/2/context.json"
         annotype = "oa:AnnotationList"
+        itemskey = "resources"
     else:
         context = "http://iiif.io/api/presentation/3/context.json"
         annotype = "AnnotationPage"
-    return context, annotype
+        itemskey = "items"
+    return context, annotype, itemskey
 
 # Load custom views JSON into a dict that sorts custom views based on the url being read
 def parsecustomviews(content):
@@ -897,11 +899,17 @@ def cleananno(data_object):
         del data_object['order']
     field = 'resource' if 'resource' in data_object.keys() else 'body'
     charfield = 'chars' if 'resource' in data_object.keys() else 'value'
+    if isMirador() and 'on' in data_object.keys() and 'selector' in data_object['on'][0].keys() and 'item' in data_object['on'][0]['selector'].keys():
+        svgselector = data_object['on'][0]['selector']['item']['value']
+        searchstring = re.findall(r'(?<=(data-paper-data="{))(.*?)(?=(\}"))', svgselector)
+        if len(searchstring) > 0:
+            searchstring = "".join(searchstring[0])
+            data_object['on'][0]['selector']['item']['value'] = svgselector.replace(searchstring, '')
     if field in data_object.keys():
         for item in data_object[field]:
             replace = re.finditer(r'&lt;iiif-(.*?)&gt;&lt;\/iiif-(.*?)&gt;', item[charfield])
             for rep in replace:
-                replacestring = rep.group().replace("&lt;","<").replace("&gt;", ">").replace("&quot;", '"')
+                replacestring = rep.group().replace("&lt;","<").replace("&gt;", ">").replace("&quot;", '/\"')
                 item[charfield] =  item[charfield].replace(rep.group(), replacestring)
     return data_object
 
@@ -965,8 +973,8 @@ def writetogithub(filename, annotation, order):
 def createlistpage(canvas, manifest):
     filenameforlist = listfilename(canvas)
     filename = os.path.join(session['defaults']['annotations'], filenameforlist)
-    context, annotype = contextType()
-    text = '---\ncanvas_id: "' + canvas + '"\n---\n{% assign annotations = site.annotations | where: "canvas", page.canvas_id | sort: "order" | map: "content" %}\n{\n"@context":' + context + '\n"id": "{{ site.url }}{{ site.baseurl }}{{page.url}}",\n"type": ' + annotype + '\n"items": [{{ annotations | join: ","}}] }'
+    context, annotype, itemskey = contextType()
+    text = '---\ncanvas_id: "' + canvas + '"\n---\n{% assign annotations = site.annotations | where: "canvas", page.canvas_id | sort: "order" | map: "content" %}\n{\n"@context": "' + context + '",\n"id": "{{ site.url }}{{ site.baseurl }}{{page.url}}",\n"type": "' + annotype + '",\n"%s": [{{ annotations | join: ","}}] }'%(itemskey)
     github.sendgithubrequest(session, filename, text)
     if manifest in session['upload']['manifests']:
         response = requests.get(manifest).json()

@@ -18,7 +18,6 @@
 
   $.LocalAnnotationEndpoint.prototype = {
     init: function() {
-      console.log(this)
     },
 
     search: function(options) {
@@ -26,7 +25,6 @@
       _this.uri = options.uri;
       _this.annotationsList = [];
       const resources = this.allannotations[options['uri']];
-      console.log(resources)
       if (resources){
         _this.annotationsList = resources
         resources.forEach(function(a) {
@@ -58,15 +56,13 @@
     update: function(annotation, returnSuccess, returnError) {
       var _this = this;
       var updated = new Date().toISOString();
-      //delete annotation.endpoint;
+      delete annotation.endpoint;
       annotation['oa:serializedAt'] = updated;
-      var creator = localStorage.getItem('creator');
-      if (creator != ''){
-        if (annotation['oa:annotatedBy']) {
-          annotation['oa:annotatedBy'].indexOf(creator) == -1 ? annotation['oa:annotatedBy'].push(creator) : ''
-        } else {
-          annotation['oa:annotatedBy'] = [creator]
-        }
+      var creator = this.creator;
+      if (annotation['oa:annotatedBy']) {
+        annotation['oa:annotatedBy'].indexOf(creator) == -1 ? annotation['oa:annotatedBy'].push(creator) : ''
+      } else {
+        annotation['oa:annotatedBy'] = [creator]
       }
       var senddata = {'json': annotation}
       jQuery.ajax({
@@ -83,7 +79,7 @@
           returnError();
         }
       });
-      //annotation.endpoint = this;
+      annotation.endpoint = this;
     },
 
     create: function(annotation, returnSuccess, returnError) {
@@ -118,7 +114,7 @@
     },
     userAuthorize: function(action, annotation) {
       console.log(this.creator)
-      console.log(annotation['oa:annotatedBy'].indexOf(this.creator['id']))
+      console.log(annotation['oa:annotatedBy'].indexOf(this.creator))
       return true; // allow all
     }
   };

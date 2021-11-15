@@ -23,17 +23,19 @@ const annoview = Vue.component('annoview', {
         const manifesturl = params.get('manifesturl');
         const canvas = params.get('canvas');
         const manifests = this.existing['manifests'];
-        this.loadedManifest = manifesturl ? manifesturl : manifests[0];
-        const manifestload = manifests.map(ma => JSON.parse(`{ "manifestUri": "${ma}"}`));
+        const loadedManifest = manifesturl ? manifesturl.toString() : manifests[0];
+        var manifestload = manifests.map(ma => JSON.parse(`{ "manifestUri": "${ma}"}`));
+        manifestload.push({"manifestUri": loadedManifest})
         const api_server = "/"
-        console.log(this.loadedManifest)
         this.mirador = Mirador({
-            "id": "mirador",
-            "data": manifestload,
-            "windowObjects": [
+            id: "mirador",
+            data: manifestload,
+            windowObjects: [
               {
-                "loadedManifest": this.loadedManifest
-              }
+                "loadedManifest" : loadedManifest,
+                "sidePanelVisible": false,
+                "canvasID": canvas
+               }
             ], 
             annotationEndpoint: { 'name':'Local Annotation Endpoint', 'module': 'LocalAnnotationEndpoint', 
                 'options': {'server': api_server, 'allannotations' : this.filepaths, 'creator': this.userinfo['value']}},
@@ -43,28 +45,6 @@ const annoview = Vue.component('annoview', {
           'searchTabAvailable': true
         }
         });
-        console.log(this.mirador)
-    },
-    methods: {
-      write_annotation: function(senddata, method, annotation=false) {
-        jQuery.ajax({
-          url: `/${method}_annotations/`,
-          type: "POST",
-          dataType: "json",
-          data: JSON.stringify(senddata),
-          contentType: "application/json; charset=utf-8",
-          success: function(data) {
-            if (annotation) {
-              annotation['id'] = data['id']
-              annotation['order'] = data['order'];
-            }
-          },
-          error: function(err) {
-            console.log(err)
-            alert(err.responseText)
-          }
-        });
-      }
     }
   })
   
