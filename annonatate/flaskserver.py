@@ -724,7 +724,7 @@ def add_repos():
 def updatetempuser():
     tempusername = request.form['tempusername']
     session['user_name'] = tempusername
-    session['preloaded']['settings']['tempuser'] = tempusername
+    session['tempuser'] = tempusername
     session['user_id'] = tempusername
     return redirect(url_for('index'))
 
@@ -798,6 +798,8 @@ def getannotations():
             for preloadkey in content['preloadedcontent']:
                 if content['preloadedcontent'][preloadkey]:
                     session['preloaded'][preloadkey] = content['preloadedcontent'][preloadkey]
+            if 'tempuser' not in session.keys() and 'tempuser' in session['preloaded']['settings'].keys():
+                session['tempuser'] = True
             session['upload'] = {'images': content['images'], 'manifests': content['manifests']}
         parsecustomviews(content)
         session['annotime'] = datetime.now()
