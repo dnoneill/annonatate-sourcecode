@@ -38,8 +38,8 @@ class Search:
                 results = get_search(item['json'])
                 if fieldvalue.lower() in " ".join(list(results['searchfields'].values())).lower():
                     items.append(results)
-                    facets = self.mergeDict(facets, results['facets'])
-        return {'items': items, 'facets': facets}
+                    facets = self.mergeDict(facets, results['facets'],)
+        return {'items': list(sorted(items, key=lambda t: t['datemodified'], reverse=True)), 'facets': facets}
 
     def searchfields(self, content, field, fieldvalue):
         facets = {}
@@ -65,7 +65,7 @@ def encodedecode(chars):
         return chars.encode('utf8')
 
 def get_search(anno):
-    annodata_data = {'searchfields': {'content': []}, 'facets': {'tags': [], 'creator': []}, 'datecreated':'', 'datemodified': '', 'id': anno['id'], 'basename': os.path.basename(anno['id'])}
+    annodata_data = {'json': anno, 'searchfields': {'content': []}, 'facets': {'tags': [], 'creator': []}, 'datecreated':'', 'datemodified': '', 'id': anno['id'], 'basename': os.path.basename(anno['id'])}
     if 'oa:annotatedAt' in anno.keys():
         annodata_data['datecreated'] = encodedecode(anno['oa:annotatedAt'])
     if 'created' in anno.keys():

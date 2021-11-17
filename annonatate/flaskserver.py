@@ -10,7 +10,7 @@ import re
 import simplejson as json
 #from flask_github import GitHub
 import shutil
-from datetime import datetime
+from datetime import datetime, timedelta
 import os
 from io import StringIO
 
@@ -24,7 +24,8 @@ app = Flask(__name__,
 app.config.update(
                   SESSION_TYPE = 'filesystem',
                   GITHUB_CLIENT_ID = client_id,
-                  GITHUB_CLIENT_SECRET = client_secret
+                  GITHUB_CLIENT_SECRET = client_secret,
+                  PERMANENT_SESSION_LIFETIME = timedelta(days=3)
                   )
 Session(app)
 github = GitHubAnno(app)
@@ -58,7 +59,10 @@ def before_request():
 def getDefaults():
     if 'currentworkspace' in session.keys():
         currentworkspace = session['currentworkspace']
-        if 'annonatate-wax' in currentworkspace['description'].lower():
+        topicdescription = currentworkspace['topics']
+        if currentworkspace['description']:
+            topicdescription.append(currentworkspace['description'].lower())
+        if 'annonatate-wax' in topicdescription:
             apiurl = 'api/all.json'
             return {'annotations': '_annotations', 
             'apiurl': apiurl,
@@ -87,7 +91,7 @@ def login():
 # clears session, redirects to github logout
 @app.route('/logout')
 def logout():
-    clearSession('currentworkspace')
+    clearSession()
     return redirect('https://github.com/logout')
 
 #After logging into GitHub, library returns oauth token, load that token into session
@@ -102,8 +106,8 @@ def authorized(oauth_token):
         #return redirect(next_url)
     session['user_token'] = oauth_token
     session['login_time'] = str(datetime.now())
-    session['defaults'] = getDefaults()
     isfirstbuild = buildWorkspaces()
+    session['defaults'] = getDefaults()
     next_url = request.args.get('next')
     if next_url and isfirstbuild != True:
         getContents()
@@ -649,7 +653,14 @@ def populateuserinfo():
     session['avatar_url'] = userinfo['avatar_url']
     session['user_name'] = userinfo['name'] if userinfo['name'] != None else userinfo['login']
     repos = github.get('{}/repos?per_page=300&sort=name'.format(githubuserapi))
-    relevantworkspaces = list(filter(lambda x: x['name'] == github_repo or (x['description'] and 'annonatate' in x['description'].lower()), repos))
+    relevantworkspaces = []
+    for repo in repos:
+        if repo['name'] == github_repo or github_repo in ",".join(repo['topics']):
+            relevantworkspaces.append(repo)
+        elif repo['description'] and 'annonatate' in repo['description'].lower():
+            relevantworkspaces.append(repo)
+        if 'default-repo' in repo['topics'] and 'currentworkspace' not in session.keys():
+            session['currentworkspace'] = repo
     for workspace in relevantworkspaces:
         workspaces[workspace['full_name']] = workspace
     if len(workspaces) == 0:
@@ -698,6 +709,14 @@ def add_repos():
         error = parseGitHubErrors(response.json())
         return redirect('/profile?tab=profile&error={}'.format(error))
     return redirect('/profile?tab=profile')
+
+@app.route('/updatetempuser', methods=['POST'])
+def updatetempuser():
+    tempusername = request.form['tempusername']
+    session['user_name'] = tempusername
+    session['tempuser'] = tempusername
+    session['user_id'] = tempusername
+    return redirect(url_for('index'))
 
 # Get error message if there is one in GitHub's API response
 def parseGitHubErrors(response):
@@ -767,6 +786,9 @@ def getannotations():
             parsecollections(content)
             session['preloaded'] = content['preloadedcontent']
             session['upload'] = {'images': content['images'], 'manifests': content['manifests']}
+        if 'tempuser' in session['preloaded'].keys():
+            del session['preloaded']['tempuser']
+            session['tempuser'] = True
         parsecustomviews(content)
         session['annotime'] = datetime.now()
         github.updateAnnos(session)

@@ -1,8 +1,18 @@
+{% set isnoterror = True %}
 {% if message %}
 <p style="font-size: 2em;">
    {{message | safe}}
 </p>
+{% elif request.args.get("error") and request.args.get("error") == "redirect_uri_mismatch" %}
+{% set isnoterror = False %}
+<p style="font-size: 2em; font-weight: 900;">
+
+   Looks like there was an error logging in.<br>
+   Please try <a href="{{request.url_root}}login">logging in again</a>. <br>
+   If that does not work please <a href="https://github.com/dnoneill/annonatate-sourcecode/issues/new">open an issue</a>.
+</p>
 {% endif %}
+{% if isnoterror %}
 <p>
 <b>
    If you are having trouble logging in for the first time try the <a href="https://annonatate.github.io/annonatate-help/getting-started#troubleshooting">troubleshooting guide on our website.</a>
@@ -11,3 +21,4 @@
 <p>
 Try navigating back to the <a href="/">homepage</a> to see if that can fix the problem. Otherwise open an issue here: <a href="https://github.com/annonatate/annonatate/issues">https://github.com/annonatate/annonatate/issues</a> and please take and attatch screenshot of your problem.
 </p>
+{% endif %}
