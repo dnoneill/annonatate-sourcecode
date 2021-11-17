@@ -64,7 +64,7 @@
       } else {
         annotation['oa:annotatedBy'] = [creator]
       }
-      var senddata = {'json': annotation}
+      var senddata = {'json': annotation, 'canvas': this.uri, 'id': annotation['@id'], 'order': annotation['order']}
       jQuery.ajax({
         url: _this.server + 'update_annotations/',
         type: "POST",
@@ -88,7 +88,8 @@
       annotation['oa:annotatedAt'] = created;
       annotation['@id'] = Mirador.genUUID();
       annotation['oa:annotatedBy'] = [this.creator];
-      var senddata = {'json': annotation, 'canvas': this.uri}
+      var senddata = {'json': annotation, 'canvas': this.uri, 'id': annotation['@id']}
+
       jQuery.ajax({
         url: this.server + 'create_annotations/',
         type: "POST",
