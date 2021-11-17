@@ -104,6 +104,8 @@ def get_search(anno):
             annodata_data['datemodified'] = resource['modified']
         if 'creator' in resource.keys() and resource['creator']['name'] not in annodata_data['facets']['creator']:
             annodata_data['facets']['creator'].append(resource['creator']['name'])
+    if annodata_data['datecreated'] and not annodata_data['datemodified']:
+        annodata_data['datemodified'] = annodata_data['datecreated']
     annodata_data['searchfields']['content'] = " ".join(annodata_data['searchfields']['content'])
     annodata_data['searchfields']['tags'] = " ".join(annodata_data['facets']['tags'])
     return annodata_data
