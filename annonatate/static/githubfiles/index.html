@@ -1,6 +1,5 @@
 ---
 layout: null
-permalink: /
 ---
 {% assign images = site.static_files | where_exp: 'item', 'item.path contains "/images/"' | sort_natural | map: 'path' %}
 {% assign collections = site.pages | where_exp: 'item', 'item.dir == "/collections/"' | sort_natural %}

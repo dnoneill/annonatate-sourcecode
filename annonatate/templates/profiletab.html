@@ -7,7 +7,10 @@
                 {{key}}: {{value}}
             </div>
         {% endfor %}
+        {% if session['tempuser'] %}
+        {% endif %}
         <a href="https://github.com/settings/profile" target="_blank">Update user info</a>
+        <br>{% include 'tempuserform.html' %}
         {% if invites | length > 0 %}
         <div>
         <h2>Invitations</h2>

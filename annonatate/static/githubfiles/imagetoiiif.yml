@@ -13,7 +13,7 @@ jobs:
       - name: poppler
         run: sudo apt-get install -y poppler-utils
       - name: pip install
-        run: pip3 install iiif pdf2image Pillow git+https://github.com/giacomomarchioro/pyIIIFpres
+        run: pip3 install iiif pdf2image Pillow iiif-prezi git+https://github.com/giacomomarchioro/pyIIIFpres
       - name: runscript
         run: python3 -c "exec(\"replacewithportion\")"
       - name: add page jekyll to manifest

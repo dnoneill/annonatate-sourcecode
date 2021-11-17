@@ -34,9 +34,12 @@ class Image:
                 cleanfilename = "".join(re.findall(r'[0-9A-Za-z]+', filenameonly)) +  ext
                 self.files.append({'filename': cleanfilename, 'encodedimage': filename.stream.read(), 'label': filenameonly})
 
-    def createActionScript(self, githubfilefolder, filenamelist):
+    def createActionScript(self, githubfilefolder, filenamelist, isV2=False):
         with open(pathjoin(githubfilefolder, 'iiifportion.txt')) as f:
             iiifscript = f.read().replace('\n', '\\n')
+        manifestcodepath = "v2Manifest.txt" if isV2 else "v3Manifest.txt"
+        with open(pathjoin(githubfilefolder, manifestcodepath)) as f:
+            iiifscript = iiifscript.replace("replacewithManifestCode", f.read().replace('\n', '\\n'))
         with open(pathjoin(githubfilefolder, 'imagetoiiif.yml')) as gf:
             iiifscript = gf.read().replace('replacewithportion', iiifscript)
         iiifscript = iiifscript.replace('replacewithoriginurl', self.origin_url)

@@ -251,7 +251,7 @@ def createimage():
                 output =  True
             else:
                 output = response['message']
-        convertiiif = image.createActionScript(githubfilefolder, filenames)
+        convertiiif = image.createActionScript(githubfilefolder, filenames, isMirador())
         github.sendgithubrequest(session, 'imagetoiiif.yml', convertiiif, ".github/workflows").json()
         time.sleep(1)
         triggerAction('imagetoiiif.yml')
@@ -470,7 +470,8 @@ def update_anno():
     data_object = response['json']
     order = data_object['order']
     cleanobject = cleananno(data_object)
-    response = writetogithub(data_object['id'], cleanobject, response['order'])
+    idfield = '@id' if isMirador() else 'id'
+    response = writetogithub(data_object[idfield], cleanobject, response['order'])
     returnvalue = response.content if response.status_code > 399 else data_object
     returnvalue['order'] = order
     return jsonify(returnvalue), response.status_code
