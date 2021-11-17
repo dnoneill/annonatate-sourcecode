@@ -251,7 +251,7 @@ def createimage():
                 output =  True
             else:
                 output = response['message']
-        convertiiif = image.createActionScript(githubfilefolder, filenames, isMirador())
+        convertiiif = image.createActionScript(githubfilefolder, filenames)
         github.sendgithubrequest(session, 'imagetoiiif.yml', convertiiif, ".github/workflows").json()
         time.sleep(1)
         triggerAction('imagetoiiif.yml')
@@ -499,8 +499,9 @@ def getprofiledata():
     orgs()
     return render_template('profile.html', userinfo={'name':session['user_name']}, invites=invites, collaborators=collaborators)
 
-def isMirador():
-    ismirador = True if 'settings' in session['preloaded'].keys() and session['preloaded']['settings']['viewer'] and session['preloaded']['settings']['viewer'] == 'mirador' else False
+def isMirador(inputsession=False):
+    content = inputsession if inputsession else session
+    ismirador = True if 'settings' in content['preloaded'].keys() and 'viewer' in content['preloaded']['settings'].keys() and content['preloaded']['settings']['viewer'] == 'mirador' else False
     return ismirador
 
 # get list of orgs user belongs to
@@ -795,7 +796,7 @@ def getannotations():
             session['upload'] = {'manifests': [], 'images' : []}
         elif 'preloaded' not in session.keys() or duration > 60:
             parsecollections(content)
-            session['preloaded'] = {'manifests': [], 'images': [], 'settings': []}
+            session['preloaded'] = {'manifests': [], 'images': [], 'settings': {}}
             for preloadkey in content['preloadedcontent']:
                 if content['preloadedcontent'][preloadkey]:
                     session['preloaded'][preloadkey] = content['preloadedcontent'][preloadkey]
@@ -936,6 +937,7 @@ app.jinja_env.filters['tojson_pretty'] = to_pretty_json
 
 app.jinja_env.filters['canvas'] = getCanvas
 app.jinja_env.filters['manifest'] = getManifest
+app.jinja_env.filters['isMirador'] = isMirador
 
 # Function for writing annotations to GitHub.
 # If successfully written to GitHub, update session annotations

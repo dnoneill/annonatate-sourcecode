@@ -56,6 +56,15 @@
 					<label for="language">Language code (default is en): </label>
 					<input value="" id="language" name="language">
 				</div>
+				<div>
+					<label for="version">Version: </label>
+					<select id="version" name="version">
+						{% if session | isMirador  == False %}
+						<option value="v3" selected>Version 3</option>
+						{% endif %}
+						<option value="v2" {% if session | isMirador %}selected{% endif %}>Version 2</option>
+					</select>
+				</div>
 			<div>
 				<label for="direction">Viewing Direction: </label>
 				<select id="direction" name="direction">
