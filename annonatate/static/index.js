@@ -21,7 +21,7 @@ const annoview = Vue.component('annoview', {
     </div>
   </div>
   <div>
-    <label for="ingesturl">Manifest or Image URL</label>
+    <label for="ingesturl">Manifest or Image URL: </label>
     <input id="ingesturl" v-on:change="getManifest(ingesturl)" v-model="ingesturl"></input>
     <button v-on:click="showManThumbs = !showManThumbs" v-if="currentmanifest">
       <span v-if="showManThumbs">Hide</span><span v-else>Show</span> Manifest Thumbnails
@@ -59,6 +59,12 @@ const annoview = Vue.component('annoview', {
       </span>
       </b>
     </div>
+  </div>
+  <div v-else>
+    <p>
+    The links above are a list of demo images you can click on and they will be loaded into the annotation viewer. These links can be edited on the <a href="/profile?tab=data">profile page</a>.<br>
+    You can also add in your own link to an image or <a href="https://iiif.io" target="_blank">IIIF manfiest</a> into the box next to "Manifest or Image URL".
+    </p>
   </div>
   <div class="layers gridparent" v-if="alltiles.length > 1">
     <div v-for="item in alltiles">
@@ -246,14 +252,14 @@ const annoview = Vue.component('annoview', {
                 thumb = imagethumb;
               }
               
-              var id = resourceitem['service']['id'] ? resourceitem['service']['id'] : resourceitem['service']['@id']  ? resourceitem['service']['@id'] + '/info.json' : resourceitem['service'][0]['id'];
-              id = id.split('/info')[0] + '/info.json';
+              var id = resourceitem['service'] && resourceitem['service']['id'] ? resourceitem['service']['id'] : resourceitem['service'] && resourceitem['service']['@id']  ? resourceitem['service']['@id'] + '/info.json' : resourceitem['service'] ? resourceitem['service'][0]['id'] : resourceitem['id'];
+              id = resourceitem['service'] ? id.split('/info')[0] + '/info.json' : id;
               const opacity = j == 0 ? 1 : 0;
               const checked = j == 0 ? true : false;
               const resourceid = resourceitem ? vue.getId(resourceitem) : '';
               var xywh = resourceid && resourceid.constructor.name === 'String' && resourceid.indexOf('xywh') > -1 ? resourceid : vue.on_structure(manifestimages[j]) && vue.on_structure(manifestimages[j])[0].constructor.name === 'String' ? vue.on_structure(manifestimages[j])[0] : '';
               xywh = xywh ? xywh.split("xywh=").slice(-1)[0].split(",") : xywh;
-              const tilelabel = manifestdata[i].getLabel() ? manifestdata[i].getLabel()[0]['value'] : ""
+              const tilelabel = manifestdata[i].getLabel().length > 0 ? manifestdata[i].getLabel()[0]['value'] : ""
               tiles.push({'id': id, 'label': tilelabel,
                 thumbnail: imagethumb.replace('/full/0', '/100,/0'), 'opacity': opacity,
                 'checked': checked, 'xywh': xywh

@@ -295,6 +295,29 @@ def triggerAction(ident):
     response = github.raw_request('post', '{}/actions/workflows/{}/dispatches'.format(currrentworkspace['url'], ident), headers={'Accept': 'application/vnd.github.v3+json'}, data=json.dumps({"ref":currrentworkspace['default_branch']}))
     print(response.content)
 
+@app.route('/defaultworkspace', methods=['POST'])
+def defaultworkspace():
+    for workspace, workitems in session['workspaces'].items():
+        if 'default-workspace' in workitems['topics']:
+            updateTopics(workspace, True)
+    error = updateTopics(request.form['workspace'])
+    url = '/profile?error={}'.format(error) if error else '/profile'
+    return redirect(url)
+
+def updateTopics(workspacename, remove=False):
+    workspace = session['workspaces'][workspacename]
+    topics = workspace['topics']
+    if remove:
+        topics.remove('default-workspace')
+    else:
+        topics.append('default-workspace')
+    response = github.raw_request('put', '{}/topics'.format(workspace['url']), headers={'Accept': 'application/vnd.github.v3+json'}, data=json.dumps({"names":topics}))
+    if response.status_code < 299:
+        session['workspaces'][workspacename]['topics'] = topics
+        return False
+    else:
+        return response.content
+
 # create collections form if GET.
 # If POST, grab all data from form and create collection JSON
 @app.route('/createcollections', methods=['GET', 'POST'])

@@ -10,6 +10,13 @@
         {% if session['preloaded'][key] | length < 1 %}
         <li></li>
         {% endif %}
+    {% elif session['preloaded'][key] is not string %}
+        {% if session['preloaded'][key] | length  == 0 %}
+        <li class="dict"></li>
+        {% endif %}
+        {% for items in session['preloaded'][key] %}
+            <li class="dict">{{items}}: {{session['preloaded'][key][items]}}</li>
+        {% endfor %}
     {% else %}
         <li>{{session['preloaded'][key]}}</li>
     {% endif %}
@@ -25,14 +32,24 @@
         var dictdata = {}
         const listitems = document.getElementsByClassName('listitems');
         for (var li=0; li<listitems.length; li++){
-            var htmlcoll = Array.from(listitems[li].getElementsByTagName('li'));
-            var listelem = htmlcoll.map(function(elem) {
-                if (elem.textContent.indexOf("{") > -1){
-                    return JSON.parse(elem.textContent.replaceAll("'", '"'))
-                } else {
-                    return elem.textContent
-                }
-            })
+            var htmlcoll = Array.from(listitems[li].getElementsByTagName('li'))            
+            var listelem = {};
+            if (htmlcoll[0].className != 'dict'){
+                listelem = htmlcoll.map(function(elem) {
+                    if (elem.textContent.indexOf("{") > -1){
+                        return JSON.parse(elem.textContent.replaceAll("'", '"'))
+                    } else {
+                        return elem.textContent
+                    }
+                })
+            } else {
+                htmlcoll.map(function(elem) {
+                    if (elem.textContent){
+                        var keyvalue = elem.textContent.split(":");
+                        listelem[keyvalue[0].trim()] = keyvalue[1].trim()
+                    }
+                })
+            }
             dictdata[listitems[li].id] = listelem;
         }
         document.getElementById('updatedata').value = JSON.stringify(dictdata);
