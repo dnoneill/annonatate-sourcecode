@@ -38,7 +38,7 @@ const annoview = Vue.component('annoview', {
                }
             ], 
             annotationEndpoint: { 'name':'Local Annotation Endpoint', 'module': 'LocalAnnotationEndpoint', 
-                'options': {'server': api_server, 'allannotations' : this.filepaths, 'creator': this.userinfo['value']}},
+                'options': {'server': api_server, 'allannotations' : this.filepaths, 'creator': this.userinfo['name']}},
             sidePanelOptions : {
           'tocTabAvailable': true,
           'layersTabAvailable': true,

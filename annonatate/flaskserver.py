@@ -680,7 +680,8 @@ def populateuserinfo():
     firstbuild = False
     session['user_id'] = userinfo['login']
     session['avatar_url'] = userinfo['avatar_url']
-    session['user_name'] = userinfo['name'] if userinfo['name'] != None else userinfo['login']
+    username = userinfo['name'] if userinfo['name'] != None else userinfo['login']
+    session['user_name'] = username if 'tempuser' not in session.keys() else session['tempuser']
     repos = github.get('{}/repos?per_page=300&sort=name'.format(githubuserapi))
     relevantworkspaces = []
     for repo in repos:
@@ -750,8 +751,7 @@ def updatetempuser():
     tempusername = request.form['tempusername']
     session['user_name'] = tempusername
     session['tempuser'] = tempusername
-    session['user_id'] = tempusername
-    return redirect(url_for('index'))
+    return redirect(request.args.get('next'))
 
 # Get error message if there is one in GitHub's API response
 def parseGitHubErrors(response):
@@ -936,7 +936,7 @@ def cleananno(data_object):
         for item in data_object[field]:
             replace = re.finditer(r'&lt;iiif-(.*?)&gt;&lt;\/iiif-(.*?)&gt;', item[charfield])
             for rep in replace:
-                replacestring = rep.group().replace("&lt;","<").replace("&gt;", ">").replace("&quot;", '/\"')
+                replacestring = rep.group().replace("&lt;","<").replace("&gt;", ">").replace("&quot;", '"')
                 item[charfield] =  item[charfield].replace(rep.group(), replacestring)
     return data_object
 
