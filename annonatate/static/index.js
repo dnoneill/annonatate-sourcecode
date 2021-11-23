@@ -190,7 +190,7 @@ const annoview = Vue.component('annoview', {
       this.enableDrawing(this.drawingenabled);
       this.anno.setAuthInfo({
         id: this.userinfo["id"],
-        displayName: this.userinfo["value"]
+        displayName: this.userinfo["name"]
       });
     },
     setLayers: function(layer, position){

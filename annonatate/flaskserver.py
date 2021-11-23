@@ -379,7 +379,7 @@ def index():
             if 'vocab' in session['preloaded'].keys():
                 labelonlyvocab = [item['label'] if type(item) == dict else item for item in session['preloaded']['vocab']]
             vocabtags = arraydata['tags'] if 'vocab' not in session['preloaded'].keys() else session['preloaded']['vocab'] + list(filter(lambda tag: tag not in labelonlyvocab, arraydata['tags']))
-            return render_template('index.html', existingitems=existing, filepaths=arraydata['contents'], tags=vocabtags, userinfo={'value': session['user_name'], 'id': session['user_id']})
+            return render_template('index.html', existingitems=existing, filepaths=arraydata['contents'], tags=vocabtags, userinfo={'name': session['user_name'], 'id': session['user_id']})
         except Exception as e:
            return errorchecking(request, e)
 
