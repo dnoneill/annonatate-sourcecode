@@ -173,10 +173,11 @@ tbody {
   margin-bottom: 1em;
 }
 
-.thumbnail img {
+.thumbnail img, .thumbnail svg {
   width: auto!important;
   float: left;
   padding-right: 10px;
+  max-width: 200px;
 }
 
 .searchResultMetadata {
