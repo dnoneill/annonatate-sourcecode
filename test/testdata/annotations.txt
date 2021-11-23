@@ -111,4 +111,81 @@
         'order': 1
     },
     'canvas': 'https://testuser.github.io/annonatate/images/scan_20210223050407_0019.jpg'
-}]
+}, {
+    'filename': 'https://testuser.github.io/annonatate/annotations/19547cb3-f588-4724-878b-e4f81415fa86.json',
+    'order': 2,
+    'json': {
+        'type': 'Annotation',
+        'body': [{
+            'type': 'TextualBody',
+            'value': 'new comment',
+            'purpose': 'commenting',
+            'creator': {
+                'id': 'testuser2',
+                'name': 'Test User 2'
+            },
+            'created': '2021-07-12T20:21:29.272Z',
+            'modified': '2021-07-12T20:21:30.687Z'
+        }],
+        'target': {
+	    'dcterms:isPartOf': {'id': 'placeholdermanifest'},
+            'source': 'https://testuser.github.io/annonatate/images/scan_20210223050407_0019.jpg',
+            'selector': {
+                'type': 'FragmentSelector',
+                'conformsTo': 'http://www.w3.org/TR/media-frags/',
+                'value': 'xywh=pixel:364.18359375,325.7713928222656,66.83917236328125,44.5594482421875'
+            }
+        },
+        '@context': 'http://www.w3.org/ns/anno.jsonld',
+        'id': 'https://testuser.github.io/annonatate/annotations/19547cb3-f588-4724-878b-e4f81415fa86.json',
+        'order': 2
+    },
+    'canvas': 'https://testuser.github.io/annonatate/images/scan_20210223050407_0019.jpg'
+},
+{
+'canvas': 'https://d.lib.ncsu.edu/collections/canvas/nubian-message-2002-04-18_0002',
+'order': 0,
+'filename':'329a6d36-50d5-4d2c-962d-7e6cde7da4d8',
+'json': {
+    "@context": "http://iiif.io/api/presentation/2/context.json",
+    "@type": "oa:Annotation",
+    "motivation": [
+        "oa:commenting"
+    ],
+    "resource": [
+        {
+            "@type": "dctypes:Text",
+            "format": "text/html",
+            "chars": "<p>page2</p>"
+        }
+    ],
+    "on": [
+        {
+            "@type": "oa:SpecificResource",
+            "full": "https://d.lib.ncsu.edu/collections/canvas/nubian-message-2002-04-18_0002",
+            "selector": {
+                "@type": "oa:Choice",
+                "default": {
+                    "@type": "oa:FragmentSelector",
+                    "value": "xywh=2495,3109,1921,1345"
+                },
+                "item": {
+                    "@type": "oa:SvgSelector",
+                    "value": "<svg xmlns='http://www.w3.org/2000/svg'><path xmlns=\"http://www.w3.org/2000/svg\" d=\"M2495.21017,3109.33781h960.44338v0h960.44338v672.61036v672.61036h-960.44338h-960.44338v-672.61036z\"  id=\"rectangle_87245da4-08d0-45af-8d3c-9ad205939971\" fill-opacity=\"0\" fill=\"#00bfff\" fill-rule=\"nonzero\" stroke=\"#00bfff\" stroke-width=\"1\" stroke-linecap=\"butt\" stroke-linejoin=\"miter\" stroke-miterlimit=\"10\" stroke-dasharray=\"\" stroke-dashoffset=\"0\" font-family=\"none\" font-weight=\"none\" font-size=\"none\" text-anchor=\"none\" style=\"mix-blend-mode: normal\"/></svg>"
+                }
+            },
+            "within": {
+                "@id": "https://d.lib.ncsu.edu/collections/catalog/nubian-message-2002-04-18/manifest",
+                "@type": "sc:Manifest"
+            }
+        }
+    ],
+    "oa:annotatedAt": "2021-11-15T19:54:11.867Z",
+    "@id": "329a6d36-50d5-4d2c-962d-7e6cde7da4d8.json",
+    "oa:annotatedBy": [
+        "Test user 2"
+    ]
+}
+}
+
+]
