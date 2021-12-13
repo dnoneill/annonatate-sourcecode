@@ -15,7 +15,7 @@
 	  {% endif %}
 	</div>
 	<div id="manifest" class="tabcontent">
-	  <h2>Create Manifest using existing image</h2>
+	  <h2>Create Copy of existing Manifest</h2>
 	  <form action="{{ url_for('createimage') }}" enctype=multipart/form-data method="post">
 	  	<div>
 			<label for="upload-manifest">Existing IIIF manifest </label>
@@ -41,7 +41,7 @@
 				<input value="" id="label" name="label" required>
 				</div>
 				<div>
-					<label for="label">short folder name (will populate the url of the image) (Required): </label>
+					<label for="label">short folder name. This will populate the url of the image. It should not include special characters/spaces (don't worry too much, the application will clean this for you.) (Required): </label>
 					<input value="" id="folder" name="folder" required>
 				</div>
 			   <div>

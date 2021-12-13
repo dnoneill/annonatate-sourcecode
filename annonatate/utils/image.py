@@ -28,6 +28,7 @@ class Image:
         else:
             # handle uploaded image
             files = request_files.getlist("file")
+            self.folder = "".join(re.findall(r'[0-9A-Za-z]+', self.request_form['folder']))
             self.files = []
             for filename in request_files.getlist("file"):
                 filenameonly, ext = pathsplitext(filename.filename)
@@ -50,6 +51,8 @@ class Image:
             formvalue = self.request_form[field]
             if field == "language" and not formvalue:
                 formvalue = "en"
+            elif field == "folder":
+                formvalue = self.folder
             iiifscript = iiifscript.replace(replacestring, formvalue)
         return iiifscript
 

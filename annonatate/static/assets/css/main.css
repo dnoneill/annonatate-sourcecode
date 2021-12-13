@@ -180,6 +180,10 @@ tbody {
   max-width: 200px;
 }
 
+.thumbnail .annoimage svg {
+  max-width: 100%;
+}
+
 .searchResultMetadata {
   margin-bottom: 1em; 
   margin-top: 1em;
