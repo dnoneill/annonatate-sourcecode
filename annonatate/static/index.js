@@ -8,6 +8,10 @@ const annoview = Vue.component('annoview', {
       </span>
     </button>
   </div>
+  <div style="position:absolute;right: 10px;top: 11.5%;">
+    Currently in {{this.fragmentunit}} mode.<br>
+    Switch to <a v-on:click="updateUnit()" href="#">{{this.fragmentunit =='pixel' ? 'percent' : 'pixel' }} mode</a>
+  </div>
   <div class="manifestimages">
     <div v-for="manifest in existing['manifests']">
       <button v-if="manifest" class="linkbutton" v-on:click="getManifest(manifest)">
@@ -101,7 +105,8 @@ const annoview = Vue.component('annoview', {
       isMobile: false,
       alltiles: [],
       drawingenabled: false,
-      ingesturl: ''
+      ingesturl: '',
+      fragmentunit: 'pixel'
   	}
   },
   mounted() {
@@ -110,6 +115,10 @@ const annoview = Vue.component('annoview', {
     const params = new URLSearchParams(window.location.search);
     const manifesturl = params.get('manifesturl');
     const imageurl = params.get('imageurl');
+    const mode = params.get('mode');
+    if (mode){
+      this.fragmentunit = mode;
+    }
     if (manifesturl){
       this.currentmanifest = manifesturl;
       this.getManifest(manifesturl, params.get('canvas'));
@@ -120,6 +129,16 @@ const annoview = Vue.component('annoview', {
     }
   },
   methods: {
+    updateUnit: function() {
+      const switchUnit = this.fragmentunit =='pixel' ? 'percent' : 'pixel' ;
+      var url = new URL(location.href);
+      if (url.searchParams.get('mode')){
+        url.searchParams.set('mode', switchUnit);
+      } else{
+        url.searchParams.append('mode', switchUnit);
+      }
+      window.location.href = url.toString();
+    },
     loadImage: function() {
       this.currentmanifest='';
       this.title = '';
@@ -169,6 +188,7 @@ const annoview = Vue.component('annoview', {
       this.anno = OpenSeadragon.Annotorious(viewer, 
         { image: 'openseadragon1',
           messages: { "Ok": "Save" },
+          fragmentUnit: this.fragmentunit,
           allowEmpty: true,
           widgets: [ 
                     {widget: 'COMMENT', editable: 'MINE_ONLY', purposeSelector: true},
