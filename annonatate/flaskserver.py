@@ -392,7 +392,7 @@ def errorchecking(request, error=False):
     elif firstbuild == 'noworkspaces':
         return render_template('error.html', message='There was a problem enabling GitHub pages on your site. Please follow the <a href="https://annonatate.github.io/annonatate-help/getting-started#troubleshooting">troubleshooting instructions to fix this problem.</a>')
     elif error:
-        render_template('error.html', message=error)
+        return render_template('error.html', message=error)
     else:
         triggerbuild()
         return render_template('error.html', message='''<b>If this
@@ -841,20 +841,23 @@ def getannotations():
             #beforefilenames = list(map(lambda x: x['filename'].split('/')[-1], annotations))
             #remove = list(set(beforefilenames).difference(filenames))
             for item in notinsession:
-                downloadresponse = github.get(item['download_url'])
-                contentssplit = downloadresponse.content.decode("utf-8").rsplit('---\n', 1)
-                yamlparse = yaml.load(contentssplit[0], Loader=yaml.FullLoader)
-                yamlparse['json'] = json.loads(contentssplit[-1])
-                yamlparse['filename'] = item['name']
-                filenamelist = listfilename(yamlparse['canvas'])
-                indexof = [idx for idx, annotation in enumerate(session['annotations']) if filenamelist in annotation['filename']]
-                session['annotations'].append(yamlparse)
-                if len(indexof) > 0:
-                    itemskey = 'items' if 'items' in session['annotations'][indexof[0]]['json'].keys() else 'resources'
-                    session['annotations'][indexof[0]]['json'][itemskey].append(yamlparse['json'])
-                else:
-                    context, annotype, itemskey = contextType()
-                    session['annotations'].append({'filename': filenamelist, 'order': None, 'json': {"@context": context,"id": filenamelist,"type": annotype,itemskey: [yamlparse['json']]}, 'canvas': ''})
+                try:
+                    downloadresponse = github.get(item['download_url'])
+                    contentssplit = downloadresponse.content.decode("utf-8").rsplit('---\n', 1)
+                    yamlparse = yaml.load(contentssplit[0], Loader=yaml.FullLoader)
+                    yamlparse['json'] = json.loads(contentssplit[-1])
+                    yamlparse['filename'] = item['name']
+                    filenamelist = listfilename(yamlparse['canvas'])
+                    indexof = [idx for idx, annotation in enumerate(session['annotations']) if filenamelist in annotation['filename']]
+                    session['annotations'].append(yamlparse)
+                    if len(indexof) > 0:
+                        itemskey = 'items' if 'items' in session['annotations'][indexof[0]]['json'].keys() else 'resources'
+                        session['annotations'][indexof[0]]['json'][itemskey].append(yamlparse['json'])
+                    else:
+                        context, annotype, itemskey = contextType()
+                        session['annotations'].append({'filename': filenamelist, 'order': None, 'json': {"@context": context,"id": filenamelist,"type": annotype,itemskey: [yamlparse['json']]}, 'canvas': ''})
+                except Exception as e:
+                    print(e)
             annotations = session['annotations']
     return annotations
 
