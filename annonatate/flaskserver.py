@@ -813,6 +813,8 @@ def getannotations():
         for item in content['annotations']:
             item['canvas'] = getCanvas(item['json'])
         session['annotations'] = content['annotations']
+        if 'preloadedcontent' in content.keys() and content['preloadedcontent'] == None:
+            session['preloaded'] = {'manifests': [], 'images': [], 'settings': {}}
         if 'preloadedcontent' not in content.keys():
             updateindex()
             session['preloaded'] = {'manifests': content['manifests'], 'images': content['images'], 'settings': {}}
