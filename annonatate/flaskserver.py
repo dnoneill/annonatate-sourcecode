@@ -762,7 +762,7 @@ def parseGitHubErrors(response):
 # clear everythig that is not users or workspaces from session
 def clearSessionWorkspaces(): 
     for key in list(session.keys()):
-        if 'user' not in key and 'workspaces' not in key:
+        if 'user_' not in key and 'workspaces' not in key:
             del session[key]
 
 #  clear everything but user from the session
@@ -1030,7 +1030,7 @@ def workspaceCheck(method=False):
         elif method == 'POST':
             return 'problem'
         else:
-            clearSession('user')
+            clearSession('user_')
         buildWorkspaces()
 
         getContents()
