@@ -87,6 +87,7 @@ def addAnnotationList(manifest, session):
                 if annotationlist not in annotations:
                     annopage = item.add_annotation()
                     annopage.set_id(annotationlist)
+                    annopage.type = 'AnnotationPage'
             stringmanifest = manifest.json_dumps()
         except:
             stringmanifest = json.dumps(manifest) if type(manifest) == dict else manifest

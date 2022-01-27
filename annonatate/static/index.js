@@ -8,7 +8,7 @@ const annoview = Vue.component('annoview', {
       </span>
     </button>
   </div>
-  <div style="position:absolute;right: 10px;top: 11.5%;">
+  <div style="position:absolute;right: 10px;top: 52px;">
     Currently in {{this.fragmentunit}} mode.<br>
     Switch to <a v-on:click="updateUnit()" href="#">{{this.fragmentunit =='pixel' ? 'percent' : 'pixel' }} mode</a>
   </div>
@@ -196,7 +196,8 @@ const annoview = Vue.component('annoview', {
                   ]});
     // Load annotations in W3C WebAnnotation format
       if (existing){
-        var annotation = this.anno.setAnnotations(existing); 
+        const clean = existing.map(elem => JSON.parse(JSON.stringify(elem).replace("pct:", "percent:")))
+        var annotation = this.anno.setAnnotations(clean);
       }
       Annotorious.SelectorPack(this.anno);
       this.drawtools = []
@@ -322,6 +323,7 @@ const annoview = Vue.component('annoview', {
     },
     addManifestAnnotation: function(annotation){
       var target = this.inputurl;
+      annotation['motivation'] = 'commenting';
       if (this.currentmanifest){
         annotation.target['dcterms:isPartOf'] = {
           "id": this.currentmanifest,
@@ -330,7 +332,13 @@ const annoview = Vue.component('annoview', {
         target = this.canvas;
       }
       annotation.target.source = target;
+      annotation = this.cleanPixel(annotation);
       return annotation;
+    },
+    cleanPixel: function(annotation) {
+      var annoString = JSON.stringify(annotation);
+      annoString = annoString.replace('xywh=pixel:', 'xywh=').replace('xywh=percent:', 'xywh=pct:')
+      return JSON.parse(annoString);
     },
     enableDrawing: function(enable=true){
       if (this.isMobile){
