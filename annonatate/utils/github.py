@@ -45,8 +45,6 @@ class GitHubAnno(GitHub):
     def updateAnnos(self, session):
         try:
             githubresponse = self.get(session['currentworkspace']['contents_url'].replace('{+path}', session['defaults']['annotations']))
-            githubfilenames = list(map(lambda x: x['name'], githubresponse))
-            session['annotations'] = list(filter(lambda x: x['filename'].split('/')[-1] in githubfilenames, session['annotations']))
             return githubresponse
         except:
-            return False
+            return []

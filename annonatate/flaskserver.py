@@ -841,6 +841,8 @@ def getannotations():
 
 def filterAnnos(githubresponse):
     if githubresponse:
+        githubfilenames = list(map(lambda x: x['name'], githubresponse))
+        session['annotations'] = list(filter(lambda x: x['filename'].split('/')[-1] in githubfilenames, session['annotations']))
         filenames = list(map(lambda x: x['filename'].split('/')[-1], session['annotations']))
         notinsession = list(filter(lambda x: x['name'] not in filenames and '-list' not in x['name'],githubresponse))
         #beforefilenames = list(map(lambda x: x['filename'].split('/')[-1], annotations))
