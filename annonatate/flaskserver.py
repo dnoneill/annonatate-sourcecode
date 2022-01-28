@@ -777,7 +777,7 @@ def clearSession(dontdelete=False):
 # Get pages API contents
 def populateworkspace():
     session['github_url'] = session['currentworkspace']['contents_url'].replace('/{+path}', '')
-    session['github_branch'] = pagesinfo['currentworkspace']['default_branch']
+    session['github_branch'] = session['currentworkspace']['default_branch']
     try:
         pagesinfo = github.get('{}/pages'.format(session['currentworkspace']['url']))
         session['origin_url'] = pagesinfo['html_url']
