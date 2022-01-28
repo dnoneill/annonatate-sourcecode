@@ -58,6 +58,12 @@
 		| 
 		<a id="displaystoryboard" target="_blank" href="https://ncsu-libraries.github.io/annona/tools/#/display?url={{annodata | manifest | urlencode}}&viewtype=iiif-rangestoryboard&settings=%7B%22fullpage%22%3Atrue%7D">
 			Range Storyboard View
+		</a> | 
+		<a id="mirador3" target="_blank" href="https://projectmirador.org/embed/?iiif-content={{annodata | manifest | urlencode}}">
+			View in Mirador 3
+		</a> | 
+		<a id="uv" target="_blank" href="https://uv-v3.netlify.app/#?c=&m=&s=&cv=&manifest={{annodata | manifest | urlencode}}">
+			View in Universal Viewer
 		</a>
 		{% endif %}
 	</div>
