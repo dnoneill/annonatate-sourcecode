@@ -814,7 +814,7 @@ def getannotations():
             item['canvas'] = getCanvas(item['json'])
         session['annotations'] = content['annotations']
         if 'preloadedcontent' in content.keys() and content['preloadedcontent'] == None:
-            session['preloaded'] = {'manifests': [], 'images': [], 'settings': {}}
+            content['preloadedcontent'] = {'manifests': [], 'images': [], 'settings': {}}
         if 'preloadedcontent' not in content.keys():
             updateindex()
             session['preloaded'] = {'manifests': content['manifests'], 'images': content['images'], 'settings': {}}
@@ -830,38 +830,40 @@ def getannotations():
             session['upload'] = {'images': content['images'], 'manifests': content['manifests']}
         parsecustomviews(content)
         session['annotime'] = datetime.now()
-        github.updateAnnos(session)
-        annotations = session['annotations']
+        githubresponse = github.updateAnnos(session)
         if status > 299:
             session['annotations'] = ''
+        annotations = filterAnnos(githubresponse)
     else:
-        annotations = session['annotations']
         githubresponse = github.updateAnnos(session)
-        if githubresponse:
-            filenames = list(map(lambda x: x['filename'].split('/')[-1], session['annotations']))
-            notinsession = list(filter(lambda x: x['name'] not in filenames and '-list' not in x['name'],githubresponse))
-            #beforefilenames = list(map(lambda x: x['filename'].split('/')[-1], annotations))
-            #remove = list(set(beforefilenames).difference(filenames))
-            for item in notinsession:
-                try:
-                    downloadresponse = github.get(item['download_url'])
-                    contentssplit = downloadresponse.content.decode("utf-8").rsplit('---\n', 1)
-                    yamlparse = yaml.load(contentssplit[0], Loader=yaml.FullLoader)
-                    yamlparse['json'] = json.loads(contentssplit[-1])
-                    yamlparse['filename'] = item['name']
-                    filenamelist = listfilename(yamlparse['canvas'])
-                    indexof = [idx for idx, annotation in enumerate(session['annotations']) if filenamelist in annotation['filename']]
-                    session['annotations'].append(yamlparse)
-                    if len(indexof) > 0:
-                        itemskey = 'items' if 'items' in session['annotations'][indexof[0]]['json'].keys() else 'resources'
-                        session['annotations'][indexof[0]]['json'][itemskey].append(yamlparse['json'])
-                    else:
-                        context, annotype, itemskey = contextType()
-                        session['annotations'].append({'filename': filenamelist, 'order': None, 'json': {"@context": context,"id": filenamelist,"type": annotype,itemskey: [yamlparse['json']]}, 'canvas': ''})
-                except Exception as e:
-                    print(e)
-            annotations = session['annotations']
+        annotations = filterAnnos(githubresponse)
     return annotations
+
+def filterAnnos(githubresponse):
+    if githubresponse:
+        filenames = list(map(lambda x: x['filename'].split('/')[-1], session['annotations']))
+        notinsession = list(filter(lambda x: x['name'] not in filenames and '-list' not in x['name'],githubresponse))
+        #beforefilenames = list(map(lambda x: x['filename'].split('/')[-1], annotations))
+        #remove = list(set(beforefilenames).difference(filenames))
+        for item in notinsession:
+            try:
+                downloadresponse = github.get(item['download_url'])
+                contentssplit = downloadresponse.content.decode("utf-8").rsplit('---\n', 1)
+                yamlparse = yaml.load(contentssplit[0], Loader=yaml.FullLoader)
+                yamlparse['json'] = json.loads(contentssplit[-1])
+                yamlparse['filename'] = item['name']
+                filenamelist = listfilename(yamlparse['canvas'])
+                indexof = [idx for idx, annotation in enumerate(session['annotations']) if filenamelist in annotation['filename']]
+                session['annotations'].append(yamlparse)
+                if len(indexof) > 0:
+                    itemskey = 'items' if 'items' in session['annotations'][indexof[0]]['json'].keys() else 'resources'
+                    session['annotations'][indexof[0]]['json'][itemskey].append(yamlparse['json'])
+                else:
+                    context, annotype, itemskey = contextType()
+                    session['annotations'].append({'filename': filenamelist, 'order': None, 'json': {"@context": context,"id": filenamelist,"type": annotype,itemskey: [yamlparse['json']]}, 'canvas': ''})
+            except Exception as e:
+                print(e)
+    return session['annotations']
 
 def contextType():
     if isMirador():
