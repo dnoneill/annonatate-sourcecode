@@ -777,10 +777,10 @@ def clearSession(dontdelete=False):
 # Get pages API contents
 def populateworkspace():
     session['github_url'] = session['currentworkspace']['contents_url'].replace('/{+path}', '')
+    session['github_branch'] = pagesinfo['currentworkspace']['default_branch']
     try:
         pagesinfo = github.get('{}/pages'.format(session['currentworkspace']['url']))
         session['origin_url'] = pagesinfo['html_url']
-        session['github_branch'] = pagesinfo['source']['branch']
         session['isadmin'] = session['currentworkspace']['permissions']['admin']
     except:
         return render_template('error.html', message="<p>There is a problem with your GitHub pages site. Try <a href='https://docs.github.com/en/github/working-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site'>enabling the website</a> or deleting/renaming the repository <a href='{}/settings'>{}/settings</a></p>".format(session['currentworkspace']['html_url'], session['currentworkspace']['html_url']))
