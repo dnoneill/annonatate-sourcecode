@@ -28,6 +28,7 @@ class Image:
         else:
             # handle uploaded image
             files = request_files.getlist("file")
+            self.folder = "".join(re.findall(r'[0-9A-Za-z]+', self.request_form['folder']))
             self.files = []
             for filename in request_files.getlist("file"):
                 filenameonly, ext = pathsplitext(filename.filename)
@@ -37,6 +38,9 @@ class Image:
     def createActionScript(self, githubfilefolder, filenamelist):
         with open(pathjoin(githubfilefolder, 'iiifportion.txt')) as f:
             iiifscript = f.read().replace('\n', '\\n')
+        manifestcodepath = "{}Manifest.txt".format(self.request_form['version'])
+        with open(pathjoin(githubfilefolder, manifestcodepath)) as f:
+            iiifscript = iiifscript.replace("replacewithManifestCode", f.read().replace('\n', '\\n'))
         with open(pathjoin(githubfilefolder, 'imagetoiiif.yml')) as gf:
             iiifscript = gf.read().replace('replacewithportion', iiifscript)
         iiifscript = iiifscript.replace('replacewithoriginurl', self.origin_url)
@@ -47,6 +51,8 @@ class Image:
             formvalue = self.request_form[field]
             if field == "language" and not formvalue:
                 formvalue = "en"
+            elif field == "folder":
+                formvalue = self.folder
             iiifscript = iiifscript.replace(replacestring, formvalue)
         return iiifscript
 
@@ -81,6 +87,7 @@ def addAnnotationList(manifest, session):
                 if annotationlist not in annotations:
                     annopage = item.add_annotation()
                     annopage.set_id(annotationlist)
+                    annopage.type = 'AnnotationPage'
             stringmanifest = manifest.json_dumps()
         except:
             stringmanifest = json.dumps(manifest) if type(manifest) == dict else manifest

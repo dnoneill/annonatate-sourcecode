@@ -65,7 +65,8 @@ def encodedecode(chars):
         return chars.encode('utf8')
 
 def get_search(anno):
-    annodata_data = {'json': anno, 'searchfields': {'content': []}, 'facets': {'tags': [], 'creator': []}, 'datecreated':'', 'datemodified': '', 'id': anno['id'], 'basename': os.path.basename(anno['id'])}
+    annoid = anno['id'] if 'id' in anno.keys() else anno['@id']
+    annodata_data = {'json': anno, 'searchfields': {'content': []}, 'facets': {'tags': [], 'creator': []}, 'datecreated':'', 'datemodified': '', 'id': annoid, 'basename': os.path.basename(annoid)}
     if 'oa:annotatedAt' in anno.keys():
         annodata_data['datecreated'] = encodedecode(anno['oa:annotatedAt'])
     if 'created' in anno.keys():
@@ -83,7 +84,8 @@ def get_search(anno):
     for resource in textdata:
         chars = BeautifulSoup(resource['chars'], 'html.parser').get_text() if 'chars' in resource.keys() else ''
         chars = encodedecode(chars)
-        if chars and 'tag' in resource['type'].lower():
+        typefield = 'type' if 'type' in resource.keys() else '@type'
+        if chars and 'tag' in resource[typefield].lower():
             annodata_data['facets']['tags'].append(chars)
         elif 'purpose' in resource.keys() and 'tag' in resource['purpose']:
             tags_data = chars if chars else resource['value']
@@ -102,6 +104,8 @@ def get_search(anno):
             annodata_data['datemodified'] = resource['modified']
         if 'creator' in resource.keys() and resource['creator']['name'] not in annodata_data['facets']['creator']:
             annodata_data['facets']['creator'].append(resource['creator']['name'])
+    if annodata_data['datecreated'] and not annodata_data['datemodified']:
+        annodata_data['datemodified'] = annodata_data['datecreated']
     annodata_data['searchfields']['content'] = " ".join(annodata_data['searchfields']['content'])
     annodata_data['searchfields']['tags'] = " ".join(annodata_data['facets']['tags'])
     return annodata_data

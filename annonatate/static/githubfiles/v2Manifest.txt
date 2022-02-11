@@ -1,0 +1,30 @@
+fac = ManifestFactory()
+fac.set_base_prezi_uri('replacewithoriginurl')
+fac.set_base_image_uri(baseurl)
+fac.set_iiif_image_info(2.0, 2)
+manifest = fac.manifest(ident=os.path.join(baseurl, 'manifest.json'), label=manifestlabel)
+manifest.viewingDirection = 'replacewithdirection'
+manifest.description = '''replacewithdescription'''
+rights = '''replacewithrights'''
+if rights:
+    metadata = {}
+    metadata['rights'] = rights
+    manifest.set_metadata(metadata)
+seq = manifest.sequence()
+for idx,d in enumerate(data):
+    fullurl = os.path.join(baseurl, d[0])
+    idx += 1
+    cvs = seq.canvas(ident='{}{}'.format(dst, d[0]), label=d[5])
+    anno = cvs.annotation(ident='{}/annotation/{}.json'.format(fullurl, idx))
+    img = anno.image(d[0], iiif=True)
+    cvs.height = d[2]
+    cvs.width = d[1]
+    img.height = d[2]
+    img.width = d[1]
+    filteredallfiles = [f for f in os.listdir(os.path.join(dst, d[0], 'full')) if f != 'full' and int(f.split(',')[0]) > 70]
+    filteredallfiles.sort()
+    size = filteredallfiles[0] if len(filteredallfiles) > 0 else '80,'
+    cvs.thumbnail = '{}/full/{}/0/default.jpg'.format(d[3], size)
+manifeststring = manifest.toString(compact=False)
+with open(os.path.join('img/derivatives/iiif/', 'replacewithfolder', 'manifest.json'), 'w') as f:
+    f.write(manifeststring)

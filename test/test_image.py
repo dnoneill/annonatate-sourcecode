@@ -23,9 +23,9 @@ class TestManifest(unittest.TestCase):
       self.assertEqual(self.manifest['label'], 'test upload')
       self.assertEqual(self.manifest['@id'], 'http://session/origin_url/manifests/testdata/manifest.json')
 
-class TestImage(unittest.TestCase):
+class TestImageDefault(unittest.TestCase):
    def setUp(self):
-      self.request_form = {'upload': 'uploadimage', 'label': 'This is the label', 'direction': 'left-to-right', 'description': 'This is the description', 'rights': 'This is the rights', 'folder': 'testing', 'language': ''}
+      self.request_form = {'upload': 'uploadimage', 'version': 'v3', 'label': 'This is the label', 'direction': 'left-to-right', 'description': 'This is the description', 'rights': 'This is the rights', 'folder': 'testing', 'language': ''}
       self.request_files = []
       self.request_files.append(("file", FileStorage(io.BytesIO(b'my file contents'), 'filename.jpg')))
       self.request_files.append(("file", FileStorage(io.BytesIO(b'my file contents'), 'filename2.png')))
@@ -36,11 +36,37 @@ class TestImage(unittest.TestCase):
       for files in self.image.files:
          self.filenamelist.append(files['filename'])
       self.actionscript = self.image.createActionScript('annonatate/static/githubfiles/', self.filenamelist)
+   
    def test_manifest_iiif(self):
       self.assertTrue(self.image.isimage)
       self.assertEqual(self.image.files, [{'filename': 'filename.jpg', 'encodedimage': b'my file contents', 'label': 'filename'}, {'filename': 'filename2.png', 'encodedimage': b'my file contents', 'label': 'filename2'}])
       self.maxDiff = None
       self.parsedActionScript= yaml.load(self.actionscript, Loader=yaml.FullLoader)['jobs']['convertimages']['steps']
+      self.assertTrue("iiifpapi3.BASE_URL" in self.parsedActionScript[4]['run'])
+      self.assertFalse("fac.set_iiif_image_info(2.0, 2)" in self.parsedActionScript[4]['run'])
+      self.assertEqual(self.parsedActionScript[5]['run'], 'echo -e "---\\n---\\n$(cat img/derivatives/iiif/testing/manifest.json)" > img/derivatives/iiif/testing/manifest.json')
+
+class TestImageV2(unittest.TestCase):
+   def setUp(self):
+      self.request_form = {'upload': 'uploadimage', 'version': 'v2', 'label': 'This is the label', 'direction': 'left-to-right', 'description': 'This is the description', 'rights': 'This is the rights', 'folder': 'testing', 'language': ''}
+      self.request_files = []
+      self.request_files.append(("file", FileStorage(io.BytesIO(b'my file contents'), 'filename.jpg')))
+      self.request_files.append(("file", FileStorage(io.BytesIO(b'my file contents'), 'filename2.png')))
+      self.filenamelist = []
+      self.request_files = ImmutableMultiDict(self.request_files)
+      self.request_url = 'http://session/origin_url/'
+      self.image = ImageClass.Image(self.request_form, self.request_files, self.request_url)
+      for files in self.image.files:
+         self.filenamelist.append(files['filename'])
+      self.actionscript = self.image.createActionScript('annonatate/static/githubfiles/', self.filenamelist)
+   
+   def test_manifest_iiif(self):
+      self.assertTrue(self.image.isimage)
+      self.assertEqual(self.image.files, [{'filename': 'filename.jpg', 'encodedimage': b'my file contents', 'label': 'filename'}, {'filename': 'filename2.png', 'encodedimage': b'my file contents', 'label': 'filename2'}])
+      self.maxDiff = None
+      self.parsedActionScript= yaml.load(self.actionscript, Loader=yaml.FullLoader)['jobs']['convertimages']['steps']
+      self.assertFalse("iiifpapi3.BASE_URL" in self.parsedActionScript[4]['run'])
+      self.assertTrue("fac.set_iiif_image_info(2.0, 2)" in self.parsedActionScript[4]['run'])
       self.assertEqual(self.parsedActionScript[5]['run'], 'echo -e "---\\n---\\n$(cat img/derivatives/iiif/testing/manifest.json)" > img/derivatives/iiif/testing/manifest.json')
 
 class TestAddAnnotationList(unittest.TestCase):

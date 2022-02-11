@@ -10,7 +10,7 @@
   <script src="https://ncsu-libraries.github.io/annona/latest/annona.js"></script>
   <link rel="stylesheet" type="text/css" href="https://ncsu-libraries.github.io/annona/latest/annona.css">	
 	<script src="//cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.js"></script>
-  <script src="//cdn.jsdelivr.net/npm/lodash@4.17.11/lodash.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/lodash@4.17.11/lodash.min.js"></script>
   <script src="/assets/js/global.js"></script>
 
  </head>
@@ -44,14 +44,10 @@
       {% block header %}{% endblock %}
     </header>
     <p class="error">{{g.error | safe}}</p>
-    {% if session['tempuser'] != True %}
+    {% if 'tempuser' not in session.keys() or session['tempuser'] != True %}
     {% block content %}{% endblock %}
     {% else %}
-    <form action="{{ url_for('updatetempuser') }}" method="post" enctype=multipart/form-data style="display: inline-block;">
-      <label for="tempusername">Enter Username: </label>
-			<input type="text"  id="tempusername" name="tempusername">
-      <button type="submit" class="button">Submit</button>
-    </form>
+      {% include 'tempuserform.html' %}
     {% endif %}
   </section>
   <script>

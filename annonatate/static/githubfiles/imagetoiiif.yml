@@ -13,7 +13,7 @@ jobs:
       - name: poppler
         run: sudo apt-get install -y poppler-utils
       - name: pip install
-        run: pip3 install iiif pdf2image Pillow git+https://github.com/giacomomarchioro/pyIIIFpres
+        run: pip3 install iiif pdf2image Pillow iiif-prezi git+https://github.com/giacomomarchioro/pyIIIFpres
       - name: runscript
         run: python3 -c "exec(\"replacewithportion\")"
       - name: add page jekyll to manifest
@@ -22,6 +22,7 @@ jobs:
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
+          git config pull.rebase false
           git add -A
           git commit -m "Create replacewithfolder manifest and IIIF derivatives" -a
       - name: pull

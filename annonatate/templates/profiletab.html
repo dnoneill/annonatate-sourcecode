@@ -7,7 +7,10 @@
                 {{key}}: {{value}}
             </div>
         {% endfor %}
+        {% if session['tempuser'] %}
         <a href="https://github.com/settings/profile" target="_blank">Update user info</a>
+        <br>{% include 'tempuserform.html' %}
+        {% endif %}
         {% if invites | length > 0 %}
         <div>
         <h2>Invitations</h2>
@@ -37,6 +40,9 @@
         <div>
         <a href="{{value['html_url']}}" target="_blank">{{key}}</a>
         <span class="switchorcurrent">
+        {% if 'default-workspace' in value['topics'] %}
+        <code>(default-workspace)</code>
+        {% endif %}
         {% if session['currentworkspace']['full_name'] == key %}
             <div style="color: green">(Current workspace)</div></div>
             <div class="workspaceusers">
@@ -70,7 +76,20 @@
         {% set adminaccounts = adminaccounts.append(value['full_name']) %}
         {% endif %}
         {% endfor %}
-    
+    <h2>Update Default Workspace</h2>
+    <p>When you have multiple workspaces, this allows you to set the workspace that you are in when logging in. By default, it is the first in the list alphabetically.</p>
+    <form action="{{ url_for('defaultworkspace') }}" method="post">
+        <fieldset>
+            <legend>Update Default workspace</legend>
+            <select name="workspace" id="workspace">
+                {% for workspace in session['workspaces'] %}
+                <option value="{{workspace}}">{{workspace}}</option>
+                {% endfor %}
+            </select>
+              <button name="button" type="submit" value="submit">Submit</button>
+            </div>
+        </fieldset>
+    </form>
     {% if session['isadmin'] %}
     <h2>Invite collaborators to {{session['currentworkspace']['full_name']}}</h2>
     <form action="{{ url_for('add_collaborator') }}" method="post">
@@ -135,7 +154,9 @@
         <div><label for="private">Private (only check this if you have private GitHub pages availaible. This is not avaliable on the free version.):</label>
             <input type="checkbox" name="private" id="private"/></div>
         <div>
-        
+        <div><label for="mirador">Mirador 2 (will use Mirador 2 for creating annotations):</label>
+            <input type="checkbox" name="mirador" id="mirador"/></div>
+        <div>
           <button name="button" type="submit" value="submit">Submit</button>
         </div>
         </fieldset>

@@ -8,6 +8,10 @@ const annoview = Vue.component('annoview', {
       </span>
     </button>
   </div>
+  <div style="position:absolute;right: 10px;top: 52px;">
+    Currently in {{this.fragmentunit}} mode.<br>
+    Switch to <a v-on:click="updateUnit()" href="#">{{this.fragmentunit =='pixel' ? 'percent' : 'pixel' }} mode</a>
+  </div>
   <div class="manifestimages">
     <div v-for="manifest in existing['manifests']">
       <button v-if="manifest" class="linkbutton" v-on:click="getManifest(manifest)">
@@ -21,7 +25,7 @@ const annoview = Vue.component('annoview', {
     </div>
   </div>
   <div>
-    <label for="ingesturl">Manifest or Image URL</label>
+    <label for="ingesturl">Manifest or Image URL: </label>
     <input id="ingesturl" v-on:change="getManifest(ingesturl)" v-model="ingesturl"></input>
     <button v-on:click="showManThumbs = !showManThumbs" v-if="currentmanifest">
       <span v-if="showManThumbs">Hide</span><span v-else>Show</span> Manifest Thumbnails
@@ -60,6 +64,12 @@ const annoview = Vue.component('annoview', {
       </b>
     </div>
   </div>
+  <div v-else>
+    <p>
+    The links above are a list of demo images you can click on and they will be loaded into the annotation viewer. These links can be edited on the <a href="/profile?tab=data">profile page</a>.<br>
+    You can also add in your own link to an image or <a href="https://iiif.io" target="_blank">IIIF manfiest</a> into the box next to "Manifest or Image URL".
+    </p>
+  </div>
   <div class="layers gridparent" v-if="alltiles.length > 1">
     <div v-for="item in alltiles">
       <input type="checkbox" class="tagscheck" v-on:click="setOpacity(item)" v-model="item.checked">
@@ -95,7 +105,8 @@ const annoview = Vue.component('annoview', {
       isMobile: false,
       alltiles: [],
       drawingenabled: false,
-      ingesturl: ''
+      ingesturl: '',
+      fragmentunit: 'pixel'
   	}
   },
   mounted() {
@@ -104,6 +115,10 @@ const annoview = Vue.component('annoview', {
     const params = new URLSearchParams(window.location.search);
     const manifesturl = params.get('manifesturl');
     const imageurl = params.get('imageurl');
+    const mode = params.get('mode');
+    if (mode){
+      this.fragmentunit = mode;
+    }
     if (manifesturl){
       this.currentmanifest = manifesturl;
       this.getManifest(manifesturl, params.get('canvas'));
@@ -114,6 +129,16 @@ const annoview = Vue.component('annoview', {
     }
   },
   methods: {
+    updateUnit: function() {
+      const switchUnit = this.fragmentunit =='pixel' ? 'percent' : 'pixel' ;
+      var url = new URL(location.href);
+      if (url.searchParams.get('mode')){
+        url.searchParams.set('mode', switchUnit);
+      } else{
+        url.searchParams.append('mode', switchUnit);
+      }
+      window.location.href = url.toString();
+    },
     loadImage: function() {
       this.currentmanifest='';
       this.title = '';
@@ -163,6 +188,7 @@ const annoview = Vue.component('annoview', {
       this.anno = OpenSeadragon.Annotorious(viewer, 
         { image: 'openseadragon1',
           messages: { "Ok": "Save" },
+          fragmentUnit: this.fragmentunit,
           allowEmpty: true,
           widgets: [ 
                     {widget: 'COMMENT', editable: 'MINE_ONLY', purposeSelector: true},
@@ -170,7 +196,8 @@ const annoview = Vue.component('annoview', {
                   ]});
     // Load annotations in W3C WebAnnotation format
       if (existing){
-        var annotation = this.anno.setAnnotations(existing); 
+        const clean = existing.map(elem => JSON.parse(JSON.stringify(elem).replace("pct:", "percent:")))
+        var annotation = this.anno.setAnnotations(clean);
       }
       Annotorious.SelectorPack(this.anno);
       this.drawtools = []
@@ -246,14 +273,14 @@ const annoview = Vue.component('annoview', {
                 thumb = imagethumb;
               }
               
-              var id = resourceitem['service']['id'] ? resourceitem['service']['id'] : resourceitem['service']['@id']  ? resourceitem['service']['@id'] + '/info.json' : resourceitem['service'][0]['id'];
-              id = id.split('/info')[0] + '/info.json';
+              var id = resourceitem['service'] && resourceitem['service']['id'] ? resourceitem['service']['id'] : resourceitem['service'] && resourceitem['service']['@id']  ? resourceitem['service']['@id'] + '/info.json' : resourceitem['service'] ? resourceitem['service'][0]['id'] : resourceitem['id'];
+              id = resourceitem['service'] ? id.split('/info')[0] + '/info.json' : id;
               const opacity = j == 0 ? 1 : 0;
               const checked = j == 0 ? true : false;
               const resourceid = resourceitem ? vue.getId(resourceitem) : '';
               var xywh = resourceid && resourceid.constructor.name === 'String' && resourceid.indexOf('xywh') > -1 ? resourceid : vue.on_structure(manifestimages[j]) && vue.on_structure(manifestimages[j])[0].constructor.name === 'String' ? vue.on_structure(manifestimages[j])[0] : '';
               xywh = xywh ? xywh.split("xywh=").slice(-1)[0].split(",") : xywh;
-              const tilelabel = manifestdata[i].getLabel() ? manifestdata[i].getLabel()[0]['value'] : ""
+              const tilelabel = manifestdata[i].getLabel().length > 0 ? manifestdata[i].getLabel()[0]['value'] : ""
               tiles.push({'id': id, 'label': tilelabel,
                 thumbnail: imagethumb.replace('/full/0', '/100,/0'), 'opacity': opacity,
                 'checked': checked, 'xywh': xywh
@@ -296,6 +323,7 @@ const annoview = Vue.component('annoview', {
     },
     addManifestAnnotation: function(annotation){
       var target = this.inputurl;
+      annotation['motivation'] = 'commenting';
       if (this.currentmanifest){
         annotation.target['dcterms:isPartOf'] = {
           "id": this.currentmanifest,
@@ -304,7 +332,13 @@ const annoview = Vue.component('annoview', {
         target = this.canvas;
       }
       annotation.target.source = target;
+      annotation = this.cleanPixel(annotation);
       return annotation;
+    },
+    cleanPixel: function(annotation) {
+      var annoString = JSON.stringify(annotation);
+      annoString = annoString.replace('xywh=pixel:', 'xywh=').replace('xywh=percent:', 'xywh=pct:')
+      return JSON.parse(annoString);
     },
     enableDrawing: function(enable=true){
       if (this.isMobile){
@@ -320,25 +354,26 @@ const annoview = Vue.component('annoview', {
       });
       this.anno.on('createAnnotation', function(annotation) {
         var annotation = vue.addManifestAnnotation(annotation);
-        var senddata = {'json': annotation }
-        vue.write_annotation(senddata, 'create', annotation);
+        vue.write_annotation(annotation, 'create');
         vue.enableDrawing();
       });
     
       this.anno.on('updateAnnotation', function(annotation) {
         var annotation = vue.addManifestAnnotation(annotation);
-        var senddata = {'json': annotation,'id': annotation['id'], 'order': annotation['order']}
-        vue.write_annotation(senddata, 'update');
+        vue.write_annotation(annotation, 'update');
         vue.enableDrawing();
       });
 
       this.anno.on('deleteAnnotation', function(annotation) {
-        var senddata = annotation;
-        vue.write_annotation(senddata, 'delete');
+        vue.write_annotation(annotation, 'delete');
         vue.enableDrawing();
       });
     },
-    write_annotation: function(senddata, method, annotation=false) {
+    write_annotation: function(annotation, method) {
+      var senddata = {'json': annotation, 'canvas': annotation['target']['source'], 'id': annotation['id']}
+      if (annotation['order']){
+        senddata['order'] = annotation['order'];
+      }
       jQuery.ajax({
         url: `/${method}_annotations/`,
         type: "POST",
@@ -346,7 +381,7 @@ const annoview = Vue.component('annoview', {
         data: JSON.stringify(senddata),
         contentType: "application/json; charset=utf-8",
         success: function(data) {
-          if (annotation) {
+          if (annotation && method != 'delete') {
             annotation['id'] = data['id']
             annotation['order'] = data['order'];
           }

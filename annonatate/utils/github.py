@@ -30,7 +30,9 @@ class GitHubAnno(GitHub):
         sha = self.get_existing(session, full_url)
         writeordelete = "write" if text != 'delete' else "delete"
         message = "{} {}".format(writeordelete, filename)
-        text = '---\ncanvas: "{}"\n{}---\n{}'.format(text['target']['source'],order, json.dumps(text, indent=4)) if type(text) != str and type(text) != bytes else text
+        if type(text) != str and type(text) != bytes:
+            canvas = text['target']['source'] if 'target' in text.keys() else text['on'][0]['full']
+            text = '---\ncanvas: "{}"\n{}---\n{}'.format(canvas ,order, json.dumps(text, indent=4))
         text = text.encode('utf-8') if type(text) != bytes else text
         data = {"message":message, "content": base64.b64encode(text).decode('utf-8'), "branch": session['github_branch'] }
         if sha != '':
@@ -43,8 +45,6 @@ class GitHubAnno(GitHub):
     def updateAnnos(self, session):
         try:
             githubresponse = self.get(session['currentworkspace']['contents_url'].replace('{+path}', session['defaults']['annotations']))
-            githubfilenames = list(map(lambda x: x['name'], githubresponse))
-            session['annotations'] = list(filter(lambda x: x['filename'].split('/')[-1] in githubfilenames, session['annotations']))
             return githubresponse
         except:
-            return False
+            return []
