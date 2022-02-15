@@ -370,6 +370,7 @@ const annoview = Vue.component('annoview', {
       });
     },
     write_annotation: function(annotation, method) {
+      var vue = this;
       var senddata = {'json': annotation, 'canvas': annotation['target']['source'], 'id': annotation['id']}
       if (annotation['order']){
         senddata['order'] = annotation['order'];
@@ -382,8 +383,10 @@ const annoview = Vue.component('annoview', {
         contentType: "application/json; charset=utf-8",
         success: function(data) {
           if (annotation && method != 'delete') {
+            vue.anno.removeAnnotation(annotation);
             annotation['id'] = data['id']
             annotation['order'] = data['order'];
+            vue.anno.addAnnotation(annotation);
           }
         },
         error: function(err) {
