@@ -29,7 +29,7 @@
         {% set renameerror = request.args.get('renameerror') %}
         {% if switcherror %}
         <p>
-        <i class="fas fa-exclamation-triangle" style="color:red"></i> There was a problem switching to the workspace <b>{{switcherror}}</b>.
+        <i class="fas fa-exclamation-triangle"></i> There was a problem switching to the workspace <b>{{switcherror}}</b>.
         If this is newly created workspace give the workspace a minute to finish rendering and try switching again. 
         If this is a <b>wax repository</b> we had to add an API to your repository. Please give it a minute and try switching again.
         If this problem does not go away in a couple minutes please <a href="https://github.com/annonatate/annonatate/issues/new">contact us.</a>
@@ -67,7 +67,7 @@
         </form></div>
         {% else %}
         <div>
-        <i class="fas fa-exclamation-triangle" style="color:red"></i> This repo does not have GitHub pages enabled. You will not be able to use this repository until you <a href="{{value['html_url']}}/settings/pages" target="_blank">enable GitHub pages</a>.
+        <i class="fas fa-exclamation-triangle"></i> This repo does not have GitHub pages enabled. You will not be able to use this repository until you <a href="{{value['html_url']}}/settings/pages" target="_blank">enable GitHub pages</a>.
         </div>
         {% endif %}
         </span>
@@ -112,7 +112,7 @@
     {% if adminaccounts | length > 0 %}
     <h2>Rename existing workspaces</h2>
     {% if renameerror %}
-    <i class="fas fa-exclamation-triangle" style="color:red"></i> {{renameerror}}
+    <i class="fas fa-exclamation-triangle"></i> {{renameerror}}
     {% endif %}
     <form action="{{ url_for('renameGitHub') }}" method="post">
         <fieldset>
@@ -136,7 +136,7 @@
     <h2>Create a new workspace</h2>
     {% set error = request.args.get('error') %}
     {% if error %}
-    <i class="fas fa-exclamation-triangle" style="color:red"></i> {{error}}
+    <i class="fas fa-exclamation-triangle"></i> {{error}}
     {% endif %}
     <form action="{{ url_for('add_repos') }}" method="post">
         <fieldset>

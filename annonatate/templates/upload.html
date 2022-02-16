@@ -6,6 +6,7 @@
 	</head>
 	<body>
 	{{error}}
+	<div id="imagerror"></div>
 	<div class="tab">
 	  <button class="tablinks" onclick="openTab(event, 'manifest')" id="defaultOpen">Create Manifest</button>
 	  <button class="tablinks" onclick="openTab(event, 'image')" id="imagetab">Upload Image</button>
@@ -35,7 +36,7 @@
 		<div>
 			<label for="upload-image">Upload image or PDF files from computer (each file must be 25MB or smaller): </label>
 			<input type="text"  id="upload-image" name="upload" value="uploadimage" style="display: none">
-		 	<input type=file id="upload-image" name=file accept="image/* pdf/*" required multiple>
+			<input type=file  onchange="checkImages(this);" id="upload-image" name=file accept="image/* pdf/*" required multiple>
 			 <div>
 				<label for="label">Title of Image (Required): </label>
 				<input value="" id="label" name="label" required>
@@ -73,7 +74,7 @@
 				</select>
 			</div>
 	 	</div>
-		<button type="submit">Upload image</button>
+		<button type="submit" id="imagesubmit">Upload image</button>
 	</form>
 	</div>
 
@@ -125,4 +126,26 @@
 		  <button type="submit">Upload collection</button>
 	  </form>
 	</div>
+	<script>
+		function checkImages(images) {
+			var message = ''
+			for (var i=0; i<images.files.length; i++){
+				if(images.files[i].size > 25000000){
+					if (message){
+						message += '<br>'
+					}
+					message += `${images.files[i].name} is bigger than 25MB! Choose different images.`;
+				}
+			}
+			if (message) {
+				alert(message.replaceAll("<br>", "\n"))
+				var imageerror = document.getElementById('imagerror');
+				imageerror.innerHTML = `<i class="fas fa-exclamation-triangle"></i>${message}<i class="fas fa-exclamation-triangle"></i>`;
+				document.getElementById("imagesubmit").disabled = true;
+			} else {
+				document.getElementById('imagerror').innerHTML = '';
+				document.getElementById("imagesubmit").disabled = false;
+			}
+		}
+	</script>
 {% endblock %}
