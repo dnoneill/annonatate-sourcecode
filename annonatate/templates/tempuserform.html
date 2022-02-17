@@ -1,6 +1,6 @@
 {% set tempuservalue = session['tempuser'] if session['tempuser'] != True else '' %}
 <form action="{{ url_for('updatetempuser', next=request.url) }}" method="post" enctype=multipart/form-data style="display: inline-block;">
-    <label for="tempusername">Enter Username: </label>
+    <label for="tempusername">Enter author: </label>
     <input type="text"  id="tempusername" name="tempusername" value="{{tempuservalue}}">
     <button type="submit" class="button">Submit</button>
 </form>
