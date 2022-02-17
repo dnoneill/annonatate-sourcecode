@@ -350,7 +350,7 @@ const annoview = Vue.component('annoview', {
       // Attach handlers to listen to events
       var vue = this;
       this.anno.on('cancelSelected', function() {
-        vue.enableDrawing();
+        vue.enableDrawing(vue.drawingenabled);
       });
       this.anno.on('createAnnotation', function(annotation) {
         var annotation = vue.addManifestAnnotation(annotation);
