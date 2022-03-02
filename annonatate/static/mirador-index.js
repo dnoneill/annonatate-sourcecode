@@ -6,17 +6,14 @@ const annoview = Vue.component('annoview', {
       'existing': Object,
       'filepaths': Object,
       'userinfo': Object,
-      'tags': Array
+      'tags': Array,
+      'originurl': String
     },
     data: function() {
         return {
             mirador: '',
             loadedManifest: ''
         }
-    },
-    created() {
-        
-        
     },
     mounted() {
         const params = new URLSearchParams(window.location.search);
@@ -38,7 +35,7 @@ const annoview = Vue.component('annoview', {
                }
             ], 
             annotationEndpoint: { 'name':'Local Annotation Endpoint', 'module': 'LocalAnnotationEndpoint', 
-                'options': {'server': api_server, 'allannotations' : this.filepaths, 'creator': this.userinfo['name']}},
+                'options': {'originurl': this.originurl, 'server': api_server, 'allannotations' : this.filepaths, 'creator': this.userinfo['name']}},
             sidePanelOptions : {
           'tocTabAvailable': true,
           'layersTabAvailable': true,

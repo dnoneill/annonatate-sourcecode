@@ -38,7 +38,9 @@ def before_request():
     #pages that should have have a landing page when not logged in
     nolandingpage = ['login', 'authorized', 'logout', 'static']
     # if not logged in and the page is no the login/authorized/logout or static file show landing page
-    if 'user_id' not in session.keys() and request.endpoint not in nolandingpage:
+    if 'user_id' not in session.keys() and '_anno' in request.endpoint:
+        return 'You have been logged out of the application. You will now be redirected to the login page.', 418
+    elif 'user_id' not in session.keys() and request.endpoint not in nolandingpage:
         return render_template('landingpage.html')
     g.error = ''
     # If the user has been logged in for longer than 3 days, clear the session and log them back in
@@ -231,7 +233,6 @@ def createimage():
         if type(image.manifest) == dict:
             return render_template('upload.html', error=image.manifest['error'])
         response = github.sendgithubrequest(session, "manifest.json", image.manifest_markdown, image.manifestpath).json()
-        uploadtype = 'manifest'
         if 'content' in response.keys():
             uploadurl ='{}{}'.format(image.origin_url, response['content']['path'].replace('_manifest', 'manifest'))
             successmessage = successtext(uploadurl, uploadtype)
@@ -243,7 +244,6 @@ def createimage():
         for afile in image.files:
             imagespath = "images"
             response = github.sendgithubrequest(session, afile['filename'], afile['encodedimage'], imagespath).json()
-            uploadtype='manifest'
             if 'content' in response.keys():
                 uploadurl = "{}img/derivatives/iiif/{}/manifest.json".format(image.origin_url, image.folder)
                 successmessage = successtext(uploadurl, uploadtype)
@@ -255,8 +255,8 @@ def createimage():
         github.sendgithubrequest(session, 'imagetoiiif.yml', convertiiif, ".github/workflows").json()
         time.sleep(1)
         triggerAction('imagetoiiif.yml')
-    triggerbuild()
-    return render_template('uploadsuccess.html', output=output, uploadurl=uploadurl, successmessage=successmessage, uploadtype=uploadtype)
+    #triggerbuild()
+    return render_template('uploadsuccess.html', output=output, uploadurl=uploadurl, successmessage=successmessage, uploadtype='manifest')
 
 def successtext(uploadurl, uploadtype):
     if uploadurl:
@@ -510,7 +510,7 @@ def delete_anno():
     response = delete_annos(id)
     if len(canvases[canvas]) == 1:
         delete_annos(listfilename(canvas))
-    return jsonify({"File Removed": True}), response
+    return jsonify(response['message']), response['status_code']
 
 # Get repository invites, collaborators, user info/organizations, render profile page
 @app.route('/profile/')
@@ -958,9 +958,9 @@ def delete_annos(anno):
         if response.status_code < 400:
             session['annotations'] = [x for x in session['annotations'] if anno not in x['filename']]
             session['annotime'] = datetime.now()
-        return response.status_code
+        return {'message': response.content, 'status_code': response.status_code}
     else:
-        return 400
+        return {'message': 'no annotation exists', 'status_code': 400}
 
 def to_pretty_json(value):
     return json.dumps(value, sort_keys=True,
