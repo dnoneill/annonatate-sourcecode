@@ -26,6 +26,7 @@
       this.eventEmitter.subscribe('windowUpdated', function(event, params) {
         if (Object.keys(params).indexOf('loadedManifest') > -1) {
           _this.manifesturl = params.loadedManifest;
+          _this.eventEmitter.publish('REMOVE_SLOT_FROM_WINDOW', 'slot1')
         }
       });
     },
@@ -80,7 +81,6 @@
           this.imagesList[index].otherContent =this.imagesList[index].otherContent.filter(elem => elem[id].indexOf(this.originurl) == -1);
         }
       }
-      this.eventEmitter.publish('currentCanvasIDUpdated.'+this.windowID)
     },
     deleteAnnotation: function(annotationID, returnSuccess, returnError, canvas=false) {
       split = annotationID.split("/");
