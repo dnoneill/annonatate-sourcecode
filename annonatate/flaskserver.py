@@ -229,6 +229,7 @@ def createimage():
     image = Image(request.form, request.files, session['origin_url'])
     successmessage = ''
     uploadurl = ''
+    uploadtype = 'manifest'
     if not image.isimage:
         if type(image.manifest) == dict:
             return render_template('upload.html', error=image.manifest['error'])
@@ -256,7 +257,7 @@ def createimage():
         time.sleep(1)
         triggerAction('imagetoiiif.yml')
     #triggerbuild()
-    return render_template('uploadsuccess.html', output=output, uploadurl=uploadurl, successmessage=successmessage, uploadtype='manifest')
+    return render_template('uploadsuccess.html', output=output, uploadurl=uploadurl, successmessage=successmessage, uploadtype=uploadtype)
 
 def successtext(uploadurl, uploadtype):
     if uploadurl:
