@@ -834,8 +834,11 @@ def getannotations():
         annotations = github.updateAnnos(session)
         if status > 299:
             session['annotations'] = ''
+        else:
+            session['annotations'] = annotations
     else:
         annotations = github.updateAnnos(session)
+        session['annotations'] = annotations
     return annotations
 
 
