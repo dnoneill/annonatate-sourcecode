@@ -61,7 +61,7 @@ class TestGitHub(unittest.TestCase):
         self.assertEqual(datadict['data']['sha'], 'sha-abcdef')
 
     # test deletion of session annotations that have been deleted in Github repo (e.g. by another user)
-    keep_annotation_github = { "name": "annotation_to_keep" }
+    keep_annotation_github = { "name": "annotation_to_keep", "filename": "annotation_to_keep" }
     keep_annotation_session = { "filename": "http://test/annotation_to_keep" }
     delete_annotation_session = { "filename": "http://test/annotation_to_delete" }
 
