@@ -34,8 +34,8 @@ const annoview = Vue.component('annoview', {
   <div class="manifestthumbs" v-show="showManThumbs && currentmanifest">
     <div v-if="manifestdata == 'failure'"><i class="fas fa-exclamation-triangle"></i> {{currentmanifest}} failed to load! Please check your manifest.</div>
     <div v-else-if="manifestdata.length == 0">Loading...</div>
-    <div v-else v-for="item in manifestdata" style="display: inline-block;">
-      <button v-on:click="manifestLoad(item)" class="linkbutton">
+    <div v-else v-for="(item, index) in manifestdata" style="display: inline-block;">
+      <button v-on:click="currentposition = index;manifestLoad(item)" class="linkbutton">
         <img :src="item['image']" style="max-width:100px;padding:5px;" alt="manifest thumbnail">
       </button>
     </div>
@@ -81,6 +81,8 @@ const annoview = Vue.component('annoview', {
   <div v-if="title" style="font-weight:900">{{title[0]['value']}}: 
   <span v-if="alltiles.length > 0 && alltiles[0]['label']">{{alltiles[0]['label']}}</span>
   </div>
+  <a class="prev prevnext" v-on:click="next('prev')" v-if="manifestdata && manifestdata[currentposition-1]">&lt;</a>
+  <a class="next prevnext" v-on:click="next('next')" v-if="manifestdata && manifestdata[currentposition+1]">&gt;</a>
   <div id="openseadragon1" v-bind:class="{'active' : inputurl !== ''}"></div>
   </div>
   `,
@@ -107,7 +109,8 @@ const annoview = Vue.component('annoview', {
       alltiles: [],
       drawingenabled: false,
       ingesturl: '',
-      fragmentunit: 'pixel'
+      fragmentunit: 'pixel',
+      currentposition: 0
   	}
   },
   mounted() {
@@ -131,6 +134,10 @@ const annoview = Vue.component('annoview', {
     }
   },
   methods: {
+    next: function(nextorprev) {
+      this.currentposition = nextorprev == 'next' ? this.currentposition + 1 : this.currentposition -1;
+      this.manifestLoad(this.manifestdata[this.currentposition])
+    },
     checkErrorAnnos: function(){
       const erroranno = JSON.parse(localStorage.getItem('erranno'));
       if (erroranno) {
@@ -303,6 +310,7 @@ const annoview = Vue.component('annoview', {
             thumb = thumb.replace('/full/0', '/100,/0')
             images.push({'image': thumb, 'canvas': canvas, 'tiles': tiles})
             if (loadcanvas == canvas) {
+              this.currentposition = i;
               vue.manifestLoad({'image': thumb, 'canvas': canvas, 'tiles': tiles})
             }
           }

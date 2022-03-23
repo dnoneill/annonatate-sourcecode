@@ -454,3 +454,17 @@ h3 {
 body {
   margin: 0px;
 }
+
+.prevnext {
+  position: absolute;
+  font-size: 40px;
+  font-weight: bold;
+  z-index: 100000;
+  margin-top: 45vh;
+  -webkit-text-stroke-width: 1.2px;
+  -webkit-text-stroke-color: white;
+}
+
+.next {
+  right: 9%;
+}
