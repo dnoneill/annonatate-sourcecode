@@ -74,7 +74,8 @@ section.content {
   list-style-type: none;
 }
 #result h2 {
-  display: flex;
+  display: block;
+  word-break: break-all;
   padding: 0px;
   margin: 0px;
 }
@@ -166,18 +167,20 @@ tbody {
   padding: 0px;
   width: 200px;
 }
-
+/* 
 .thumbnail {
   height: 50px;
   float: left;
   margin-bottom: 1em;
-}
+} */
 
-.thumbnail img, .thumbnail svg {
+.thumbnail img, .thumbnail svg, .thumbnail canvas {
   width: auto!important;
   float: left;
   padding-right: 10px;
   max-width: 200px;
+  height: auto!important;
+  max-height: 100px!important;
 }
 
 .thumbnail .annoimage svg {
@@ -450,4 +453,18 @@ h3 {
 
 body {
   margin: 0px;
+}
+
+.prevnext {
+  position: absolute;
+  font-size: 40px;
+  font-weight: bold;
+  z-index: 100000;
+  margin-top: 45vh;
+  -webkit-text-stroke-width: 1.2px;
+  -webkit-text-stroke-color: white;
+}
+
+.next {
+  right: 9%;
 }

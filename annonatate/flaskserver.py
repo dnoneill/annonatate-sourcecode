@@ -38,7 +38,9 @@ def before_request():
     #pages that should have have a landing page when not logged in
     nolandingpage = ['login', 'authorized', 'logout', 'static']
     # if not logged in and the page is no the login/authorized/logout or static file show landing page
-    if 'user_id' not in session.keys() and request.endpoint not in nolandingpage:
+    if 'user_id' not in session.keys() and '_anno' in request.endpoint:
+        return 'You have been logged out of the application. You will now be redirected to the login page.', 418
+    elif 'user_id' not in session.keys() and request.endpoint not in nolandingpage:
         return render_template('landingpage.html')
     g.error = ''
     # If the user has been logged in for longer than 3 days, clear the session and log them back in
@@ -227,11 +229,11 @@ def createimage():
     image = Image(request.form, request.files, session['origin_url'])
     successmessage = ''
     uploadurl = ''
+    uploadtype = 'manifest'
     if not image.isimage:
         if type(image.manifest) == dict:
             return render_template('upload.html', error=image.manifest['error'])
         response = github.sendgithubrequest(session, "manifest.json", image.manifest_markdown, image.manifestpath).json()
-        uploadtype = 'manifest'
         if 'content' in response.keys():
             uploadurl ='{}{}'.format(image.origin_url, response['content']['path'].replace('_manifest', 'manifest'))
             successmessage = successtext(uploadurl, uploadtype)
@@ -243,7 +245,6 @@ def createimage():
         for afile in image.files:
             imagespath = "images"
             response = github.sendgithubrequest(session, afile['filename'], afile['encodedimage'], imagespath).json()
-            uploadtype='manifest'
             if 'content' in response.keys():
                 uploadurl = "{}img/derivatives/iiif/{}/manifest.json".format(image.origin_url, image.folder)
                 successmessage = successtext(uploadurl, uploadtype)
@@ -255,7 +256,7 @@ def createimage():
         github.sendgithubrequest(session, 'imagetoiiif.yml', convertiiif, ".github/workflows").json()
         time.sleep(1)
         triggerAction('imagetoiiif.yml')
-    triggerbuild()
+    #triggerbuild()
     return render_template('uploadsuccess.html', output=output, uploadurl=uploadurl, successmessage=successmessage, uploadtype=uploadtype)
 
 def successtext(uploadurl, uploadtype):
@@ -510,7 +511,7 @@ def delete_anno():
     response = delete_annos(id)
     if len(canvases[canvas]) == 1:
         delete_annos(listfilename(canvas))
-    return jsonify({"File Removed": True}), response
+    return jsonify(response['message']), response['status_code']
 
 # Get repository invites, collaborators, user info/organizations, render profile page
 @app.route('/profile/')
@@ -830,42 +831,16 @@ def getannotations():
             session['upload'] = {'images': content['images'], 'manifests': content['manifests']}
         parsecustomviews(content)
         session['annotime'] = datetime.now()
-        githubresponse = github.updateAnnos(session)
+        annotations = github.updateAnnos(session)
         if status > 299:
             session['annotations'] = ''
-        annotations = filterAnnos(githubresponse)
+        else:
+            session['annotations'] = annotations
     else:
-        githubresponse = github.updateAnnos(session)
-        annotations = filterAnnos(githubresponse)
+        annotations = github.updateAnnos(session)
+        session['annotations'] = annotations
     return annotations
 
-def filterAnnos(githubresponse):
-    if githubresponse:
-        githubfilenames = list(map(lambda x: x['name'], githubresponse))
-        session['annotations'] = list(filter(lambda x: x['filename'].split('/')[-1] in githubfilenames, session['annotations']))
-        filenames = list(map(lambda x: x['filename'].split('/')[-1], session['annotations']))
-        notinsession = list(filter(lambda x: x['name'] not in filenames and '-list' not in x['name'],githubresponse))
-        #beforefilenames = list(map(lambda x: x['filename'].split('/')[-1], annotations))
-        #remove = list(set(beforefilenames).difference(filenames))
-        for item in notinsession:
-            try:
-                downloadresponse = github.get(item['download_url'])
-                contentssplit = downloadresponse.content.decode("utf-8").rsplit('---\n', 1)
-                yamlparse = yaml.load(contentssplit[0], Loader=yaml.FullLoader)
-                yamlparse['json'] = json.loads(contentssplit[-1])
-                yamlparse['filename'] = item['name']
-                filenamelist = listfilename(yamlparse['canvas'])
-                indexof = [idx for idx, annotation in enumerate(session['annotations']) if filenamelist in annotation['filename']]
-                session['annotations'].append(yamlparse)
-                if len(indexof) > 0:
-                    itemskey = 'items' if 'items' in session['annotations'][indexof[0]]['json'].keys() else 'resources'
-                    session['annotations'][indexof[0]]['json'][itemskey].append(yamlparse['json'])
-                else:
-                    context, annotype, itemskey = contextType()
-                    session['annotations'].append({'filename': filenamelist, 'order': None, 'json': {"@context": context,"id": filenamelist,"type": annotype,itemskey: [yamlparse['json']]}, 'canvas': ''})
-            except Exception as e:
-                print(e)
-    return session['annotations']
 
 def contextType():
     if isMirador():
@@ -958,9 +933,9 @@ def delete_annos(anno):
         if response.status_code < 400:
             session['annotations'] = [x for x in session['annotations'] if anno not in x['filename']]
             session['annotime'] = datetime.now()
-        return response.status_code
+        return {'message': response.content, 'status_code': response.status_code}
     else:
-        return 400
+        return {'message': 'no annotation exists', 'status_code': 400}
 
 def to_pretty_json(value):
     return json.dumps(value, sort_keys=True,

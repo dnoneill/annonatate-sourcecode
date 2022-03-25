@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <script src="/app.js"></script>
     {% extends 'base.html' %}
     {% block header %}
     <h1>{% block title %}Tag Builder{% endblock %}</h1>
@@ -10,6 +9,10 @@
     <b>When building any type of storyboard custom view the <b>fullpage</b>
     setting is recommended. It is also recommended to wait until right before you save your custom view to select it because it will continually pop up with every new setting you enable.
   </b>
-    <annona-tagbuilder apiurl="/saveannonaview" collectionurl="/createcollections" collections='{{session["collectionnames"] | tojson | safe}}'></tagbuilder>
+    <script type="application/json" id="collections">
+      {{session["collectionnames"] | tojson | safe}}
+    </script>
+    <div id="app"></div>
+    <script src="/app.js"></script>
     {% endblock %}
 </html>

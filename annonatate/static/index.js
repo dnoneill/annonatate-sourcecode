@@ -34,8 +34,8 @@ const annoview = Vue.component('annoview', {
   <div class="manifestthumbs" v-show="showManThumbs && currentmanifest">
     <div v-if="manifestdata == 'failure'"><i class="fas fa-exclamation-triangle"></i> {{currentmanifest}} failed to load! Please check your manifest.</div>
     <div v-else-if="manifestdata.length == 0">Loading...</div>
-    <div v-else v-for="item in manifestdata" style="display: inline-block;">
-      <button v-on:click="manifestLoad(item)" class="linkbutton">
+    <div v-else v-for="(item, index) in manifestdata" style="display: inline-block;">
+      <button v-on:click="currentposition = index;manifestLoad(item)" class="linkbutton">
         <img :src="item['image']" style="max-width:100px;padding:5px;" alt="manifest thumbnail">
       </button>
     </div>
@@ -81,6 +81,8 @@ const annoview = Vue.component('annoview', {
   <div v-if="title" style="font-weight:900">{{title[0]['value']}}: 
   <span v-if="alltiles.length > 0 && alltiles[0]['label']">{{alltiles[0]['label']}}</span>
   </div>
+  <a class="prev prevnext" v-on:click="next('prev')" v-if="manifestdata && manifestdata[currentposition-1]">&lt;</a>
+  <a class="next prevnext" v-on:click="next('next')" v-if="manifestdata && manifestdata[currentposition+1]">&gt;</a>
   <div id="openseadragon1" v-bind:class="{'active' : inputurl !== ''}"></div>
   </div>
   `,
@@ -88,7 +90,8 @@ const annoview = Vue.component('annoview', {
     'existing': Object,
     'filepaths': Object,
     'userinfo': Object,
-    'tags': Array
+    'tags': Array,
+    'originurl': String
   },
   data: function() {
   	return {
@@ -106,7 +109,8 @@ const annoview = Vue.component('annoview', {
       alltiles: [],
       drawingenabled: false,
       ingesturl: '',
-      fragmentunit: 'pixel'
+      fragmentunit: 'pixel',
+      currentposition: 0
   	}
   },
   mounted() {
@@ -116,6 +120,7 @@ const annoview = Vue.component('annoview', {
     const manifesturl = params.get('manifesturl');
     const imageurl = params.get('imageurl');
     const mode = params.get('mode');
+    this.checkErrorAnnos();
     if (mode){
       this.fragmentunit = mode;
     }
@@ -129,6 +134,20 @@ const annoview = Vue.component('annoview', {
     }
   },
   methods: {
+    next: function(nextorprev) {
+      this.currentposition = nextorprev == 'next' ? this.currentposition + 1 : this.currentposition -1;
+      this.manifestLoad(this.manifestdata[this.currentposition])
+    },
+    checkErrorAnnos: function(){
+      const erroranno = JSON.parse(localStorage.getItem('erranno'));
+      if (erroranno) {
+        for (var ea=0; ea<erroranno.length; ea++){
+          const annotation = erroranno[ea]['annotation'];
+          this.write_annotation(annotation, erroranno[ea]['method']);
+        }
+        localStorage.removeItem('erranno');
+      }
+    },
     updateUnit: function() {
       const switchUnit = this.fragmentunit =='pixel' ? 'percent' : 'pixel' ;
       var url = new URL(location.href);
@@ -154,7 +173,7 @@ const annoview = Vue.component('annoview', {
       document.getElementById('openseadragon1').innerHTML = '';
       var tilesources = [this.inputurl]
       const imgext = /(.jpeg|.png|.jpg|.bmp|.gif|.tif|.tiff|.apng|.avif|.jfif|.pjpeg|.pjp|.svg|.webp|.ico|.cur)/gm;
-      if (imgext.test(this.inputurl.toLowerCase())) {
+      if (imgext.test(this.inputurl.toLowerCase()) && this.inputurl.indexOf('info.json') == -1) {
         tilesources = {
             type: "image",
             url: this.inputurl
@@ -182,7 +201,6 @@ const annoview = Vue.component('annoview', {
       })
 
       var id = this.inputurl;
-      //localStorage.setItem('')
       // Initialize the Annotorious plugin
       var existing = this.currentmanifest ? this.filepaths[this.canvas] : this.filepaths[this.inputurl];
       this.anno = OpenSeadragon.Annotorious(viewer, 
@@ -245,14 +263,15 @@ const annoview = Vue.component('annoview', {
         url: manifest,
         type: "GET",
         success: function(data) {
-          if (data.constructor.name == 'String' || data['@context'] && data['@context'].indexOf('presentation') == -1){
+          const context = data['@context'] && Array.isArray(data['@context']) ? data['@context'].join("") : data['@context'];
+          if (data.constructor.name == 'String' || context && context.indexOf('presentation') == -1){
             vue.inputurl = manifest;
             vue.currentmanifest = '';
             vue.loadImage();
           }
           var images = [];
           var m = manifesto.parseManifest(data);
-          vue.title = m.getLabel();
+          vue.title = m ? m.getLabel() : "";
           const sequence = m.getSequenceByIndex(0);
           const manifestdata = sequence.getCanvases();
           if (!manifestdata) {
@@ -267,20 +286,22 @@ const annoview = Vue.component('annoview', {
             var manifestimages = manifestdata[i]['__jsonld']['images'] ? manifestdata[i]['__jsonld']['images'] : manifestdata[i]['__jsonld']['items'];
             manifestimages = manifestimages[0]['items'] ? manifestimages[0]['items'] : manifestimages;
             for (var j=0; j<manifestimages.length; j++){
-              const resourceitem = manifestimages[j]['resource'] ? manifestimages[j]['resource'] : manifestimages[j]['body'];
+              var resourceitem = manifestimages[j]['resource'] ? manifestimages[j]['resource'] : manifestimages[j]['body'] ? manifestimages[j]['body'] :  Array.isArray(manifestimages[j]['items']) ? manifestimages[j]['items'][0] : manifestimages[j]['items'];
               const imagethumb = vue.getId(resourceitem);
               if (!thumb){
                 thumb = imagethumb;
               }
-              
-              var id = resourceitem['service'] && resourceitem['service']['id'] ? resourceitem['service']['id'] : resourceitem['service'] && resourceitem['service']['@id']  ? resourceitem['service']['@id'] + '/info.json' : resourceitem['service'] ? resourceitem['service'][0]['id'] : resourceitem['id'];
-              id = resourceitem['service'] ? id.split('/info')[0] + '/info.json' : id;
+              var getService = manifestdata[i].getService();
+              const resourceservice = resourceitem['service'] && Array.isArray(resourceitem['service']) ? resourceitem['service'][0] : resourceitem['service'];
+              var id = resourceservice ? vue.getId(resourceservice) + '/info.json' : resourceitem['id'];
+              id = resourceservice ? id.split('/info')[0] + '/info.json' : id;
               const opacity = j == 0 ? 1 : 0;
               const checked = j == 0 ? true : false;
               const resourceid = resourceitem ? vue.getId(resourceitem) : '';
               var xywh = resourceid && resourceid.constructor.name === 'String' && resourceid.indexOf('xywh') > -1 ? resourceid : vue.on_structure(manifestimages[j]) && vue.on_structure(manifestimages[j])[0].constructor.name === 'String' ? vue.on_structure(manifestimages[j])[0] : '';
               xywh = xywh ? xywh.split("xywh=").slice(-1)[0].split(",") : xywh;
-              const tilelabel = manifestdata[i].getLabel().length > 0 ? manifestdata[i].getLabel()[0]['value'] : ""
+              const getLabel = manifestdata[i].getLabel();
+              const tilelabel = getLabel && getLabel.length > 0 ? getLabel[0]['value'] : ""
               tiles.push({'id': id, 'label': tilelabel,
                 thumbnail: imagethumb.replace('/full/0', '/100,/0'), 'opacity': opacity,
                 'checked': checked, 'xywh': xywh
@@ -289,6 +310,7 @@ const annoview = Vue.component('annoview', {
             thumb = thumb.replace('/full/0', '/100,/0')
             images.push({'image': thumb, 'canvas': canvas, 'tiles': tiles})
             if (loadcanvas == canvas) {
+              this.currentposition = i;
               vue.manifestLoad({'image': thumb, 'canvas': canvas, 'tiles': tiles})
             }
           }
@@ -390,8 +412,15 @@ const annoview = Vue.component('annoview', {
           }
         },
         error: function(err) {
-          console.log(err)
-          alert(err.responseText)
+          alert(`${err.responseText}`);
+          if (err.status == 418){
+            var errorannoget = localStorage.getItem('erranno');
+            errorannoget = errorannoget ? errorannoget : [];
+            const errorcontent = {'annotation': annotation, 'method': method, 'image': vue.canvas ? vue.canvas : vue.inputurl}
+            errorannoget.push(errorcontent);
+            localStorage.setItem('erranno', JSON.stringify(errorannoget));
+            location.href = location.origin + `/login?next=${location.origin}/?manifesturl=${vue.currentmanifest}&imageurl=${vue.inputurl}&canvas=${vue.canvas}`
+          }
         }
       });
     }
