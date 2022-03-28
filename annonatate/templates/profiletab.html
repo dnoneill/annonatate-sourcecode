@@ -72,7 +72,7 @@
         {% endif %}
         </span>
         </div>
-        {% if value['permissions']['admin'] %}
+        {% if value['permissions']['maintain'] %}
         {% set adminaccounts = adminaccounts.append(value['full_name']) %}
         {% endif %}
         {% endfor %}
@@ -83,7 +83,9 @@
             <legend>Update Default workspace</legend>
             <select name="workspace" id="workspace">
                 {% for workspace in session['workspaces'] %}
+                {% if session['workspaces'][workspace]['permissions']['maintain'] %}
                 <option value="{{workspace}}">{{workspace}}</option>
+                {% endif %}
                 {% endfor %}
             </select>
               <button name="button" type="submit" value="submit">Submit</button>
