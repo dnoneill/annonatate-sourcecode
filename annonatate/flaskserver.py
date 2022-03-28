@@ -511,7 +511,7 @@ def delete_anno():
     response = delete_annos(id)
     if len(canvases[canvas]) == 1:
         delete_annos(listfilename(canvas))
-    return jsonify(response['message']), response['status_code']
+    return jsonify(response['message'].decode("utf-8")), response['status_code']
 
 # Get repository invites, collaborators, user info/organizations, render profile page
 @app.route('/profile/')
