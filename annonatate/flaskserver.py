@@ -478,13 +478,19 @@ def create_anno():
     response = json.loads(request.data)
     canvas = response['canvas']
     data_object = response['json']
+    if 'order' in response.keys():
+        order = response['order']
+    else:
+        order = len(list(filter(lambda n: canvas == n.get('canvas'), session['annotations']))) + 1
     idfield = '@id' if isMirador() else 'id'
+    print(data_object[idfield])
     data_object[idfield] = data_object[idfield].replace("#", "") + '.json'
     cleanobject = cleananno(data_object)
-    listlength = len(list(filter(lambda n: canvas == n.get('canvas'), session['annotations'])))
-    response = writetogithub(data_object[idfield], cleanobject, listlength+1)
-    returnvalue = response.content if response.status_code > 399 else data_object
-    returnvalue['order'] = listlength+1
+    response = writetogithub(data_object[idfield], cleanobject, order)
+    returnvalue = response.json() if response.status_code > 399 else data_object
+    print(response.content)
+    print(returnvalue)
+    returnvalue['order'] = order
     return jsonify(returnvalue), response.status_code
 
 # Update annotations via Annotorious
@@ -953,6 +959,7 @@ def writetogithub(filename, annotation, order):
     githuborder = 'order: {}\n'.format(order)
     folder = session['defaults']['annotations']
     response = github.sendgithubrequest(session, filename, annotation, folder, githuborder)
+    print(response)
     if response.status_code < 400:
         canvas = getCanvas(annotation)
         manifest = getManifest(annotation)

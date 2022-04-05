@@ -210,7 +210,8 @@ const annoview = Vue.component('annoview', {
           allowEmpty: true,
           widgets: [ 
                     {widget: 'COMMENT', editable: 'MINE_ONLY', purposeSelector: true},
-                    {widget: 'TAG', vocabulary: vue.tags}
+                    {widget: 'TAG', vocabulary: vue.tags},
+                    {widget: this.orderWidget}
                   ]});
     // Load annotations in W3C WebAnnotation format
       if (existing){
@@ -246,6 +247,33 @@ const annoview = Vue.component('annoview', {
           vue.alltiles[position]['osdtile'] = obj.item;
         }
       });
+    },
+    orderWidget: function(args) {
+      var container = document.createElement('div');
+      var label = document.createElement('label');
+      label.innerHTML = 'Order: ';
+      var number = this.anno.getAnnotations() ? this.anno.getAnnotations().length : 0;
+      number += 1
+      var input = document.createElement('select'); 
+      for (var i=1; i<number; i++){
+        input.innerHTML += `<option value="${i}">${i}</option>`
+      } 
+      input.className = 'order-widget';
+      input.type = 'text';
+      input.id = args.annotation.underlying.id;
+      var order = args.annotation.underlying.order;
+      console.log(order)
+      input.value = order ? order : this.anno.getAnnotations().length;
+      input.addEventListener('change', (event) => {
+        console.log('on change')
+        var neworder = event.target.value;
+        console.log(neworder)
+        args.onSetProperty("order", parseInt(neworder));
+        console.log(args.annotation.underlying.order)
+      });
+      container.appendChild(label);
+      container.appendChild(input);
+      return container;
     },
     setOpacity: function(item, event){
       var opacity = event ? event.target.value/100 : item.opacity > 0 ? 0 : 1;
@@ -391,12 +419,27 @@ const annoview = Vue.component('annoview', {
         vue.enableDrawing();
       });
     },
+    checkOldOrder: function(annotation) {
+      var annotations = this.anno.getAnnotations();
+      var oldanno = annotations.filter(elem => elem.order == annotation['order'] && annotation.id != elem.id);
+      if (oldanno.length > 0){
+        oldanno = oldanno[0];
+        var orderlist = Array.from({length: annotations.length}, (x, i) => i+1);
+        var currentorders = annotations.map(elem => elem.order).sort();
+        missingorder = orderlist.filter(x => !currentorders.includes(x));
+        if (missingorder.length > 0){
+          oldanno.order = parseInt(missingorder[0]);
+          this.write_annotation(oldanno, 'update')
+        }
+      }
+    },
     write_annotation: function(annotation, method) {
       var vue = this;
       var senddata = {'json': annotation, 'canvas': annotation['target']['source'], 'id': annotation['id']}
       if (annotation['order']){
         senddata['order'] = annotation['order'];
       }
+      this.checkOldOrder(annotation);
       jQuery.ajax({
         url: `/${method}_annotations/`,
         type: "POST",
