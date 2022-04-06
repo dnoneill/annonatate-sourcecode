@@ -285,6 +285,7 @@ const annoview = Vue.component('annoview', {
             thumb ? thumb = vue.getId(thumb['__jsonld']) : ''
             var manifestimages = manifestdata[i]['__jsonld']['images'] ? manifestdata[i]['__jsonld']['images'] : manifestdata[i]['__jsonld']['items'];
             manifestimages = manifestimages[0]['items'] ? manifestimages[0]['items'] : manifestimages;
+            var fullvalue = m.context.indexOf('3') > -1 ? 'max' : 'full';
             for (var j=0; j<manifestimages.length; j++){
               var resourceitem = manifestimages[j]['resource'] ? manifestimages[j]['resource'] : manifestimages[j]['body'] ? manifestimages[j]['body'] :  Array.isArray(manifestimages[j]['items']) ? manifestimages[j]['items'][0] : manifestimages[j]['items'];
               const imagethumb = vue.getId(resourceitem);
@@ -303,11 +304,11 @@ const annoview = Vue.component('annoview', {
               const getLabel = manifestdata[i].getLabel();
               const tilelabel = getLabel && getLabel.length > 0 ? getLabel[0]['value'] : ""
               tiles.push({'id': id, 'label': tilelabel,
-                thumbnail: imagethumb.replace('/full/0', '/100,/0'), 'opacity': opacity,
+                thumbnail: imagethumb.replace(`/${fullvalue}/0`, '/100,/0'), 'opacity': opacity,
                 'checked': checked, 'xywh': xywh
               })
             }
-            thumb = thumb.replace('/full/0', '/100,/0')
+            thumb = thumb.replace(`/${fullvalue}/0`, '/100,/0')
             images.push({'image': thumb, 'canvas': canvas, 'tiles': tiles})
             if (loadcanvas == canvas) {
               this.currentposition = i;
