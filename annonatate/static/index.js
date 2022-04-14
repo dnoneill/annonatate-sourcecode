@@ -280,6 +280,8 @@ const annoview = Vue.component('annoview', {
           }
           for (var i=0; i<manifestdata.length; i++){
             var tiles = [];
+            var manifesthumb = m.getThumbnail();
+            var size = manifesthumb && manifesthumb.id ? manifesthumb.id.split('full/').slice(-1)[0].split('/0')[0] : '100,'
             var canvas = manifestdata[i].id;
             var thumb = manifestdata[i].getThumbnail();
             thumb ? thumb = vue.getId(thumb['__jsonld']) : ''
@@ -292,10 +294,9 @@ const annoview = Vue.component('annoview', {
               if (!thumb){
                 thumb = imagethumb;
               }
-              var getService = manifestdata[i].getService();
               const resourceservice = resourceitem['service'] && Array.isArray(resourceitem['service']) ? resourceitem['service'][0] : resourceitem['service'];
-              var id = resourceservice ? vue.getId(resourceservice) + '/info.json' : resourceitem['id'];
-              id = resourceservice ? id.split('/info')[0] + '/info.json' : id;
+              var id = resourceservice ? vue.trimCharacter(vue.getId(resourceservice), '/') + '/info.json' : resourceitem['id'];
+              id = resourceservice ? vue.trimCharacter(id.split('/info')[0], '/') + '/info.json' : id;
               const opacity = j == 0 ? 1 : 0;
               const checked = j == 0 ? true : false;
               const resourceid = resourceitem ? vue.getId(resourceitem) : '';
@@ -304,11 +305,11 @@ const annoview = Vue.component('annoview', {
               const getLabel = manifestdata[i].getLabel();
               const tilelabel = getLabel && getLabel.length > 0 ? getLabel[0]['value'] : ""
               tiles.push({'id': id, 'label': tilelabel,
-                thumbnail: imagethumb.replace(`/${fullvalue}/0`, '/100,/0'), 'opacity': opacity,
+                thumbnail: imagethumb.replace(`/${fullvalue}/0`, `/${size}/0`), 'opacity': opacity,
                 'checked': checked, 'xywh': xywh
               })
             }
-            thumb = thumb.replace(`/${fullvalue}/0`, '/100,/0')
+            thumb = thumb.replace(`/${fullvalue}/0`, `/${size}/0`)
             images.push({'image': thumb, 'canvas': canvas, 'tiles': tiles})
             if (loadcanvas == canvas) {
               this.currentposition = i;
@@ -328,6 +329,9 @@ const annoview = Vue.component('annoview', {
           console.log(err)
         }
       });
+    },
+    trimCharacter: function(word, char) {
+      return word.slice(-1)[0] == char ? word.slice(0, -1) : word;
     },
     getId: function(iddata) {
       return iddata['id'] ? iddata['id'] : iddata['@id'] ? iddata['@id'] : iddata;
