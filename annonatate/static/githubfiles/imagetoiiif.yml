@@ -1,4 +1,4 @@
-name: convert images
+name: convert_images_replacewithfolder
 on: workflow_dispatch
 
 jobs:

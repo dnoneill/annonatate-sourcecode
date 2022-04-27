@@ -5,16 +5,13 @@
 {% block content %}
 	</head>
 	<body>
-	{{error}}
+	{% if error %}
+	<i class="fas fa-exclamation-triangle"></i> {{error | safe}}
+	{% endif %}
 	<div id="imagerror"></div>
-	<div class="tab">
-	  <button class="tablinks" onclick="openTab(event, 'manifest')" id="defaultOpen">Create Manifest</button>
-	  <button class="tablinks" onclick="openTab(event, 'image')" id="imagetab">Upload Image</button>
-	  <button class="tablinks" onclick="openTab(event, 'vocab')" id="imagetab">Upload Vocabulary</button>
-	  {% if session['defaults']['iswax'] %}
-	  <button class="tablinks" onclick="openTab(event, 'collection')" id="collectiontab">Process Wax Collection</button>
-	  {% endif %}
-	</div>
+	{% set tabs = 'upload' | get_tabs %}
+	{% include '_tab_headers.html' %}
+	
 	<div id="manifest" class="tabcontent">
 	  <h2>Create Copy of existing Manifest</h2>
 	  <form action="{{ url_for('createimage') }}" enctype=multipart/form-data method="post">

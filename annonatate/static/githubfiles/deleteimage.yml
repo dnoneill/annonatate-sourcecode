@@ -1,4 +1,4 @@
-name: delete images
+name: delete_images_replacewithimagepath
 on: workflow_dispatch
 
 jobs:

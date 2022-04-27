@@ -143,11 +143,18 @@ def uploadstatus():
     uploadtype = request.args.get('uploadtype') + 's'
     isprofile = request.args.get('isprofile')
     response = requests.get(url)
+    actionname = request.args.get('actionname')
     if response.status_code > 299:
         if checknum == '2' and 'derivatives' not in url:
             triggerbuild()
         elif checknum == '3' and 'derivatives' not in url:
             updateindex()
+        if actionname:
+            getActions()
+            currentaction = list(filter(lambda x: x['name'] == actionname, session['actions']))[0]
+            if currentaction['conclusion'] == 'failure':
+                session['inprocess'] = list(filter(lambda x: x['url'] != url, session['inprocess']))
+                return 'An error occured during the processing of: {}. You can check what happened here: <a href="{}">{}</a>'.format(actionname, currentaction['html_url'],currentaction['html_url']), 200
         return '{} not rendered yet'.format(url), 404
     if uploadtype == 'customviews':
         deleteItemAnnonCustomViews(url, 'slug')
@@ -230,13 +237,14 @@ def createimage():
     successmessage = ''
     uploadurl = ''
     uploadtype = 'manifest'
+    actionname = ''
     if not image.isimage:
         if type(image.manifest) == dict:
             return render_template('upload.html', error=image.manifest['error'])
         response = github.sendgithubrequest(session, "manifest.json", image.manifest_markdown, image.manifestpath).json()
         if 'content' in response.keys():
             uploadurl ='{}{}'.format(image.origin_url, response['content']['path'].replace('_manifest', 'manifest'))
-            successmessage = successtext(uploadurl, uploadtype)
+            successmessage = successtext(uploadurl, uploadtype, actionname)
             output = True
         else:
             output = response['message']
@@ -247,9 +255,10 @@ def createimage():
             response = github.sendgithubrequest(session, afile['filename'], afile['encodedimage'], imagespath).json()
             if 'content' in response.keys():
                 uploadurl = "{}img/derivatives/iiif/{}/manifest.json".format(image.origin_url, image.folder)
-                successmessage = successtext(uploadurl, uploadtype)
+                successmessage = successtext(uploadurl, uploadtype, actionname)
                 filenames.append((os.path.join(imagespath, afile['filename']), afile['label']))
                 output =  True
+                actionname = 'convert_images_{}'.format(request.form['folder'])
             else:
                 output = response['message']
         convertiiif = image.createActionScript(githubfilefolder, filenames)
@@ -257,11 +266,11 @@ def createimage():
         time.sleep(1)
         triggerAction('imagetoiiif.yml')
     #triggerbuild()
-    return render_template('uploadsuccess.html', output=output, uploadurl=uploadurl, successmessage=successmessage, uploadtype=uploadtype)
+    return render_template('uploadsuccess.html', output=output, actionname=actionname, uploadurl=uploadurl, successmessage=successmessage, uploadtype=uploadtype)
 
-def successtext(uploadurl, uploadtype):
+def successtext(uploadurl, uploadtype, actionname=''):
     if uploadurl:
-        uploaddict = {'url': uploadurl, 'uploadtype': uploadtype }
+        uploaddict = {'url': uploadurl, 'uploadtype': uploadtype, 'actionname': actionname }
         if 'inprocess' in session.keys() and uploaddict not in session['inprocess']:
             session['inprocess'].append(uploaddict)
         else:
@@ -272,11 +281,27 @@ def successtext(uploadurl, uploadtype):
 @app.route('/processwaxcollection', methods=['POST', 'GET'])
 def processwaxcollection():
     collectionname = request.form['waxcollection']
+    imagesurl = session['currentworkspace']['contents_url'].replace('/{+path}', '/_data/raw_images/{}'.format(collectionname))
+    checkcontents = github.raw_request('get', imagesurl)
+    if checkcontents.status_code > 299:
+        blob_url = session['currentworkspace']['html_url'] + '/tree/' + session['currentworkspace']['default_branch'] + '/_data/raw_images'
+        return render_template('upload.html', tab="collection", error='A folder named <b>{}</b> does not exist in <a href="{}" target="_blank">{}</a>. Please upload collection images to the correct folder.'.format(collectionname, blob_url, blob_url))
     csvfile = request.files['collectioncsv'].stream.read()
     github.sendgithubrequest(session, '{}.csv'.format(collectionname), csvfile, '_data')
     reader = csv.DictReader(csvfile.decode().splitlines())
+    if 'pid' not in reader.fieldnames:
+        return render_template('upload.html', tab="collection", error='<b>pid</b> column missing from your spreadsheet. This is a required field!')
     actions = github.get('{}/actions/workflows'.format(session['currentworkspace']['url']))
     hasaction = list(filter(lambda action: action['name'] == collectionname, actions['workflows']))
+    uploadurl = ''
+    successtexts = ''
+    layout = ''
+    output = True
+    actionname = 'process_collection_{}'.format(collectionname)
+    for row in reader:
+        url = session['origin_url'].strip("/") + '/img/derivatives/iiif/' + row['pid'] + '/manifest.json'
+        successtexts += successtext(url, 'manifest', actionname)
+        uploadurl = url
     if len(hasaction) > 0:
         triggerAction(hasaction[0]['id'])
     else:
@@ -286,9 +311,11 @@ def processwaxcollection():
         yamlcontents = yamlcontents.replace('replacewithbranch', session['currentworkspace']['default_branch'])
         response = github.sendgithubrequest(session, '.github/workflows/{}.yml'.format(collectionname), yamlcontents)
         if response.status_code < 299:
-            time.sleep(1)
+            time.sleep(2)
             triggerAction(response.json()['content']['name'])
-    return redirect(url_for('upload'))
+        else:
+            output = response.json()
+    return render_template('uploadsuccess.html', output=output, actionname=actionname, uploadurl=uploadurl, successmessage=successtexts, uploadtype='collection')
 
 # Trigger a GitHub action to run
 def triggerAction(ident):
@@ -440,7 +467,7 @@ def updateconfig(collection='', searchfields=''):
     decodedcontents = github.decodeContent(config['content'])
     contentsyaml = yaml.load(decodedcontents, Loader=yaml.FullLoader)
     if collection:
-        contentsyaml['collections'][collection] = {'output': True, 'layout': 'qatar_item',
+        contentsyaml['collections'][collection] = {'output': True,
         'metadata': {'source': '{}.csv'.format(collection)},
         'images': {'source': 'raw_images/{}'.format(collection)},
         }
@@ -569,6 +596,12 @@ def deletefile():
     response = github.raw_request('delete', data['url'], data=json.dumps(data['data']), params=payload)
     session['annotime'] = datetime.now()
     return redirect(request.args.get('next'))
+
+
+def getActions():
+    params = {'created': '>={}'.format(datetime.now().date())}
+    runs = github.get('{}/actions/runs'.format(session['currentworkspace']['url']), params)
+    session['actions'] = runs['workflow_runs']
 
 # Route for accepting invitations to repositories
 @app.route('/acceptinvite/', methods=['POST'])
@@ -724,13 +757,15 @@ def add_repos():
     name = request.form['name']
     ismirador = True if 'mirador' in request.form else False
     private = True if 'private' in request.form else False
+    iswax = True if 'wax' in request.form else False
+    forkrepo = github_repo + '-wax' if iswax else github_repo
     repodata = {
         'owner': owner,
         'name': name,
         'private': private,
-        'description': 'annonatate'
+        'description': forkrepo
     }
-    response = github.raw_request('post', 'https://api.github.com/repos/annonatate/{}/generate'.format(github_repo),headers={'Accept': 'application/vnd.github.baptiste-preview+json'}, data=json.dumps(repodata)).json()
+    response = github.raw_request('post', 'https://api.github.com/repos/annonatate/{}/generate'.format(forkrepo),headers={'Accept': 'application/vnd.github.baptiste-preview+json'}, data=json.dumps(repodata)).json()
     if 'url' in response.keys():
         time.sleep(1)
         enablepages = enablepagesfunc(response['url'])
@@ -937,6 +972,21 @@ def delete_annos(anno):
     else:
         return {'message': 'no annotation exists', 'status_code': 400}
 
+def get_tabs(viewtype):
+    if viewtype == 'upload':
+        tabs = [{ 'value': 'manifest', 'label': 'Create Manifest'},
+            { 'value': 'image', 'label': 'Upload Image'},
+            { 'value': 'vocab', 'label': 'Upload Vocabulary'}]
+        if session['defaults']['iswax']:
+            tabs.append({ 'value': 'collection', 'label': 'Process Wax Collection'})
+    elif viewtype == 'profile':
+        tabs = [{ 'value': 'profile', 'label': 'Edit Profile and Workspaces'},
+            { 'value': 'data', 'label': 'Edit preloaded manifests/images'},
+            { 'value': 'uploads', 'label': 'Edit uploaded manifests/images'}]
+        if 'inprocess' in session.keys() and len(session['inprocess']) > 0:
+            tabs.prepend({'value': 'status', 'label': 'Upload Status'})
+    return tabs
+
 def to_pretty_json(value):
     return json.dumps(value, sort_keys=True,
                       indent=4, separators=(',', ': '))
@@ -945,6 +995,7 @@ app.jinja_env.filters['tojson_pretty'] = to_pretty_json
 app.jinja_env.filters['canvas'] = getCanvas
 app.jinja_env.filters['manifest'] = getManifest
 app.jinja_env.filters['isMirador'] = isMirador
+app.jinja_env.filters['get_tabs'] = get_tabs
 
 # Function for writing annotations to GitHub.
 # If successfully written to GitHub, update session annotations

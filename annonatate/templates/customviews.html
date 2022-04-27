@@ -36,13 +36,13 @@
 <script>
   var isready = UrlExists(`/uploadstatus?url={{view['filename']}}&checknum=0&uploadtype=customview`);
   var start = 1;
-  if (isready){
+  if (isready['status']){
     success(false)
   } else {
     var interval = setInterval(function(){
       var isready = UrlExists(`/uploadstatus?url={{view['filename']}}&checknum=${start}&uploadtype=customview`);
       start += 1
-      if (isready){
+      if (isready['status']){
         success(true)
       }
     }, 40000);

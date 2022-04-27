@@ -18,18 +18,23 @@
 			}
 	}
     function checkStatus(checknum){
-        const uploadurl = '{{upload["url"]}}'
-        const uploadtype = '{{upload["uploadtype"]}}'
-        var isready = UrlExists(`/uploadstatus?url=${uploadurl}&checknum=${checknum}&uploadtype=${uploadtype}&isprofile=True`);
-        if (isready){
+        const uploadurl = '{{upload["url"]}}';
+        const uploadtype = '{{upload["uploadtype"]}}';
+        const actionname = '{{upload["actionname"]}}';
+        var isready = UrlExists(`/uploadstatus?url=${uploadurl}&checknum=${checknum}&uploadtype=${uploadtype}&isprofile=True&actionname=${actionname}`);
+        if (isready['status']){
             if (checknum > 0){
                 stopFunction();
             }
-            document.getElementById(uploadurl).innerHTML = `
+            var innerhtml = `
             <a href="${uploadurl}" target="_blank">${uploadurl}</a>
             <i style="color: green" class="fas fa-check-circle"></i>
             <a href="/?${uploadtype}url=${uploadurl}">Annotate</a>
-            `
+            `;
+            if (isready['data'] != 'success') {
+                innerhtml = isready['data'];
+            }
+            document.getElementById(uploadurl).innerHTML = innerhtml;
         }
 	}
 });
