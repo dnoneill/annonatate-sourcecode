@@ -14,7 +14,8 @@ def getManifest(annotation):
         manifest = annotation['on'][0]['within']['@id']
     return manifest
 
-def contextType(ismirador):
+def contextType(session):
+    ismirador = isMirador(session)
     if ismirador:
         context =  "http://iiif.io/api/presentation/2/context.json"
         annotype = "oa:AnnotationList"

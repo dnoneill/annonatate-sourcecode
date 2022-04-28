@@ -73,7 +73,7 @@ class GitHubAnno(GitHub):
                         itemskey = 'items' if 'items' in session['annotations'][indexof[0]]['json'].keys() else 'resources'
                         session['annotations'][indexof[0]]['json'][itemskey].append(yamlparse['json'])
                     else:
-                        context, annotype, itemskey = contextType(isMirador(session))
+                        context, annotype, itemskey = contextType(session)
                         session['annotations'].append({'filename': filenamelist, 'order': None, 'json': {"@context": context,"id": filenamelist,"type": annotype,itemskey: [yamlparse['json']]}, 'canvas': ''})
                 except Exception as e:
                     print(e)

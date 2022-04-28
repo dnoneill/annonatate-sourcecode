@@ -714,7 +714,9 @@ def populateuserinfo():
     repos = github.get('{}/repos?per_page=300&sort=name'.format(githubuserapi))
     relevantworkspaces = []
     for repo in repos:
-        if repo['name'] == github_repo or github_repo in ",".join(repo['topics']):
+        repotypes = ["wax", github_repo]
+        repotypes = repotypes + list(map(lambda x: "{}-{}".format(github_repo, x), repotypes))
+        if repo['name'] == github_repo or any(x in repo['topics'] for x in repotypes):
             relevantworkspaces.append(repo)
         elif repo['description'] and 'annonatate' in repo['description'].lower():
             relevantworkspaces.append(repo)
@@ -967,7 +969,7 @@ def get_tabs(viewtype):
             { 'value': 'data', 'label': 'Edit preloaded manifests/images'},
             { 'value': 'uploads', 'label': 'Edit uploaded manifests/images'}]
         if 'inprocess' in session.keys() and len(session['inprocess']) > 0:
-            tabs.prepend({'value': 'status', 'label': 'Upload Status'})
+            tabs.insert(0, {'value': 'status', 'label': 'Upload Status'})
     return tabs
 
 def to_pretty_json(value):
@@ -1019,7 +1021,7 @@ def writetogithub(filename, annotation, order):
 def createlistpage(canvas, manifest):
     filenameforlist = listfilename(canvas)
     filename = os.path.join(session['defaults']['annotations'], filenameforlist)
-    context, annotype, itemskey = contextType()
+    context, annotype, itemskey = contextType(session)
     text = '---\ncanvas_id: "' + canvas + '"\n---\n{% assign annotations = site.annotations | where: "canvas", page.canvas_id | sort: "order" | map: "content" %}\n{\n"@context": "' + context + '",\n"id": "{{ site.url }}{{ site.baseurl }}{{page.url}}",\n"type": "' + annotype + '",\n"%s": [{{ annotations | join: ","}}] }'%(itemskey)
     github.sendgithubrequest(session, filename, text)
     if manifest in session['upload']['manifests']:

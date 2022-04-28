@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% block title %}Home{% endblock %}
 {% block content %}
-{% set ismirador = session['preloaded']['settings'] and session['preloaded']['settings']['viewer'] and session['preloaded']['settings']['viewer'] == 'mirador' %}
+{% set ismirador = session | isMirador %}
 {% if ismirador %}
 <link rel='stylesheet' type='text/css' href='/assets/mirador/css/mirador-combined.css'>
 {% else %}
