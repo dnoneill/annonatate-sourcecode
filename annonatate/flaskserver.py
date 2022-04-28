@@ -18,7 +18,7 @@ from annonatate.utils.search import get_search, encodedecode, Search
 from annonatate.utils.image import Image, addAnnotationList, listfilename
 from annonatate.utils.collectionform import CollectionForm, parseboard, parsetype
 from annonatate.utils.github import GitHubAnno
-from annonatate.utils.annogetters import getCanvas, getManifest
+from annonatate.utils.annogetters import getCanvas, getManifest, contextType, isMirador
 app = Flask(__name__,
             static_url_path='',)
 app.config.update(
@@ -145,9 +145,9 @@ def uploadstatus():
     response = requests.get(url)
     actionname = request.args.get('actionname')
     if response.status_code > 299:
-        if checknum == '2' and 'derivatives' not in url:
+        if checknum == '3' and 'derivatives' not in url:
             triggerbuild()
-        elif checknum == '3' and 'derivatives' not in url:
+        elif checknum == '5' and 'derivatives' not in url:
             updateindex()
         if actionname:
             getActions()
@@ -505,7 +505,7 @@ def create_anno():
     response = json.loads(request.data)
     canvas = response['canvas']
     data_object = response['json']
-    idfield = '@id' if isMirador() else 'id'
+    idfield = '@id' if isMirador(session) else 'id'
     data_object[idfield] = data_object[idfield].replace("#", "") + '.json'
     cleanobject = cleananno(data_object)
     listlength = len(list(filter(lambda n: canvas == n.get('canvas'), session['annotations'])))
@@ -521,7 +521,7 @@ def update_anno():
     data_object = response['json']
     order = data_object['order']
     cleanobject = cleananno(data_object)
-    idfield = '@id' if isMirador() else 'id'
+    idfield = '@id' if isMirador(session) else 'id'
     response = writetogithub(data_object[idfield], cleanobject, response['order'])
     returnvalue = response.content if response.status_code > 399 else data_object
     returnvalue['order'] = order
@@ -549,11 +549,6 @@ def getprofiledata():
     populateuserinfo()
     orgs()
     return render_template('profile.html', userinfo={'name':session['user_name']}, invites=invites, collaborators=collaborators)
-
-def isMirador(inputsession=False):
-    content = inputsession if inputsession else session
-    ismirador = True if 'settings' in content['preloaded'].keys() and 'viewer' in content['preloaded']['settings'].keys() and content['preloaded']['settings']['viewer'] == 'mirador' else False
-    return ismirador
 
 # get list of orgs user belongs to
 def orgs():
@@ -876,18 +871,6 @@ def getannotations():
         session['annotations'] = annotations
     return annotations
 
-
-def contextType():
-    if isMirador():
-        context =  "http://iiif.io/api/presentation/2/context.json"
-        annotype = "oa:AnnotationList"
-        itemskey = "resources"
-    else:
-        context = "http://iiif.io/api/presentation/3/context.json"
-        annotype = "AnnotationPage"
-        itemskey = "items"
-    return context, annotype, itemskey
-
 # Load custom views JSON into a dict that sorts custom views based on the url being read
 def parsecustomviews(content):
     parseddict = {}
@@ -945,7 +928,7 @@ def cleananno(data_object):
         del data_object['order']
     field = 'resource' if 'resource' in data_object.keys() else 'body'
     charfield = 'chars' if 'resource' in data_object.keys() else 'value'
-    if isMirador() and 'on' in data_object.keys() and 'selector' in data_object['on'][0].keys() and 'item' in data_object['on'][0]['selector'].keys():
+    if isMirador(session) and 'on' in data_object.keys() and 'selector' in data_object['on'][0].keys() and 'item' in data_object['on'][0]['selector'].keys():
         svgselector = data_object['on'][0]['selector']['item']['value']
         searchstring = re.findall(r'(?<=(data-paper-data="{))(.*?)(?=(\}"))', svgselector)
         if len(searchstring) > 0:

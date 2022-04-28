@@ -468,3 +468,27 @@ body {
 .next {
   right: 9%;
 }
+
+.manifestimagelist {
+  display: inline-block;
+  padding:4px;
+}
+
+.manifestimagelist > .linkbutton {
+  outline: .5px solid grey; 
+  height: 100%;
+  max-width:100px;
+}
+
+.manifestimagelist > .linkbutton img {
+  max-width:100px;
+}
+
+.manthumblabel {
+  color: grey;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: center;
+  /* margin-top: -8px; */
+}
