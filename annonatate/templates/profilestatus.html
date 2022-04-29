@@ -2,7 +2,7 @@
 {% for upload in session['inprocess'] %}
 <li id="{{upload['url']}}">
     {{upload['url']}}
-<span class="status"><i class="fas fa-spinner"></i></span>
+<span class="status"><i class="fas fa-spinner fa-spin"></i></span>
 </li>
 <script>
     $(window).on('load', function() {

@@ -15,6 +15,9 @@
 
  </head>
 <body>
+  <div id="spinner" style="display: none;background-color: rgba(0, 0, 0, 0.3); width:100%; height:100%;position: absolute;">
+		<i class="fas fa-spinner fa-spin" style="position: absolute;top:50%;right:50%;"></i>
+	</div>
   <div class="topnav" id="myTopnav">
     {% if 'user_id' in session.keys() %}
     <a href="{{ url_for('index') }}" aria-label="index link"><i class="fa fa-home" aria-hidden="true"></i>

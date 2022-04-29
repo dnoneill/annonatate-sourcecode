@@ -151,8 +151,8 @@ def uploadstatus():
             updateindex()
         if actionname:
             getActions()
-            currentaction = list(filter(lambda x: x['name'] == actionname, session['actions']))[0]
-            if currentaction['conclusion'] == 'failure':
+            currentaction = list(filter(lambda x: x['name'] == actionname, session['actions']))
+            if len(currentaction) > 0 and currentaction[0]['conclusion'] == 'failure':
                 session['inprocess'] = list(filter(lambda x: x['url'] != url, session['inprocess']))
                 return 'An error occured during the processing of: {}. You can check what happened here: <a href="{}">{}</a>'.format(actionname, currentaction['html_url'],currentaction['html_url']), 200
         return '{} not rendered yet'.format(url), 404
@@ -254,17 +254,18 @@ def createimage():
             imagespath = "images"
             response = github.sendgithubrequest(session, afile['filename'], afile['encodedimage'], imagespath).json()
             if 'content' in response.keys():
+                actionname = 'convert_images_{}'.format(request.form['folder'])
                 uploadurl = "{}img/derivatives/iiif/{}/manifest.json".format(image.origin_url, image.folder)
                 successmessage = successtext(uploadurl, uploadtype, actionname)
                 filenames.append((os.path.join(imagespath, afile['filename']), afile['label']))
                 output =  True
-                actionname = 'convert_images_{}'.format(request.form['folder'])
             else:
                 output = response['message']
         convertiiif = image.createActionScript(githubfilefolder, filenames)
-        github.sendgithubrequest(session, 'imagetoiiif.yml', convertiiif, ".github/workflows").json()
+        ymlname = '{}.yml'.format(actionname)
+        github.sendgithubrequest(session, ymlname, convertiiif, ".github/workflows").json()
         time.sleep(1)
-        triggerAction('imagetoiiif.yml')
+        triggerAction(ymlname)
     #triggerbuild()
     return render_template('uploadsuccess.html', output=output, actionname=actionname, uploadurl=uploadurl, successmessage=successmessage, uploadtype=uploadtype)
 
@@ -289,8 +290,9 @@ def processwaxcollection():
     csvfile = request.files['collectioncsv'].stream.read()
     github.sendgithubrequest(session, '{}.csv'.format(collectionname), csvfile, '_data')
     reader = csv.DictReader(csvfile.decode().splitlines())
-    if 'pid' not in reader.fieldnames:
-        return render_template('upload.html', tab="collection", error='<b>pid</b> column missing from your spreadsheet. This is a required field!')
+    if 'pid' not in reader.fieldnames or 'label' not in readre.fieldnames:
+        missingfield = 'pid' if 'pid' not in reader.fieldnames else 'label'
+        return render_template('upload.html', tab="collection", error='<b>{}</b> column missing from your spreadsheet. This is a required field!'.format(missingfield))
     actions = github.get('{}/actions/workflows'.format(session['currentworkspace']['url']))
     hasaction = list(filter(lambda action: action['name'] == collectionname, actions['workflows']))
     uploadurl = ''
