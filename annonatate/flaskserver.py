@@ -72,6 +72,15 @@ def getDefaults():
             'iswax': True,
             'index': os.path.join(githubfilefolder, apiurl)
             }
+        elif 'iiif-training-workbench' in topicdescription:
+            apiurl = 'api/all.json'
+            return {'annotations': '_annotations', 
+            'apiurl': apiurl,
+            'customviews': 'customviews',
+            'collections': 'annonacollections',
+            'iswax': False,
+            'index': os.path.join(githubfilefolder, apiurl)
+            }
         else:
             return {'annotations': '_annotations', 
             'apiurl': '', 
