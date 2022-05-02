@@ -69,8 +69,7 @@ def getDefaults():
             'apiurl': apiurl,
             'customviews': '_exhibits',
             'collections': 'collections',
-            'iswax': True,
-            'index': os.path.join(githubfilefolder, apiurl)
+            'type': 'wax'
             }
         elif 'iiif-training-workbench' in topicdescription:
             apiurl = 'api/all.json'
@@ -78,16 +77,14 @@ def getDefaults():
             'apiurl': apiurl,
             'customviews': 'customviews',
             'collections': 'annonacollections',
-            'iswax': False,
-            'index': os.path.join(githubfilefolder, apiurl)
+            'type': 'workbench'
             }
         else:
             return {'annotations': '_annotations', 
             'apiurl': '', 
             'customviews': 'customviews', 
             'collections': 'collections',
-            'iswax': False,
-            'index': os.path.join(githubfilefolder, 'index.html')
+            'type': 'default'
             }
 
 #logins in by redirecting to the authorize route which is part of GitHub flask library
@@ -455,7 +452,7 @@ def changeworkspace():
     if status_code < 299:
         getContents()
     else:
-        if session['defaults']['iswax']:
+        if session['defaults']['type'] == 'wax' or session['defaults']['type'] == 'workbench':
             try:
                 github.get(session['currentworkspace']['contents_url'].replace('/{+path}', session['defaults']['apiurl']))
             except:
@@ -484,6 +481,7 @@ def updateconfig(collection='', searchfields=''):
         }
         contentsyaml['search']['main']['collections'][collection] = {'content': False, 'fields': searchfields}
     else:
+        contentsyaml['collections'] = contentsyaml['collections'] if 'collections' in contentsyaml.keys() else {}
         contentsyaml['collections']['annotations'] = {'output': True, 'permalink': '/annotations/:name'}
         contentsyaml['baseurl'] = '/' + session['currentworkspace']['name']
     if 'url' in contentsyaml.keys() and 'minicomp.github.io' in contentsyaml['url']:
@@ -654,7 +652,7 @@ def annonaview():
 def saveannonaview():
     jsonitems = json.loads(request.data)
     frontmatter = ''
-    if session['defaults']['iswax']:
+    if session['defaults']['type'] == 'wax':
         title = jsonitems['slug'].replace('_', ' ').title()
         date = datetime.now().strftime('%Y-%m-%d')
         frontmatter = 'title: {}\nlayout: exhibit\nauthor: {}\npublish_date: {}\n'.format(title, session['user_name'], date)
@@ -725,7 +723,7 @@ def populateuserinfo():
     repos = github.get('{}/repos?per_page=300&sort=name'.format(githubuserapi))
     relevantworkspaces = []
     for repo in repos:
-        repotypes = ["wax", github_repo]
+        repotypes = ["wax", "iiif-training-workbench", github_repo]
         repotypes = repotypes + list(map(lambda x: "{}-{}".format(github_repo, x), repotypes))
         if repo['name'] == github_repo or any(x in repo['topics'] for x in repotypes):
             relevantworkspaces.append(repo)
@@ -916,9 +914,13 @@ def parsecollections(content):
 
 # grab correct index file based on defaults, read and write to GitHub
 def updateindex():
-    index = session['defaults']['index']
-    contents = open(index).read()
-    github.sendgithubrequest(session, index.replace(githubfilefolder, ''), contents)
+    contents = open(os.path.join(githubfilefolder, 'index.html')).read()
+    contents = contents.replace('replacewithcollectionfolder', session['defaults']['collections'])
+    contents = contents.replace('replacewithcustomviewfolder', session['defaults']['customviews'])
+    if session['defaults']['type'] == 'workbench':
+        contents = contents.replace('/images/', '/ignoreimages/')
+    apifolder = session['defaults']['apiurl'] if session['defaults']['apiurl'] != '' else 'index.html'
+    github.sendgithubrequest(session, apifolder, contents)
 
 # Using origin API get contents, if not correct add index.html to request. Parse API contents.
 def origin_contents():
@@ -973,7 +975,7 @@ def get_tabs(viewtype):
         tabs = [{ 'value': 'manifest', 'label': 'Create Manifest'},
             { 'value': 'image', 'label': 'Upload Image'},
             { 'value': 'vocab', 'label': 'Upload Vocabulary'}]
-        if session['defaults']['iswax']:
+        if session['defaults']['type'] == 'wax':
             tabs.append({ 'value': 'collection', 'label': 'Process Wax Collection'})
     elif viewtype == 'profile':
         tabs = [{ 'value': 'profile', 'label': 'Edit Profile and Workspaces'},
