@@ -119,7 +119,8 @@ def authorized(oauth_token):
 # render upload template
 @app.route('/upload')
 def upload():
-    return render_template('upload.html')
+    tabs = get_tabs('upload')
+    return render_template('upload.html', tabs=tabs)
 
 # check the status of the github site
 # if the site returns error code and you have not just logged in, send trigger code to GitHub pages
@@ -545,12 +546,13 @@ def delete_anno():
 # Get repository invites, collaborators, user info/organizations, render profile page
 @app.route('/profile/')
 def getprofiledata():
+    tabs = get_tabs('profile')
     invites = github.get('{}/repository_invitations'.format(githubuserapi))
     collaburl = session['currentworkspace']['collaborators_url'].split('{')[0]
     collaborators = github.get(collaburl)
     populateuserinfo()
     orgs()
-    return render_template('profile.html', userinfo={'name':session['user_name']}, invites=invites, collaborators=collaborators)
+    return render_template('profile.html', userinfo={'name':session['user_name']}, invites=invites, collaborators=collaborators, tabs=tabs)
 
 # get list of orgs user belongs to
 def orgs():
@@ -982,7 +984,6 @@ app.jinja_env.filters['tojson_pretty'] = to_pretty_json
 app.jinja_env.filters['canvas'] = getCanvas
 app.jinja_env.filters['manifest'] = getManifest
 app.jinja_env.filters['isMirador'] = isMirador
-app.jinja_env.filters['get_tabs'] = get_tabs
 
 # Function for writing annotations to GitHub.
 # If successfully written to GitHub, update session annotations
