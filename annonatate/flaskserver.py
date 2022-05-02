@@ -290,7 +290,7 @@ def processwaxcollection():
     csvfile = request.files['collectioncsv'].stream.read()
     github.sendgithubrequest(session, '{}.csv'.format(collectionname), csvfile, '_data')
     reader = csv.DictReader(csvfile.decode().splitlines())
-    if 'pid' not in reader.fieldnames or 'label' not in readre.fieldnames:
+    if 'pid' not in reader.fieldnames or 'label' not in reader.fieldnames:
         missingfield = 'pid' if 'pid' not in reader.fieldnames else 'label'
         return render_template('upload.html', tab="collection", error='<b>{}</b> column missing from your spreadsheet. This is a required field!'.format(missingfield))
     actions = github.get('{}/actions/workflows'.format(session['currentworkspace']['url']))

@@ -1,8 +1,10 @@
 name: delete_images_replacewithimagepath
 on: workflow_dispatch
+permissions:
+  contents: write
 
 jobs:
-  test:
+  deleteimage:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -15,7 +17,7 @@ jobs:
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
           git add -A
-          git commit -m "delete replacewithimagepath" -a
+          git commit -m "delete replacewithimagepath" -a || echo "No changes to commit"
       - name: pull
         run: git pull origin main
       - name: push changes
