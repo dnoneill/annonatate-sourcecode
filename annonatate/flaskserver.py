@@ -241,7 +241,7 @@ def createimage():
     actionname = ''
     if not image.isimage:
         if type(image.manifest) == dict:
-            return render_template('upload.html', error=image.manifest['error'])
+            return render_template('upload.html', error=image.manifest['error'], tabs=get_tabs('upload'))
         response = github.sendgithubrequest(session, "manifest.json", image.manifest_markdown, image.manifestpath).json()
         if 'content' in response.keys():
             uploadurl ='{}{}'.format(image.origin_url, response['content']['path'].replace('_manifest', 'manifest'))
@@ -287,13 +287,13 @@ def processwaxcollection():
     checkcontents = github.raw_request('get', imagesurl)
     if checkcontents.status_code > 299:
         blob_url = session['currentworkspace']['html_url'] + '/tree/' + session['currentworkspace']['default_branch'] + '/_data/raw_images'
-        return render_template('upload.html', tab="collection", error='A folder named <b>{}</b> does not exist in <a href="{}" target="_blank">{}</a>. Please upload collection images to the correct folder.'.format(collectionname, blob_url, blob_url))
+        return render_template('upload.html', tab="collection", tabs=get_tabs('upload') ,error='A folder named <b>{}</b> does not exist in <a href="{}" target="_blank">{}</a>. Please upload collection images to the correct folder.'.format(collectionname, blob_url, blob_url))
     csvfile = request.files['collectioncsv'].stream.read()
     github.sendgithubrequest(session, '{}.csv'.format(collectionname), csvfile, '_data')
     reader = csv.DictReader(csvfile.decode().splitlines())
     if 'pid' not in reader.fieldnames or 'label' not in reader.fieldnames:
         missingfield = 'pid' if 'pid' not in reader.fieldnames else 'label'
-        return render_template('upload.html', tab="collection", error='<b>{}</b> column missing from your spreadsheet. This is a required field!'.format(missingfield))
+        return render_template('upload.html', tab="collection", tabs=get_tabs('upload'), error='<b>{}</b> column missing from your spreadsheet. This is a required field!'.format(missingfield))
     actions = github.get('{}/actions/workflows'.format(session['currentworkspace']['url']))
     hasaction = list(filter(lambda action: action['name'] == collectionname, actions['workflows']))
     uploadurl = ''
