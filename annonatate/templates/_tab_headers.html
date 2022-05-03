@@ -1,0 +1,21 @@
+<div class="tab">
+{% for tab in tabs %}
+    {% set idvariable = "defaultOpen" if loop.first else tab['value'] + 'tab' %}
+    {% set tabvalue = tab['value'] %}
+    <button class="tablinks" onclick="openTab(event, '{{tabvalue}}')" id="{{idvariable}}">{{tab['label']}}</button>
+{% endfor %}
+</div>
+<script>
+window.onload = function() {
+    const loadtab = "{{tab}}";
+    let params = Object.fromEntries(new URLSearchParams(window.location.search).entries());
+    let tabid = loadtab ? loadtab : params['tab'];
+    const tab = document.getElementById(`${tabid}tab`);
+    if (tab){
+        tab.click();
+    } else {
+        const defaultOpen = document.getElementById("defaultOpen");
+        defaultOpen.click();
+    }
+}
+</script>

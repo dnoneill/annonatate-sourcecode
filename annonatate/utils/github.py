@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import os, json
+import os, json, yaml
 import base64
 from flask_github import GitHub
-
+from annonatate.utils.image import listfilename
+from annonatate.utils.annogetters import contextType, isMirador
 class GitHubAnno(GitHub):
     def get_existing(self, session, full_url):
         payload = {'ref': session['github_branch']}
@@ -60,7 +61,7 @@ class GitHubAnno(GitHub):
             #remove = list(set(beforefilenames).difference(filenames))
             for item in notinsession:
                 try:
-                    downloadresponse = github.get(item['download_url'])
+                    downloadresponse = self.get(item['download_url'])
                     contentssplit = downloadresponse.content.decode("utf-8").rsplit('---\n', 1)
                     yamlparse = yaml.load(contentssplit[0], Loader=yaml.FullLoader)
                     yamlparse['json'] = json.loads(contentssplit[-1])
@@ -72,7 +73,7 @@ class GitHubAnno(GitHub):
                         itemskey = 'items' if 'items' in session['annotations'][indexof[0]]['json'].keys() else 'resources'
                         session['annotations'][indexof[0]]['json'][itemskey].append(yamlparse['json'])
                     else:
-                        context, annotype, itemskey = contextType()
+                        context, annotype, itemskey = contextType(session)
                         session['annotations'].append({'filename': filenamelist, 'order': None, 'json': {"@context": context,"id": filenamelist,"type": annotype,itemskey: [yamlparse['json']]}, 'canvas': ''})
                 except Exception as e:
                     print(e)

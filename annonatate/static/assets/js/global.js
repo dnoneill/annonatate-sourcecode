@@ -19,25 +19,16 @@ function openTab(evt, tabName) {
 }
 function UrlExists(url){
     var status = false;
+    var senddata = '';
     $.ajax({url: url,
         type: 'GET',
         async: false,
         cache: false,
         success: function(data) {
             status = true;
+            senddata = data;
+            return {'status': status, 'data': senddata};
         }
       });
-      return status;
-}
-window.onload = function() {
-    
-    const defaultOpen = document.getElementById("defaultOpen");
-    let params = Object.fromEntries(new URLSearchParams(window.location.search).entries());
-	let tabid = params['tab'] + 'tab';
-	const tab = document.getElementById(tabid)
-    if (tab){
-        tab.click();
-    } else if (defaultOpen) {
-        defaultOpen.click();
-    }
+      return {'status': status, 'data': senddata};
 }

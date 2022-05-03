@@ -13,3 +13,19 @@ def getManifest(annotation):
     elif 'on' in annotation.keys():
         manifest = annotation['on'][0]['within']['@id']
     return manifest
+
+def contextType(session):
+    ismirador = isMirador(session)
+    if ismirador:
+        context =  "http://iiif.io/api/presentation/2/context.json"
+        annotype = "oa:AnnotationList"
+        itemskey = "resources"
+    else:
+        context = "http://iiif.io/api/presentation/3/context.json"
+        annotype = "AnnotationPage"
+        itemskey = "items"
+    return context, annotype, itemskey
+
+def isMirador(content):
+    ismirador = True if 'settings' in content['preloaded'].keys() and 'viewer' in content['preloaded']['settings'].keys() and content['preloaded']['settings']['viewer'] == 'mirador' else False
+    return ismirador

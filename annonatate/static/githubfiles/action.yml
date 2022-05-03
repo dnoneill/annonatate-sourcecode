@@ -1,8 +1,11 @@
-name: replacewithcollection
+name: process_collection_replacewithcollection
 on: workflow_dispatch
+permissions:
+  contents: write
+
 
 jobs:
-  test:
+  processcollection:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -21,13 +24,16 @@ jobs:
         run: bundle exec rake wax:derivatives:iiif replacewithcollection
       - name: search
         run: bundle exec rake wax:search main
+      - name: update exhibit
+        continue-on-error: true
+        run: |
+          rm pages/collection.md && touch pages/collection.md && echo -e "---\nlayout: page\ntitle: Browse the Collection\npermalink: /collection/\n---\n{% include collection_gallery.html collection='replacewithcollection' facet_by='object_type' %}" >> pages/collection.md
       - name: commit files
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
           git add -A
-          git commit -m "process wax collection replacewithcollection" -a
-          
+          git commit -m "process wax collection replacewithcollection" -a || echo "No changes to commit"
       - name: push changes
         uses: ad-m/github-push-action@v0.6.0
         with:

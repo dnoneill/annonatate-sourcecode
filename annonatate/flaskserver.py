@@ -18,7 +18,7 @@ from annonatate.utils.search import get_search, encodedecode, Search
 from annonatate.utils.image import Image, addAnnotationList, listfilename
 from annonatate.utils.collectionform import CollectionForm, parseboard, parsetype
 from annonatate.utils.github import GitHubAnno
-from annonatate.utils.annogetters import getCanvas, getManifest
+from annonatate.utils.annogetters import getCanvas, getManifest, contextType, isMirador
 app = Flask(__name__,
             static_url_path='',)
 app.config.update(
@@ -119,7 +119,8 @@ def authorized(oauth_token):
 # render upload template
 @app.route('/upload')
 def upload():
-    return render_template('upload.html')
+    tabs = get_tabs('upload')
+    return render_template('upload.html', tabs=tabs)
 
 # check the status of the github site
 # if the site returns error code and you have not just logged in, send trigger code to GitHub pages
@@ -143,11 +144,18 @@ def uploadstatus():
     uploadtype = request.args.get('uploadtype') + 's'
     isprofile = request.args.get('isprofile')
     response = requests.get(url)
+    actionname = request.args.get('actionname')
     if response.status_code > 299:
-        if checknum == '2' and 'derivatives' not in url:
+        if checknum == '3' and 'derivatives' not in url:
             triggerbuild()
-        elif checknum == '3' and 'derivatives' not in url:
+        elif checknum == '5' and 'derivatives' not in url:
             updateindex()
+        if actionname:
+            getActions()
+            currentaction = list(filter(lambda x: x['name'] == actionname, session['actions']))
+            if len(currentaction) > 0 and currentaction[0]['conclusion'] == 'failure':
+                session['inprocess'] = list(filter(lambda x: x['url'] != url, session['inprocess']))
+                return 'An error occured during the processing of: {}. You can check what happened here: <a href="{}">{}</a>'.format(actionname, currentaction['html_url'],currentaction['html_url']), 200
         return '{} not rendered yet'.format(url), 404
     if uploadtype == 'customviews':
         deleteItemAnnonCustomViews(url, 'slug')
@@ -230,13 +238,14 @@ def createimage():
     successmessage = ''
     uploadurl = ''
     uploadtype = 'manifest'
+    actionname = ''
     if not image.isimage:
         if type(image.manifest) == dict:
-            return render_template('upload.html', error=image.manifest['error'])
+            return render_template('upload.html', error=image.manifest['error'], tabs=get_tabs('upload'))
         response = github.sendgithubrequest(session, "manifest.json", image.manifest_markdown, image.manifestpath).json()
         if 'content' in response.keys():
             uploadurl ='{}{}'.format(image.origin_url, response['content']['path'].replace('_manifest', 'manifest'))
-            successmessage = successtext(uploadurl, uploadtype)
+            successmessage = successtext(uploadurl, uploadtype, actionname)
             output = True
         else:
             output = response['message']
@@ -246,22 +255,24 @@ def createimage():
             imagespath = "images"
             response = github.sendgithubrequest(session, afile['filename'], afile['encodedimage'], imagespath).json()
             if 'content' in response.keys():
+                actionname = 'convert_images_{}'.format(request.form['folder'])
                 uploadurl = "{}img/derivatives/iiif/{}/manifest.json".format(image.origin_url, image.folder)
-                successmessage = successtext(uploadurl, uploadtype)
+                successmessage = successtext(uploadurl, uploadtype, actionname)
                 filenames.append((os.path.join(imagespath, afile['filename']), afile['label']))
                 output =  True
             else:
                 output = response['message']
         convertiiif = image.createActionScript(githubfilefolder, filenames)
-        github.sendgithubrequest(session, 'imagetoiiif.yml', convertiiif, ".github/workflows").json()
+        ymlname = '{}.yml'.format(actionname)
+        github.sendgithubrequest(session, ymlname, convertiiif, ".github/workflows").json()
         time.sleep(1)
-        triggerAction('imagetoiiif.yml')
+        triggerAction(ymlname)
     #triggerbuild()
-    return render_template('uploadsuccess.html', output=output, uploadurl=uploadurl, successmessage=successmessage, uploadtype=uploadtype)
+    return render_template('uploadsuccess.html', output=output, actionname=actionname, uploadurl=uploadurl, successmessage=successmessage, uploadtype=uploadtype)
 
-def successtext(uploadurl, uploadtype):
+def successtext(uploadurl, uploadtype, actionname=''):
     if uploadurl:
-        uploaddict = {'url': uploadurl, 'uploadtype': uploadtype }
+        uploaddict = {'url': uploadurl, 'uploadtype': uploadtype, 'actionname': actionname }
         if 'inprocess' in session.keys() and uploaddict not in session['inprocess']:
             session['inprocess'].append(uploaddict)
         else:
@@ -272,11 +283,28 @@ def successtext(uploadurl, uploadtype):
 @app.route('/processwaxcollection', methods=['POST', 'GET'])
 def processwaxcollection():
     collectionname = request.form['waxcollection']
+    imagesurl = session['currentworkspace']['contents_url'].replace('/{+path}', '/_data/raw_images/{}'.format(collectionname))
+    checkcontents = github.raw_request('get', imagesurl)
+    if checkcontents.status_code > 299:
+        blob_url = session['currentworkspace']['html_url'] + '/tree/' + session['currentworkspace']['default_branch'] + '/_data/raw_images'
+        return render_template('upload.html', tab="collection", tabs=get_tabs('upload') ,error='A folder named <b>{}</b> does not exist in <a href="{}" target="_blank">{}</a>. Please upload collection images to the correct folder.'.format(collectionname, blob_url, blob_url))
     csvfile = request.files['collectioncsv'].stream.read()
     github.sendgithubrequest(session, '{}.csv'.format(collectionname), csvfile, '_data')
     reader = csv.DictReader(csvfile.decode().splitlines())
+    if 'pid' not in reader.fieldnames or 'label' not in reader.fieldnames:
+        missingfield = 'pid' if 'pid' not in reader.fieldnames else 'label'
+        return render_template('upload.html', tab="collection", tabs=get_tabs('upload'), error='<b>{}</b> column missing from your spreadsheet. This is a required field!'.format(missingfield))
     actions = github.get('{}/actions/workflows'.format(session['currentworkspace']['url']))
     hasaction = list(filter(lambda action: action['name'] == collectionname, actions['workflows']))
+    uploadurl = ''
+    successtexts = ''
+    layout = ''
+    output = True
+    actionname = 'process_collection_{}'.format(collectionname)
+    for row in reader:
+        url = session['origin_url'].strip("/") + '/img/derivatives/iiif/' + row['pid'] + '/manifest.json'
+        successtexts += successtext(url, 'manifest', actionname)
+        uploadurl = url
     if len(hasaction) > 0:
         triggerAction(hasaction[0]['id'])
     else:
@@ -286,9 +314,11 @@ def processwaxcollection():
         yamlcontents = yamlcontents.replace('replacewithbranch', session['currentworkspace']['default_branch'])
         response = github.sendgithubrequest(session, '.github/workflows/{}.yml'.format(collectionname), yamlcontents)
         if response.status_code < 299:
-            time.sleep(1)
+            time.sleep(2)
             triggerAction(response.json()['content']['name'])
-    return redirect(url_for('upload'))
+        else:
+            output = response.json()
+    return render_template('uploadsuccess.html', output=output, actionname=actionname, uploadurl=uploadurl, successmessage=successtexts, uploadtype='collection')
 
 # Trigger a GitHub action to run
 def triggerAction(ident):
@@ -440,7 +470,7 @@ def updateconfig(collection='', searchfields=''):
     decodedcontents = github.decodeContent(config['content'])
     contentsyaml = yaml.load(decodedcontents, Loader=yaml.FullLoader)
     if collection:
-        contentsyaml['collections'][collection] = {'output': True, 'layout': 'qatar_item',
+        contentsyaml['collections'][collection] = {'output': True,
         'metadata': {'source': '{}.csv'.format(collection)},
         'images': {'source': 'raw_images/{}'.format(collection)},
         }
@@ -478,7 +508,7 @@ def create_anno():
     response = json.loads(request.data)
     canvas = response['canvas']
     data_object = response['json']
-    idfield = '@id' if isMirador() else 'id'
+    idfield = '@id' if isMirador(session) else 'id'
     data_object[idfield] = data_object[idfield].replace("#", "") + '.json'
     cleanobject = cleananno(data_object)
     listlength = len(list(filter(lambda n: canvas == n.get('canvas'), session['annotations'])))
@@ -494,7 +524,7 @@ def update_anno():
     data_object = response['json']
     order = data_object['order']
     cleanobject = cleananno(data_object)
-    idfield = '@id' if isMirador() else 'id'
+    idfield = '@id' if isMirador(session) else 'id'
     response = writetogithub(data_object[idfield], cleanobject, response['order'])
     returnvalue = response.content if response.status_code > 399 else data_object
     returnvalue['order'] = order
@@ -516,17 +546,13 @@ def delete_anno():
 # Get repository invites, collaborators, user info/organizations, render profile page
 @app.route('/profile/')
 def getprofiledata():
+    tabs = get_tabs('profile')
     invites = github.get('{}/repository_invitations'.format(githubuserapi))
     collaburl = session['currentworkspace']['collaborators_url'].split('{')[0]
     collaborators = github.get(collaburl)
     populateuserinfo()
     orgs()
-    return render_template('profile.html', userinfo={'name':session['user_name']}, invites=invites, collaborators=collaborators)
-
-def isMirador(inputsession=False):
-    content = inputsession if inputsession else session
-    ismirador = True if 'settings' in content['preloaded'].keys() and 'viewer' in content['preloaded']['settings'].keys() and content['preloaded']['settings']['viewer'] == 'mirador' else False
-    return ismirador
+    return render_template('profile.html', userinfo={'name':session['user_name']}, invites=invites, collaborators=collaborators, tabs=tabs)
 
 # get list of orgs user belongs to
 def orgs():
@@ -569,6 +595,12 @@ def deletefile():
     response = github.raw_request('delete', data['url'], data=json.dumps(data['data']), params=payload)
     session['annotime'] = datetime.now()
     return redirect(request.args.get('next'))
+
+
+def getActions():
+    params = {'created': '>={}'.format(datetime.now().date())}
+    runs = github.get('{}/actions/runs'.format(session['currentworkspace']['url']), params)
+    session['actions'] = runs['workflow_runs']
 
 # Route for accepting invitations to repositories
 @app.route('/acceptinvite/', methods=['POST'])
@@ -686,7 +718,9 @@ def populateuserinfo():
     repos = github.get('{}/repos?per_page=300&sort=name'.format(githubuserapi))
     relevantworkspaces = []
     for repo in repos:
-        if repo['name'] == github_repo or github_repo in ",".join(repo['topics']):
+        repotypes = ["wax", github_repo]
+        repotypes = repotypes + list(map(lambda x: "{}-{}".format(github_repo, x), repotypes))
+        if repo['name'] == github_repo or any(x in repo['topics'] for x in repotypes):
             relevantworkspaces.append(repo)
         elif repo['description'] and 'annonatate' in repo['description'].lower():
             relevantworkspaces.append(repo)
@@ -724,13 +758,15 @@ def add_repos():
     name = request.form['name']
     ismirador = True if 'mirador' in request.form else False
     private = True if 'private' in request.form else False
+    iswax = True if 'wax' in request.form else False
+    forkrepo = github_repo + '-wax' if iswax else github_repo
     repodata = {
         'owner': owner,
         'name': name,
         'private': private,
-        'description': 'annonatate'
+        'description': forkrepo
     }
-    response = github.raw_request('post', 'https://api.github.com/repos/annonatate/{}/generate'.format(github_repo),headers={'Accept': 'application/vnd.github.baptiste-preview+json'}, data=json.dumps(repodata)).json()
+    response = github.raw_request('post', 'https://api.github.com/repos/annonatate/{}/generate'.format(forkrepo),headers={'Accept': 'application/vnd.github.baptiste-preview+json'}, data=json.dumps(repodata)).json()
     if 'url' in response.keys():
         time.sleep(1)
         enablepages = enablepagesfunc(response['url'])
@@ -841,18 +877,6 @@ def getannotations():
         session['annotations'] = annotations
     return annotations
 
-
-def contextType():
-    if isMirador():
-        context =  "http://iiif.io/api/presentation/2/context.json"
-        annotype = "oa:AnnotationList"
-        itemskey = "resources"
-    else:
-        context = "http://iiif.io/api/presentation/3/context.json"
-        annotype = "AnnotationPage"
-        itemskey = "items"
-    return context, annotype, itemskey
-
 # Load custom views JSON into a dict that sorts custom views based on the url being read
 def parsecustomviews(content):
     parseddict = {}
@@ -910,7 +934,7 @@ def cleananno(data_object):
         del data_object['order']
     field = 'resource' if 'resource' in data_object.keys() else 'body'
     charfield = 'chars' if 'resource' in data_object.keys() else 'value'
-    if isMirador() and 'on' in data_object.keys() and 'selector' in data_object['on'][0].keys() and 'item' in data_object['on'][0]['selector'].keys():
+    if isMirador(session) and 'on' in data_object.keys() and 'selector' in data_object['on'][0].keys() and 'item' in data_object['on'][0]['selector'].keys():
         svgselector = data_object['on'][0]['selector']['item']['value']
         searchstring = re.findall(r'(?<=(data-paper-data="{))(.*?)(?=(\}"))', svgselector)
         if len(searchstring) > 0:
@@ -936,6 +960,21 @@ def delete_annos(anno):
         return {'message': response.content, 'status_code': response.status_code}
     else:
         return {'message': 'no annotation exists', 'status_code': 400}
+
+def get_tabs(viewtype):
+    if viewtype == 'upload':
+        tabs = [{ 'value': 'manifest', 'label': 'Create Manifest'},
+            { 'value': 'image', 'label': 'Upload Image'},
+            { 'value': 'vocab', 'label': 'Upload Vocabulary'}]
+        if session['defaults']['iswax']:
+            tabs.append({ 'value': 'collection', 'label': 'Process Wax Collection'})
+    elif viewtype == 'profile':
+        tabs = [{ 'value': 'profile', 'label': 'Edit Profile and Workspaces'},
+            { 'value': 'data', 'label': 'Edit preloaded manifests/images'},
+            { 'value': 'uploads', 'label': 'Edit uploaded manifests/images'}]
+        if 'inprocess' in session.keys() and len(session['inprocess']) > 0:
+            tabs.insert(0, {'value': 'status', 'label': 'Upload Status'})
+    return tabs
 
 def to_pretty_json(value):
     return json.dumps(value, sort_keys=True,
@@ -985,7 +1024,7 @@ def writetogithub(filename, annotation, order):
 def createlistpage(canvas, manifest):
     filenameforlist = listfilename(canvas)
     filename = os.path.join(session['defaults']['annotations'], filenameforlist)
-    context, annotype, itemskey = contextType()
+    context, annotype, itemskey = contextType(session)
     text = '---\ncanvas_id: "' + canvas + '"\n---\n{% assign annotations = site.annotations | where: "canvas", page.canvas_id | sort: "order" | map: "content" %}\n{\n"@context": "' + context + '",\n"id": "{{ site.url }}{{ site.baseurl }}{{page.url}}",\n"type": "' + annotype + '",\n"%s": [{{ annotations | join: ","}}] }'%(itemskey)
     github.sendgithubrequest(session, filename, text)
     if manifest in session['upload']['manifests']:

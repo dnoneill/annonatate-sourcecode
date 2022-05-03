@@ -34,9 +34,12 @@ const annoview = Vue.component('annoview', {
   <div class="manifestthumbs" v-show="showManThumbs && currentmanifest">
     <div v-if="manifestdata == 'failure'"><i class="fas fa-exclamation-triangle"></i> {{currentmanifest}} failed to load! Please check your manifest.</div>
     <div v-else-if="manifestdata.length == 0">Loading...</div>
-    <div v-else v-for="(item, index) in manifestdata" style="display: inline-block;">
+    <div v-else v-for="(item, index) in manifestdata" class="manifestimagelist">
       <button v-on:click="currentposition = index;manifestLoad(item)" class="linkbutton">
-        <img :src="item['image']" style="max-width:100px;padding:5px;" alt="manifest thumbnail">
+        <img :src="item['image']" alt="manifest thumbnail">
+        <div class="manthumblabel">
+        {{item['tiles'][0]['label']}}
+        </div>
       </button>
     </div>
   </div>
@@ -281,7 +284,7 @@ const annoview = Vue.component('annoview', {
           for (var i=0; i<manifestdata.length; i++){
             var tiles = [];
             var manifesthumb = m.getThumbnail();
-            var size = manifesthumb && manifesthumb.id ? manifesthumb.id.split('full/').slice(-1)[0].split('/0')[0] : '100,'
+            var size = manifesthumb && manifesthumb.id && manifesthumb.id.indexOf('full') > -1 ? manifesthumb.id.split('full/').slice(-1)[0].split('/0')[0] : '100,'
             var canvas = manifestdata[i].id;
             var thumb = manifestdata[i].getThumbnail();
             thumb ? thumb = vue.getId(thumb['__jsonld']) : ''

@@ -1,5 +1,11 @@
-name: convert images
+name: convert_images_replacewithfolder
 on: workflow_dispatch
+permissions:
+  contents: write
+
+concurrency:
+  group: ${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   convertimages:
@@ -24,7 +30,7 @@ jobs:
           git config --local user.name "GitHub Action"
           git config pull.rebase false
           git add -A
-          git commit -m "Create replacewithfolder manifest and IIIF derivatives" -a
+          git commit -m "Create replacewithfolder manifest and IIIF derivatives" -a || echo "No changes to commit"
       - name: pull
         run: git pull origin main
       - name: push changes

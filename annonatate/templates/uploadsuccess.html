@@ -36,14 +36,16 @@
 		}
 		function checkStatus(checknum){
 			const uploadurl = '{{uploadurl}}' 
-			const uploadtype = '{{uploadtype}}'
+			var uploadtype = '{{uploadtype}}'
+			var actionname =  '{{actionname}}'
+			uploadtype = uploadtype == 'collection' ? 'manifest' : uploadtype;
 			const successmessage = '{{successmessage |safe }}'
-			var isready = UrlExists(`/uploadstatus?url=${uploadurl}&checknum=${checknum}&uploadtype=${uploadtype}`);
-			if (isready){
+			var isready = UrlExists(`/uploadstatus?url=${uploadurl}&checknum=${checknum}&uploadtype=${uploadtype}&actionname=${actionname}`);
+			if (isready['status']){
 				if (checknum > 0){
 					stopFunction();
 				}
-				document.getElementById('uploadtext').innerHTML = `<p>${successmessage}</p>`
+				document.getElementById('uploadtext').innerHTML = `<p>${isready['data'] == 'success' ? successmessage : isready['data']}</p>`
 			}
 		}
 	})
