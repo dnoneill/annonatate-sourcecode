@@ -18,10 +18,10 @@ jobs:
         run: sudo mv /etc/ImageMagick-6/policy.xml /etc/ImageMagick-6/policy.xml.off && sudo apt-get update && sudo apt-get install -y ghostscript-x
       - name: install
         run: gem install bundler && bundle
-      - name: pages
-        run: bundle exec rake wax:pages replacewithcollection
       - name: derivatives
         run: bundle exec rake wax:derivatives:iiif replacewithcollection
+      - name: pages
+        run: bundle exec rake wax:pages replacewithcollection
       - name: search
         run: bundle exec rake wax:search main
       - name: update exhibit
