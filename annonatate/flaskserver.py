@@ -308,7 +308,8 @@ def processwaxcollection():
     if len(hasaction) > 0:
         triggerAction(hasaction[0]['id'])
     else:
-        updateconfig(collectionname, reader.fieldnames)
+        ignorefields = ['pid', 'full', 'thumbnail', 'layout', 'order', 'collection']
+        updateconfig(collectionname, list(filter(lambda x: x not in ignorefields, reader.fieldnames)))
         yamlcontents = open(os.path.join(githubfilefolder, 'action.yml')).read()
         yamlcontents = yamlcontents.replace('replacewithcollection', collectionname)
         yamlcontents = yamlcontents.replace('replacewithbranch', session['currentworkspace']['default_branch'])
