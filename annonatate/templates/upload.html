@@ -30,7 +30,7 @@
 	</p>
 	  <form action="{{ url_for('createimage') }}" enctype=multipart/form-data method="post">
 		<div>
-			<label for="upload-image">Upload image or PDF files from computer (each file must be 25MB or smaller): </label>
+			<label for="upload-image">Upload image or PDF files from computer (each file must be 100MB or smaller): </label>
 			<input type="text"  id="upload-image" name="upload" value="uploadimage" style="display: none">
 			<input type=file  onchange="checkImages(this);" id="upload-image" name=file accept="image/* pdf/*" required multiple>
 			 <div>
@@ -132,11 +132,12 @@
 		function checkImages(images) {
 			var message = ''
 			for (var i=0; i<images.files.length; i++){
-				if(images.files[i].size > 25000000){
+				console.log(images.files[i].size)
+				if(images.files[i].size > 100000000){
 					if (message){
 						message += '<br>'
 					}
-					message += `${images.files[i].name} is bigger than 25MB! Choose different images.`;
+					message += `${images.files[i].name} is bigger than 100MB! Choose different images.`;
 				}
 			}
 			if (message) {

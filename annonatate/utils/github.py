@@ -23,7 +23,7 @@ class GitHubAnno(GitHub):
 
     def sendgithubrequest(self, session, filename, annotation, path='', order=''):
         data = self.createdatadict(session, filename, annotation, path, order)
-        response = self.raw_request('put', data['url'], data=json.dumps(data['data'], indent=4))
+        response = self.raw_request('put', data['url'], data=json.dumps(data['data']), headers={'Accept': 'application/vnd.github.v3+json'}, stream=True)
         return response
 
     def createdatadict(self, session, filename, text, path, order=''):

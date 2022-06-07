@@ -217,7 +217,7 @@ def removecollaborator():
 @app.route('/uploadvocab', methods=['POST'])
 def uploadvocab():
     filevocab = request.files['vocabcsv']
-    csvcontents = StringIO(filevocab.stream.read().decode("UTF8"), newline=None)
+    csvcontents = StringIO(filevocab.stream.read().decode("utf-8-sig"), newline=None)
     reader = csv.DictReader(csvcontents)
     vocab = []
     for row in reader:
@@ -262,11 +262,12 @@ def createimage():
                 output =  True
             else:
                 output = response['message']
-        convertiiif = image.createActionScript(githubfilefolder, filenames)
-        ymlname = '{}.yml'.format(actionname)
-        github.sendgithubrequest(session, ymlname, convertiiif, ".github/workflows").json()
-        time.sleep(1)
-        triggerAction(ymlname)
+        if output == True:
+            convertiiif = image.createActionScript(githubfilefolder, filenames)
+            ymlname = '{}.yml'.format(actionname)
+            github.sendgithubrequest(session, ymlname, convertiiif, ".github/workflows").json()
+            time.sleep(1)
+            triggerAction(ymlname)
     #triggerbuild()
     return render_template('uploadsuccess.html', output=output, actionname=actionname, uploadurl=uploadurl, successmessage=successmessage, uploadtype=uploadtype)
 
@@ -325,6 +326,9 @@ def processwaxcollection():
 def triggerAction(ident):
     currrentworkspace = session['currentworkspace']
     response = github.raw_request('post', '{}/actions/workflows/{}/dispatches'.format(currrentworkspace['url'], ident), headers={'Accept': 'application/vnd.github.v3+json'}, data=json.dumps({"ref":currrentworkspace['default_branch']}))
+    if response.status_code > 299:
+        time.sleep(2)
+        response = github.raw_request('post', '{}/actions/workflows/{}/dispatches'.format(currrentworkspace['url'], ident), headers={'Accept': 'application/vnd.github.v3+json'}, data=json.dumps({"ref":currrentworkspace['default_branch']}))
     print(response.content)
 
 @app.route('/defaultworkspace', methods=['POST'])

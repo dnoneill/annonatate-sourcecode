@@ -23,7 +23,7 @@
 	{% endif %}
 <script>
 	$(window).on('load', function() {
-		if ('{{uploadurl}}' != 'False'){
+		if ('{{uploadurl}}' && '{{uploadurl}}' != 'False'){
 			checkStatus(0)
 			var start = 1
 			const interval = setInterval(function(){
