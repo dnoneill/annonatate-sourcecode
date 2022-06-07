@@ -125,7 +125,8 @@ def authorized(oauth_token):
 # render upload template
 @app.route('/upload')
 def upload():
-    return render_template('upload.html')
+    tabs = get_tabs('upload')
+    return render_template('upload.html', tabs=tabs)
 
 # check the status of the github site
 # if the site returns error code and you have not just logged in, send trigger code to GitHub pages
@@ -246,7 +247,7 @@ def createimage():
     actionname = ''
     if not image.isimage:
         if type(image.manifest) == dict:
-            return render_template('upload.html', error=image.manifest['error'])
+            return render_template('upload.html', error=image.manifest['error'], tabs=get_tabs('upload'))
         response = github.sendgithubrequest(session, "manifest.json", image.manifest_markdown, image.manifestpath).json()
         if 'content' in response.keys():
             uploadurl ='{}{}'.format(image.origin_url, response['content']['path'].replace('_manifest', 'manifest'))
@@ -292,13 +293,13 @@ def processwaxcollection():
     checkcontents = github.raw_request('get', imagesurl)
     if checkcontents.status_code > 299:
         blob_url = session['currentworkspace']['html_url'] + '/tree/' + session['currentworkspace']['default_branch'] + '/_data/raw_images'
-        return render_template('upload.html', tab="collection", error='A folder named <b>{}</b> does not exist in <a href="{}" target="_blank">{}</a>. Please upload collection images to the correct folder.'.format(collectionname, blob_url, blob_url))
+        return render_template('upload.html', tab="collection", tabs=get_tabs('upload') ,error='A folder named <b>{}</b> does not exist in <a href="{}" target="_blank">{}</a>. Please upload collection images to the correct folder.'.format(collectionname, blob_url, blob_url))
     csvfile = request.files['collectioncsv'].stream.read()
     github.sendgithubrequest(session, '{}.csv'.format(collectionname), csvfile, '_data')
     reader = csv.DictReader(csvfile.decode().splitlines())
-    if 'pid' not in reader.fieldnames or 'label' not in readre.fieldnames:
+    if 'pid' not in reader.fieldnames or 'label' not in reader.fieldnames:
         missingfield = 'pid' if 'pid' not in reader.fieldnames else 'label'
-        return render_template('upload.html', tab="collection", error='<b>{}</b> column missing from your spreadsheet. This is a required field!'.format(missingfield))
+        return render_template('upload.html', tab="collection", tabs=get_tabs('upload'), error='<b>{}</b> column missing from your spreadsheet. This is a required field!'.format(missingfield))
     actions = github.get('{}/actions/workflows'.format(session['currentworkspace']['url']))
     hasaction = list(filter(lambda action: action['name'] == collectionname, actions['workflows']))
     uploadurl = ''
@@ -313,7 +314,8 @@ def processwaxcollection():
     if len(hasaction) > 0:
         triggerAction(hasaction[0]['id'])
     else:
-        updateconfig(collectionname, reader.fieldnames)
+        ignorefields = ['pid', 'full', 'thumbnail', 'layout', 'order', 'collection']
+        updateconfig(collectionname, list(filter(lambda x: x not in ignorefields, reader.fieldnames)))
         yamlcontents = open(os.path.join(githubfilefolder, 'action.yml')).read()
         yamlcontents = yamlcontents.replace('replacewithcollection', collectionname)
         yamlcontents = yamlcontents.replace('replacewithbranch', session['currentworkspace']['default_branch'])
@@ -552,12 +554,13 @@ def delete_anno():
 # Get repository invites, collaborators, user info/organizations, render profile page
 @app.route('/profile/')
 def getprofiledata():
+    tabs = get_tabs('profile')
     invites = github.get('{}/repository_invitations'.format(githubuserapi))
     collaburl = session['currentworkspace']['collaborators_url'].split('{')[0]
     collaborators = github.get(collaburl)
     populateuserinfo()
     orgs()
-    return render_template('profile.html', userinfo={'name':session['user_name']}, invites=invites, collaborators=collaborators)
+    return render_template('profile.html', userinfo={'name':session['user_name']}, invites=invites, collaborators=collaborators, tabs=tabs)
 
 # get list of orgs user belongs to
 def orgs():
@@ -993,7 +996,6 @@ app.jinja_env.filters['tojson_pretty'] = to_pretty_json
 app.jinja_env.filters['canvas'] = getCanvas
 app.jinja_env.filters['manifest'] = getManifest
 app.jinja_env.filters['isMirador'] = isMirador
-app.jinja_env.filters['get_tabs'] = get_tabs
 
 # Function for writing annotations to GitHub.
 # If successfully written to GitHub, update session annotations

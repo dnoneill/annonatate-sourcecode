@@ -6,7 +6,6 @@
 	<div class="logout">
 		<a href="{{url_for('logout')}}">Logout</a>
 	</div>
-	{% set tabs = 'profile' | get_tabs %}
 	{% include '_tab_headers.html' %}
 	<div id="status" class="tabcontent">
 		{% include 'profilestatus.html' %}
