@@ -27,6 +27,7 @@ class GitHubAnno(GitHub):
         return response
 
     def createdatadict(self, session, filename, text, path, order=''):
+        filename = os.path.basename(filename) if 'http' in filename else filename
         full_url = os.path.join(session['github_url'], path, filename)
         sha = self.get_existing(session, full_url)
         writeordelete = "write" if text != 'delete' else "delete"

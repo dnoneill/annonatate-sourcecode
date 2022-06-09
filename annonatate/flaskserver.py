@@ -454,11 +454,13 @@ def changeworkspace():
     if status_code < 299:
         getContents()
     else:
-        if session['defaults']['type'] == 'wax' or session['defaults']['type'] == 'workbench':
+        if session['defaults']['type'] == 'wax' or isWorkBench():
             try:
-                github.get(session['currentworkspace']['contents_url'].replace('/{+path}', session['defaults']['apiurl']))
+                github.get(session['currentworkspace']['contents_url'].replace('{+path}', session['defaults']['apiurl']))
             except:
                 updateWax()
+                if isWorkBench():
+                    triggerAction('annotations.yml')
         triggerbuild()
         next_url += '?switcherror={}'.format(workspace)
         updateworkspace(prevworkspace)
@@ -469,13 +471,16 @@ def updateWax():
     updateconfig()
     updateindex()
 
+def isWorkBench():
+    return session['defaults']['type'] == 'workbench'
+
 # Get decoded contents of _config.yml.
 # If collection, update config with WAX collections. Otherwise update urls for annotations and baseurl
 def updateconfig(collection='', searchfields=''):
     configfilenames = '_config.yml'
     config = github.get(session['currentworkspace']['contents_url'].replace('/{+path}', configfilenames))
     decodedcontents = github.decodeContent(config['content'])
-    contentsyaml = yaml.load(decodedcontents, Loader=yaml.FullLoader)
+    contentsyaml = yaml.load(decodedcontents, Loader=yaml.FullLoader) if decodedcontents else {}
     if collection:
         contentsyaml['collections'][collection] = {'output': True,
         'metadata': {'source': '{}.csv'.format(collection)},
@@ -486,10 +491,20 @@ def updateconfig(collection='', searchfields=''):
         contentsyaml['collections'] = contentsyaml['collections'] if 'collections' in contentsyaml.keys() else {}
         contentsyaml['collections']['annotations'] = {'output': True, 'permalink': '/annotations/:name'}
         contentsyaml['baseurl'] = '/' + session['currentworkspace']['name']
+        if isWorkBench():
+            addWorkBenchFiles()
     if 'url' in contentsyaml.keys() and 'minicomp.github.io' in contentsyaml['url']:
         del contentsyaml['url']
     updatedcontents = yaml.dump(contentsyaml)
     github.sendgithubrequest(session, configfilenames, updatedcontents)
+
+
+def addWorkBenchFiles():
+    folderpath = os.path.join(githubfilefolder, 'workbench')
+    for actionfile in os.listdir(folderpath):
+        githubfolder = os.path.join('.github', 'workflows', actionfile)
+        contents = open(os.path.join(folderpath, actionfile)).read()
+        github.sendgithubrequest(session, githubfolder, contents)
 
 # clear everything that is not workspaces or user info
 # update currentworkspace, get defaults and populate the workspace
@@ -521,7 +536,7 @@ def create_anno():
     cleanobject = cleananno(data_object)
     listlength = len(list(filter(lambda n: canvas == n.get('canvas'), session['annotations'])))
     response = writetogithub(data_object[idfield], cleanobject, listlength+1)
-    returnvalue = response.content if response.status_code > 399 else data_object
+    returnvalue = response.json() if response.status_code > 399 else data_object
     returnvalue['order'] = listlength+1
     return jsonify(returnvalue), response.status_code
 
@@ -534,7 +549,7 @@ def update_anno():
     cleanobject = cleananno(data_object)
     idfield = '@id' if isMirador(session) else 'id'
     response = writetogithub(data_object[idfield], cleanobject, response['order'])
-    returnvalue = response.content if response.status_code > 399 else data_object
+    returnvalue = response.json() if response.status_code > 399 else data_object
     returnvalue['order'] = order
     return jsonify(returnvalue), response.status_code
 
@@ -920,8 +935,9 @@ def updateindex():
     contents = open(os.path.join(githubfilefolder, 'index.html')).read()
     contents = contents.replace('replacewithcollectionfolder', session['defaults']['collections'])
     contents = contents.replace('replacewithcustomviewfolder', session['defaults']['customviews'])
-    if session['defaults']['type'] == 'workbench':
+    if isWorkBench():
         contents = contents.replace('/images/', '/ignoreimages/')
+        contents = contents.replace('item.name contains "manifest.json"', 'item.path contains "manifests"')
     apifolder = session['defaults']['apiurl'] if session['defaults']['apiurl'] != '' else 'index.html'
     github.sendgithubrequest(session, apifolder, contents)
 
@@ -1044,9 +1060,9 @@ def createlistpage(canvas, manifest):
         manifestwithlist = addAnnotationList(json.dumps(response), session)
         manifestfilename = manifest.replace(session['origin_url'], '')
         if json.loads(manifestwithlist) != response:
-            manifestwithlist = '---\nlayout: none\n---\n' + manifestwithlist.replace(session['origin_url'], "{{ '/' | absolute_url }}")
+            if isWorkBench() == False:
+                manifestwithlist = manifestwithlist.replace(session['origin_url'], "{{ '/' | absolute_url }}")
             response = github.sendgithubrequest(session, manifestfilename, manifestwithlist)
-            print(response.content)
 
 app.jinja_env.filters['listfilename'] = listfilename
 

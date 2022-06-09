@@ -19,10 +19,11 @@ const annoview = Vue.component('annoview', {
         const params = new URLSearchParams(window.location.search);
         const manifesturl = params.get('manifesturl');
         const canvas = params.get('canvas');
-        const manifests = this.existing['manifests'];
-        const loadedManifest = manifesturl ? manifesturl.toString() : manifests[0];
+        const manifests = this.existing['manifests'].filter(elem => elem);
+        const loadedManifest = manifesturl ? manifesturl.toString() : manifests.length > 0 ? manifests[0]: '';
         var manifestload = manifests.map(ma => JSON.parse(`{ "manifestUri": "${ma}"}`));
         manifestload.push({"manifestUri": loadedManifest})
+
         const check = loadedManifest.indexOf(this.originurl) > -1;
         const layout = check ? "1x2" : "1x1";
         windowObjs = [{

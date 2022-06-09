@@ -27,5 +27,9 @@ def contextType(session):
     return context, annotype, itemskey
 
 def isMirador(content):
-    ismirador = True if 'settings' in content['preloaded'].keys() and 'viewer' in content['preloaded']['settings'].keys() and content['preloaded']['settings']['viewer'] == 'mirador' else False
+    viewer = ''
+    if 'settings' in content['preloaded'].keys() and 'viewer' in content['preloaded']['settings'].keys():
+        viewer = content['preloaded']['settings']['viewer']
+    ismirador = True if viewer == 'mirador' else False
+    ismirador = True if content['defaults']['type'] == 'workbench' and viewer != 'default' else ismirador
     return ismirador

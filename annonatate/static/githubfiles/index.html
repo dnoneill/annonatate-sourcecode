@@ -9,8 +9,10 @@ layout: null
 {% assign customviews = site.pages | where_exp: 'item', 'item.dir contains "replacewithcustomviewfolder"' | sort_natural %}
 {% assign manifestarray = '' | split: "" %}
 {% for manifest in manifests %}
-{% assign item = manifest | prepend: site.baseurl | prepend: site.url %}
+{% if manifest contains '.json' and manifest != '/manifests/collection.json' and manifest != '/images/manifest.json'  %}
+ {% assign item = manifest | prepend: site.baseurl | prepend: site.url %}
  {% assign manifestarray = manifestarray | push: item %}
+{% endif %}
 {% endfor %}
 {% assign imagearray = '' | split: "" %}
 {% for image in images %}
