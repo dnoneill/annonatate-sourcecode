@@ -87,7 +87,7 @@ def get_search(anno):
         typefield = 'type' if 'type' in resource.keys() else '@type'
         if chars and 'tag' in resource[typefield].lower():
             annodata_data['facets']['tags'].append(chars)
-        elif 'purpose' in resource.keys() and 'tag' in resource['purpose']:
+        elif 'purpose' in resource.keys() and 'tag' in resource['purpose'] and 'geotagging' not in resource['purpose']:
             tags_data = chars if chars else resource['value']
             annodata_data['facets']['tags'].append(encodedecode(tags_data))
         elif chars:

@@ -213,7 +213,8 @@ const annoview = Vue.component('annoview', {
           allowEmpty: true,
           widgets: [ 
                     {widget: 'COMMENT', editable: 'MINE_ONLY', purposeSelector: true},
-                    {widget: 'TAG', vocabulary: vue.tags}
+                    {widget: 'TAG', vocabulary: vue.tags},
+                    {widget: recogito.GeoTagging({defaultOrigin: [ 48, 16 ]})}
                   ]});
     // Load annotations in W3C WebAnnotation format
       if (existing){

@@ -943,10 +943,11 @@ def cleananno(data_object):
             data_object['on'][0]['selector']['item']['value'] = svgselector.replace(searchstring, '')
     if field in data_object.keys():
         for item in data_object[field]:
-            replace = re.finditer(r'&lt;iiif-(.*?)&gt;&lt;\/iiif-(.*?)&gt;', item[charfield])
-            for rep in replace:
-                replacestring = rep.group().replace("&lt;","<").replace("&gt;", ">").replace("&quot;", '"')
-                item[charfield] =  item[charfield].replace(rep.group(), replacestring)
+            if charfield in item.keys():
+                replace = re.finditer(r'&lt;iiif-(.*?)&gt;&lt;\/iiif-(.*?)&gt;', item[charfield])
+                for rep in replace:
+                    replacestring = rep.group().replace("&lt;","<").replace("&gt;", ">").replace("&quot;", '"')
+                    item[charfield] =  item[charfield].replace(rep.group(), replacestring)
     return data_object
 
 # function to delete annotations from session and GitHub
