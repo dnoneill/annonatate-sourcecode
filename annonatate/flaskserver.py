@@ -981,6 +981,14 @@ def get_tabs(viewtype):
 def to_pretty_json(value):
     return json.dumps(value, sort_keys=True,
                       indent=4, separators=(',', ': '))
+
+def search_params(facet, value):
+    args = dict(request.args) if request.args else {'q': ''}
+    args[facet] =value
+    return args
+
+app.jinja_env.filters['search_params'] = search_params
+
 app.jinja_env.filters['tojson_pretty'] = to_pretty_json
 
 app.jinja_env.filters['canvas'] = getCanvas
