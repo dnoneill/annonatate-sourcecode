@@ -87,6 +87,7 @@ def get_search(anno):
             annodata_data['facets']['tags'].append(chars)
         elif 'purpose' in resource.keys() and 'tag' in resource['purpose']:
             if 'geotagging' in resource['purpose']:
+                annodata_data['facets']['geotagging'].append('Geotagging')
                 annodata_data['facets']['geotagging'].append(resource['geometry']['type'])
             else:
                 tags_data = chars if chars else resource['value']
