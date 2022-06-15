@@ -407,7 +407,7 @@ def index():
             arraydata = getContents()
             manifests = session['preloaded']['manifests'] + session['upload']['manifests']
             images = session['preloaded']['images'] + session['upload']['images']
-            existing = {'manifests': manifests, 'images': images}
+            existing = {'manifests': manifests, 'images': images, 'settings': session['preloaded']['settings']}
             if 'vocab' in session['preloaded'].keys():
                 labelonlyvocab = [item['label'] if type(item) == dict else item for item in session['preloaded']['vocab']]
             vocabtags = arraydata['tags'] if 'vocab' not in session['preloaded'].keys() else session['preloaded']['vocab'] + list(filter(lambda tag: tag not in labelonlyvocab, arraydata['tags']))
@@ -680,9 +680,11 @@ def saveannonaview():
 def updatedata():
     data = request.form['updatedata']
     jsondata = json.loads(data)
+    jsondata['settings'] = getSettings(jsondata['settings'])
     yamldata = yaml.dump(jsondata)
     github.sendgithubrequest(session, 'preload.yml', yamldata, '_data')
     session['preloaded'] = jsondata
+    session['annotime'] = datetime.now()
     return redirect('/profile?tab=data')
 
 # Shows GitHub libray how to get token
@@ -862,8 +864,11 @@ def getannotations():
             session['preloaded'] = {'manifests': [], 'images': [], 'settings': {}}
             for preloadkey in content['preloadedcontent']:
                 if content['preloadedcontent'][preloadkey]:
-                    session['preloaded'][preloadkey] = content['preloadedcontent'][preloadkey]
-            if 'tempuser' not in session.keys() and 'tempuser' in session['preloaded']['settings'].keys():
+                    if preloadkey != 'settings':
+                        session['preloaded'][preloadkey] = content['preloadedcontent'][preloadkey]
+                    else:
+                        session['preloaded'][preloadkey] = getSettings(content['preloadedcontent'][preloadkey])
+            if 'tempuser' not in session.keys() and 'tempuser' in session['preloaded']['settings'].keys() and session['preloaded']['settings']['tempuser'] == 'enabled':
                 session['tempuser'] = True
             session['upload'] = {'images': content['images'], 'manifests': content['manifests']}
         parsecustomviews(content)
@@ -877,6 +882,12 @@ def getannotations():
         annotations = github.updateAnnos(session)
         session['annotations'] = annotations
     return annotations
+
+def getSettings(settings):
+    defaults = {'tempuser': 'notenabled', 'viewer': 'default', 'widgets': 'comment-with-purpose, tag, geotagging'}
+    if settings:
+        defaults = {**defaults, **settings}
+    return defaults
 
 # Load custom views JSON into a dict that sorts custom views based on the url being read
 def parsecustomviews(content):

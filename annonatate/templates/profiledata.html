@@ -34,7 +34,7 @@
         for (var li=0; li<listitems.length; li++){
             var htmlcoll = Array.from(listitems[li].getElementsByTagName('li'))            
             var listelem = {};
-            if (htmlcoll[0].className != 'dict'){
+            if (htmlcoll[0] && htmlcoll[0].className != 'dict'){
                 listelem = htmlcoll.map(function(elem) {
                     if (elem.textContent.indexOf("{") > -1){
                         return JSON.parse(elem.textContent.replaceAll("'", '"'))
