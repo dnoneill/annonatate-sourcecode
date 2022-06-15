@@ -222,13 +222,16 @@ const annoview = Vue.component('annoview', {
         var annotation = this.anno.setAnnotations(clean);
       }
       Annotorious.SelectorPack(this.anno);
+      Annotorious.TiltedBox(this.anno);
       this.drawtools = []
       const drawingtools = this.anno.listDrawingTools();
       for (var dt=0; dt<drawingtools.length; dt++){
         const name = drawingtools[dt];
-        const label = name == 'rect' ? 'Rectangle' : name.charAt(0).toUpperCase() + name.slice(1);
+        var cleanname = name.replaceAll("annotorious", "").replaceAll("-", " ").trim();
+        const label = name == 'rect' ? 'Rectangle' : cleanname.charAt(0).toUpperCase() + cleanname.slice(1);
         this.drawtools.push({'name': name, 'label': label})
       }
+      this.drawtools = this.drawtools.sort((a, b) => (a.label > b.label) ? 1 : -1)
       this.addListeners();
       this.enableDrawing(this.drawingenabled);
       this.anno.setAuthInfo({
