@@ -861,7 +861,7 @@ def getannotations():
             session['upload'] = {'manifests': [], 'images' : []}
         elif 'preloaded' not in session.keys() or duration > 60:
             parsecollections(content)
-            session['preloaded'] = {'manifests': [], 'images': [], 'settings': {}}
+            session['preloaded'] = {'manifests': [], 'images': [], 'settings': getSettings(None)}
             for preloadkey in content['preloadedcontent']:
                 if content['preloadedcontent'][preloadkey]:
                     if preloadkey != 'settings':
