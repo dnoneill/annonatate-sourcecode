@@ -684,8 +684,13 @@ def updatedata():
     yamldata = yaml.dump(jsondata)
     github.sendgithubrequest(session, 'preload.yml', yamldata, '_data')
     session['preloaded'] = jsondata
+    checkTempUser(jsondata)
     session['annotime'] = datetime.now()
     return redirect('/profile?tab=data')
+
+def checkTempUser(data):
+    if 'tempuser' not in session.keys() and 'tempuser' in data['settings'].keys() and data['settings']['tempuser'] == 'enabled':
+        session['tempuser'] = True
 
 # Shows GitHub libray how to get token
 @github.access_token_getter
@@ -868,8 +873,7 @@ def getannotations():
                         session['preloaded'][preloadkey] = content['preloadedcontent'][preloadkey]
                     else:
                         session['preloaded'][preloadkey] = getSettings(content['preloadedcontent'][preloadkey])
-            if 'tempuser' not in session.keys() and 'tempuser' in session['preloaded']['settings'].keys() and session['preloaded']['settings']['tempuser'] == 'enabled':
-                session['tempuser'] = True
+            checkTempUser(session['preloaded'])
             session['upload'] = {'images': content['images'], 'manifests': content['manifests']}
         parsecustomviews(content)
         session['annotime'] = datetime.now()
