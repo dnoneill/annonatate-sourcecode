@@ -691,6 +691,8 @@ def updatedata():
 def checkTempUser(data):
     if 'tempuser' not in session.keys() and 'tempuser' in data['settings'].keys() and data['settings']['tempuser'] == 'enabled':
         session['tempuser'] = True
+    elif 'tempuser' in session.keys() and data['settings']['tempuser'] == 'notenabled':
+        del session['tempuser']
 
 # Shows GitHub libray how to get token
 @github.access_token_getter
