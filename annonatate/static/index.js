@@ -113,11 +113,15 @@ const annoview = Vue.component('annoview', {
       drawingenabled: false,
       ingesturl: '',
       fragmentunit: 'pixel',
-      currentposition: 0
+      currentposition: 0,
+      widgets: ['comment-with-purpose','tag','geotagging']
   	}
   },
   mounted() {
     this.isMobile = /Mobi/.test(navigator.userAgent);
+    if (this.existing.settings && this.existing.settings.widgets){
+      this.widgets = this.existing.settings.widgets.split(",").map(elem => elem.trim());
+    }
     console.log(navigator.userAgent)
     const params = new URLSearchParams(window.location.search);
     const manifesturl = params.get('manifesturl');
@@ -172,6 +176,18 @@ const annoview = Vue.component('annoview', {
       this.alltiles = item['tiles'];
       this.loadAnno()
     },
+    buildWidgetList: function() {
+      var widgets = []
+      var widgettypes =
+        {'comment-with-purpose': {widget: 'COMMENT', editable: 'MINE_ONLY', purposeSelector: true},
+        'comment': {widget: 'COMMENT', editable: 'MINE_ONLY'},
+        'tag': {widget: 'TAG', vocabulary: this.tags},
+        'geotagging': {widget: recogito.GeoTagging({defaultOrigin: [ 48, 16 ]})}}
+      for (var wi=0; wi<this.widgets.length; wi++){
+        widgets.push(widgettypes[this.widgets[wi]])
+      }
+      return widgets;
+    },
     loadAnno: function() {
       document.getElementById('openseadragon1').innerHTML = '';
       var tilesources = [this.inputurl]
@@ -206,28 +222,29 @@ const annoview = Vue.component('annoview', {
       var id = this.inputurl;
       // Initialize the Annotorious plugin
       var existing = this.currentmanifest ? this.filepaths[this.canvas] : this.filepaths[this.inputurl];
+      var widgets = this.buildWidgetList();
       this.anno = OpenSeadragon.Annotorious(viewer, 
         { image: 'openseadragon1',
           messages: { "Ok": "Save" },
           fragmentUnit: this.fragmentunit,
           allowEmpty: true,
-          widgets: [ 
-                    {widget: 'COMMENT', editable: 'MINE_ONLY', purposeSelector: true},
-                    {widget: 'TAG', vocabulary: vue.tags}
-                  ]});
+          widgets: widgets});
     // Load annotations in W3C WebAnnotation format
       if (existing){
         const clean = existing.map(elem => JSON.parse(JSON.stringify(elem).replace("pct:", "percent:")))
         var annotation = this.anno.setAnnotations(clean);
       }
       Annotorious.SelectorPack(this.anno);
+      Annotorious.TiltedBox(this.anno);
       this.drawtools = []
       const drawingtools = this.anno.listDrawingTools();
       for (var dt=0; dt<drawingtools.length; dt++){
         const name = drawingtools[dt];
-        const label = name == 'rect' ? 'Rectangle' : name.charAt(0).toUpperCase() + name.slice(1);
+        var cleanname = name.replaceAll("annotorious", "").replaceAll("-", " ").trim();
+        const label = name == 'rect' ? 'Rectangle' : cleanname.charAt(0).toUpperCase() + cleanname.slice(1);
         this.drawtools.push({'name': name, 'label': label})
       }
+      this.drawtools = this.drawtools.sort((a, b) => (a.label > b.label) ? 1 : -1)
       this.addListeners();
       this.enableDrawing(this.drawingenabled);
       this.anno.setAuthInfo({

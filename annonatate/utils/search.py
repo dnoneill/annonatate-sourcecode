@@ -10,12 +10,10 @@ class Search:
         self.annotations = annotations
         self.query = self.request_args.get('q')
         self.allcontent = self.querysearch(self.query)
-        self.tags = self.request_args.get('tag')
-        if self.tags:
-            self.allcontent = self.searchfields(self.allcontent['items'], 'tags', self.tags)
-        self.creator = self.request_args.get('creator')
-        if self.creator:
-            self.allcontent = self.searchfields(self.allcontent['items'], 'creator', self.creator)
+        for arg in self.request_args:
+            argcontent = self.request_args[arg]
+            if arg != 'q' and argcontent:
+                self.allcontent = self.searchfields(self.allcontent['items'], arg, argcontent)
         self.items = self.allcontent['items']
         self.facets = self.gatherfacets()
 
@@ -66,7 +64,7 @@ def encodedecode(chars):
 
 def get_search(anno):
     annoid = anno['id'] if 'id' in anno.keys() else anno['@id']
-    annodata_data = {'json': anno, 'searchfields': {'content': []}, 'facets': {'tags': [], 'creator': []}, 'datecreated':'', 'datemodified': '', 'id': annoid, 'basename': os.path.basename(annoid)}
+    annodata_data = {'json': anno, 'searchfields': {'content': []}, 'facets': {'tags': [], 'creator': [], 'geotagging': []}, 'datecreated':'', 'datemodified': '', 'id': annoid, 'basename': os.path.basename(annoid)}
     if 'oa:annotatedAt' in anno.keys():
         annodata_data['datecreated'] = encodedecode(anno['oa:annotatedAt'])
     if 'created' in anno.keys():
@@ -88,8 +86,12 @@ def get_search(anno):
         if chars and 'tag' in resource[typefield].lower():
             annodata_data['facets']['tags'].append(chars)
         elif 'purpose' in resource.keys() and 'tag' in resource['purpose']:
-            tags_data = chars if chars else resource['value']
-            annodata_data['facets']['tags'].append(encodedecode(tags_data))
+            if 'geotagging' in resource['purpose']:
+                annodata_data['facets']['geotagging'].append('Geotagging')
+                annodata_data['facets']['geotagging'].append(resource['geometry']['type'])
+            else:
+                tags_data = chars if chars else resource['value']
+                annodata_data['facets']['tags'].append(encodedecode(tags_data))
         elif chars:
             annodata_data['searchfields']['content'].append(chars)
         elif 'items' in resource.keys():

@@ -14,26 +14,19 @@
 <div class="content" style="display: inline-flex;">
 <div style="float: left; width: 20%; ">
   <div id="facets">
-    {% if facets['tags'] | length > 0 %}
-    <h2>Tags</h2>
-    {% for tag, count in facets['tags'].items() %}   
-    {% if request.args['tag'] == tag %}
-    <a href="{{url_for('search',tag='', q=request.args['q'], creator=request.args['creator']) }}">
-    {% else %}
-    <a href="{{url_for('search',tag=tag, creator=request.args['creator'], q=request.args['q']) }}">
-    {% endif %}{{tag}} ({{count}}){% if request.args['tag'] == tag %} <i class="far fa-times-circle"></i>{% endif %}</a><br>
+    {% for facet in facets %}
+    {% if facets[facet] | length > 0 %}
+    <h2>{{facet.capitalize()}}</h2>
+    {% for tag, count in facets[facet].items() %}
+    {% set ischecked = request.args[facet] == tag %}
+    {% set tagvalue = '' if ischecked else tag %}
+    {% set params = facet | search_params(tagvalue) %}
+    <a href="{{ url_for('search', **params)}}">
+    {{tag}} ({{count}}){% if ischecked %} <i class="far fa-times-circle"></i>{% endif %}</a><br>
+    </a>
     {% endfor %}
     {% endif %}
-    {% if facets['creator'] | length > 0 %}
-    <h2>Creators</h2>
-    {% for creator, count in facets['creator'].items() %}
-    {% if request.args['creator'] == creator %}
-    <a href="{{url_for('search',creator='', q=request.args['q'], tag=request.args['tag']) }}">
-    {% else %}
-    <a href="{{url_for('search',creator=creator, tag=request.args['tag'], q=request.args['q']) }}">
-    {% endif %}{{creator}} ({{count}}){% if request.args['creator'] == creator %} <i class="far fa-times-circle"></i>{% endif %}</a><br>
     {% endfor %}
-    {% endif %}
   </div>
 </div>
 <div style="float: left; width: 80%; border: 1px solid rgb(204, 204, 204);" class="all_results">

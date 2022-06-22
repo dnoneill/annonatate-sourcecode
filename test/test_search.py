@@ -14,25 +14,25 @@ class TestSearch(unittest.TestCase):
         self.annotations = ast.literal_eval(f.read())
 
     def test_search_query_none(self):
-      search = anno.Search({'q': 'stringnotfound', 'creator': '', 'tag': ''}, self.annotations)
+      search = anno.Search({'q': 'stringnotfound', 'creator': '', 'tags': ''}, self.annotations)
 
       self.assertEqual(len(search.items), 0)
 
     def test_search_query(self):
-      search = anno.Search({'q': 'branch', 'creator': '', 'tag': ''}, self.annotations)
+      search = anno.Search({'q': 'branch', 'creator': '', 'tags': ''}, self.annotations)
 
       self.assertEqual(len(search.items), 1)
       self.assertEqual(search.items[0]['basename'], '19547cb3-f588-4724-878b-e4f81415fa86.json')
 
     def test_search_creator(self):
-      search = anno.Search({'q': '', 'creator': 'Test User', 'tag': ''}, self.annotations)
+      search = anno.Search({'q': '', 'creator': 'Test User', 'tags': ''}, self.annotations)
 
       self.assertEqual(len(search.items), 2)
       self.assertEqual(search.items[0]['basename'], '19547cb3-f588-4724-878b-e4f81415fa86.json')
       self.assertEqual(search.items[1]['basename'], '142a41cd-6bb8-4052-a2b3-a300bfd15a9a.json')
 
     def test_search_tag(self):
-      search = anno.Search({'q': '', 'creator': '', 'tag': 'Machinery'}, self.annotations)
+      search = anno.Search({'q': '', 'creator': '', 'tags': 'Machinery'}, self.annotations)
 
       self.assertEqual(len(search.items), 1)
       self.assertEqual(search.items[0]['basename'], '142a41cd-6bb8-4052-a2b3-a300bfd15a9a.json')

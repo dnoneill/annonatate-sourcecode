@@ -407,7 +407,7 @@ def index():
             arraydata = getContents()
             manifests = session['preloaded']['manifests'] + session['upload']['manifests']
             images = session['preloaded']['images'] + session['upload']['images']
-            existing = {'manifests': manifests, 'images': images}
+            existing = {'manifests': manifests, 'images': images, 'settings': session['preloaded']['settings']}
             if 'vocab' in session['preloaded'].keys():
                 labelonlyvocab = [item['label'] if type(item) == dict else item for item in session['preloaded']['vocab']]
             vocabtags = arraydata['tags'] if 'vocab' not in session['preloaded'].keys() else session['preloaded']['vocab'] + list(filter(lambda tag: tag not in labelonlyvocab, arraydata['tags']))
@@ -680,10 +680,19 @@ def saveannonaview():
 def updatedata():
     data = request.form['updatedata']
     jsondata = json.loads(data)
+    jsondata['settings'] = getSettings(jsondata['settings'])
     yamldata = yaml.dump(jsondata)
     github.sendgithubrequest(session, 'preload.yml', yamldata, '_data')
     session['preloaded'] = jsondata
+    checkTempUser(jsondata)
+    session['annotime'] = datetime.now()
     return redirect('/profile?tab=data')
+
+def checkTempUser(data):
+    if 'tempuser' not in session.keys() and 'tempuser' in data['settings'].keys() and data['settings']['tempuser'] == 'enabled':
+        session['tempuser'] = True
+    elif 'tempuser' in session.keys() and data['settings']['tempuser'] == 'notenabled':
+        del session['tempuser']
 
 # Shows GitHub libray how to get token
 @github.access_token_getter
@@ -859,12 +868,14 @@ def getannotations():
             session['upload'] = {'manifests': [], 'images' : []}
         elif 'preloaded' not in session.keys() or duration > 60:
             parsecollections(content)
-            session['preloaded'] = {'manifests': [], 'images': [], 'settings': {}}
+            session['preloaded'] = {'manifests': [], 'images': [], 'settings': getSettings(None)}
             for preloadkey in content['preloadedcontent']:
                 if content['preloadedcontent'][preloadkey]:
-                    session['preloaded'][preloadkey] = content['preloadedcontent'][preloadkey]
-            if 'tempuser' not in session.keys() and 'tempuser' in session['preloaded']['settings'].keys():
-                session['tempuser'] = True
+                    if preloadkey != 'settings':
+                        session['preloaded'][preloadkey] = content['preloadedcontent'][preloadkey]
+                    else:
+                        session['preloaded'][preloadkey] = getSettings(content['preloadedcontent'][preloadkey])
+            checkTempUser(session['preloaded'])
             session['upload'] = {'images': content['images'], 'manifests': content['manifests']}
         parsecustomviews(content)
         session['annotime'] = datetime.now()
@@ -877,6 +888,12 @@ def getannotations():
         annotations = github.updateAnnos(session)
         session['annotations'] = annotations
     return annotations
+
+def getSettings(settings):
+    defaults = {'tempuser': 'notenabled', 'viewer': 'default', 'widgets': 'comment-with-purpose, tag, geotagging'}
+    if settings:
+        defaults = {**defaults, **settings}
+    return defaults
 
 # Load custom views JSON into a dict that sorts custom views based on the url being read
 def parsecustomviews(content):
@@ -943,10 +960,11 @@ def cleananno(data_object):
             data_object['on'][0]['selector']['item']['value'] = svgselector.replace(searchstring, '')
     if field in data_object.keys():
         for item in data_object[field]:
-            replace = re.finditer(r'&lt;iiif-(.*?)&gt;&lt;\/iiif-(.*?)&gt;', item[charfield])
-            for rep in replace:
-                replacestring = rep.group().replace("&lt;","<").replace("&gt;", ">").replace("&quot;", '"')
-                item[charfield] =  item[charfield].replace(rep.group(), replacestring)
+            if charfield in item.keys():
+                replace = re.finditer(r'&lt;iiif-(.*?)&gt;&lt;\/iiif-(.*?)&gt;', item[charfield])
+                for rep in replace:
+                    replacestring = rep.group().replace("&lt;","<").replace("&gt;", ">").replace("&quot;", '"')
+                    item[charfield] =  item[charfield].replace(rep.group(), replacestring)
     return data_object
 
 # function to delete annotations from session and GitHub
@@ -980,6 +998,14 @@ def get_tabs(viewtype):
 def to_pretty_json(value):
     return json.dumps(value, sort_keys=True,
                       indent=4, separators=(',', ': '))
+
+def search_params(facet, value):
+    args = dict(request.args) if request.args else {'q': ''}
+    args[facet] =value
+    return args
+
+app.jinja_env.filters['search_params'] = search_params
+
 app.jinja_env.filters['tojson_pretty'] = to_pretty_json
 
 app.jinja_env.filters['canvas'] = getCanvas
