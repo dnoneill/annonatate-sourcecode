@@ -910,7 +910,8 @@ def getannotations():
     return annotations
 
 def getSettings(settings):
-    defaults = {'tempuser': 'notenabled', 'viewer': 'default', 'widgets': 'comment-with-purpose, tag, geotagging'}
+    viewer = 'default' if session['defaults']['type'] != 'workbench' else 'mirador'
+    defaults = {'tempuser': 'notenabled', 'viewer': viewer, 'widgets': 'comment-with-purpose, tag, geotagging'}
     if settings:
         defaults = {**defaults, **settings}
     return defaults
