@@ -154,7 +154,7 @@ def uploadstatus():
             currentaction = list(filter(lambda x: x['name'] == actionname, session['actions']))
             if len(currentaction) > 0 and currentaction[0]['conclusion'] == 'failure':
                 session['inprocess'] = list(filter(lambda x: x['url'] != url, session['inprocess']))
-                return 'An error occured during the processing of: {}. You can check what happened here: <a href="{}">{}</a>'.format(actionname, currentaction['html_url'],currentaction['html_url']), 200
+                return 'An error occured during the processing of: {}. You can check what happened here: <a href="{}">{}</a>'.format(actionname, currentaction[0]['html_url'],currentaction[0]['html_url']), 400
         return '{} not rendered yet'.format(url), 404
     if uploadtype == 'customviews':
         deleteItemAnnonCustomViews(url, 'slug')
@@ -195,7 +195,6 @@ def renameGitHub():
             session['currentworkspace'] = content
             session['defaults'] = getDefaults()
             updateworkspace(content['full_name'])
-            session['annotime'] = datetime.now()
     else:
         error = parseGitHubErrors(response.json())
         return redirect('/profile?renameerror={}'.format(error))
@@ -263,7 +262,7 @@ def createimage():
                 output = response['message']
         convertiiif = image.createActionScript(githubfilefolder, filenames)
         ymlname = '{}.yml'.format(actionname)
-        github.sendgithubrequest(session, ymlname, convertiiif, ".github/workflows").json()
+        response = github.sendgithubrequest(session, ymlname, convertiiif, ".github/workflows").json()
         time.sleep(2)
         triggerAction(ymlname)
     #triggerbuild()
@@ -408,7 +407,8 @@ def index():
             if 'vocab' in session['preloaded'].keys():
                 labelonlyvocab = [item['label'] if type(item) == dict else item for item in session['preloaded']['vocab']]
             vocabtags = arraydata['tags'] if 'vocab' not in session['preloaded'].keys() else session['preloaded']['vocab'] + list(filter(lambda tag: tag not in labelonlyvocab, arraydata['tags']))
-            return render_template('index.html', existingitems=existing, filepaths=arraydata['contents'], tags=vocabtags, userinfo={'name': session['user_name'], 'id': session['user_id']})
+            userid =  session['user_id'] if 'tempuser' not in session.keys() else session['user_name']
+            return render_template('index.html', existingitems=existing, filepaths=arraydata['contents'], tags=vocabtags, userinfo={'name': session['user_name'], 'id': userid})
         except Exception as e:
            return errorchecking(request, e)
 
@@ -588,7 +588,6 @@ def deletefile():
     payload = {'ref': session['github_branch']}
     data = github.createdatadict(session, filename, 'delete', path)
     response = github.raw_request('delete', data['url'], data=json.dumps(data['data']), params=payload)
-    session['annotime'] = datetime.now()
     return redirect(request.args.get('next'))
 
 
@@ -679,7 +678,6 @@ def updatedata():
     github.sendgithubrequest(session, 'preload.yml', yamldata, '_data')
     session['preloaded'] = jsondata
     checkTempUser(jsondata)
-    session['annotime'] = datetime.now()
     return redirect('/profile?tab=data')
 
 def checkTempUser(data):
@@ -704,12 +702,16 @@ def buildWorkspaces():
         populateworkspace()
     return isfirstbuild
 
-# trigger build of GitHub pages website
-def triggerbuild(url=False):
+def checkBuildStatus():
     params = {'created': '>={}'.format(datetime.now().date())}
     runs = github.get('{}/actions/runs'.format(session['currentworkspace']['url'], params))
     statuses = ['in_progress', 'queued', 'waiting']
     isbuilding = list(filter(lambda x: 'pages-build' in x['path'] and x['status'] in statuses,runs['workflow_runs']))
+    return isbuilding
+
+# trigger build of GitHub pages website
+def triggerbuild(url=False):
+    isbuilding = checkBuildStatus()
     if len(isbuilding) == 0:
         pagebuild = url if url else session['currentworkspace']['url'] + '/pages'
         return github.raw_request("post", '{}/builds'.format(pagebuild), headers={'Accept': 'application/vnd.github.mister-fantastic-preview+json'})
@@ -850,11 +852,8 @@ def getContents():
 
 # Get annotation content
 def getannotations():
-    duration = 36
-    if 'annotime' in session.keys():
-        now = datetime.now()
-        duration = (now - session['annotime']).total_seconds()
-    if 'annotations' not in session.keys() or session['annotations'] == [] or  duration > 35:
+    buildstatus = checkBuildStatus()
+    if 'annotations' not in session.keys() or session['annotations'] == [] or len(buildstatus) == 0:
         content, status = origin_contents()
         for item in content['annotations']:
             item['canvas'] = getCanvas(item['json'])
@@ -865,19 +864,18 @@ def getannotations():
             updateindex()
             session['preloaded'] = {'manifests': content['manifests'], 'images': content['images'], 'settings': {}}
             session['upload'] = {'manifests': [], 'images' : []}
-        elif 'preloaded' not in session.keys() or duration > 60:
-            parsecollections(content)
-            session['preloaded'] = {'manifests': [], 'images': [], 'settings': getSettings(None)}
-            for preloadkey in content['preloadedcontent']:
-                if content['preloadedcontent'][preloadkey]:
-                    if preloadkey != 'settings':
-                        session['preloaded'][preloadkey] = content['preloadedcontent'][preloadkey]
-                    else:
-                        session['preloaded'][preloadkey] = getSettings(content['preloadedcontent'][preloadkey])
-            checkTempUser(session['preloaded'])
-            session['upload'] = {'images': content['images'], 'manifests': content['manifests']}
+        parsecollections(content)
+        session['preloaded'] = {'manifests': [], 'images': [], 'settings': getSettings(None)}
+        for preloadkey in content['preloadedcontent']:
+            if content['preloadedcontent'][preloadkey]:
+                if preloadkey != 'settings':
+                    session['preloaded'][preloadkey] = content['preloadedcontent'][preloadkey]
+                else:
+                    session['preloaded'][preloadkey] = getSettings(content['preloadedcontent'][preloadkey])
+        checkTempUser(session['preloaded'])
+        print('after temp user')
+        session['upload'] = {'images': content['images'], 'manifests': content['manifests']}
         parsecustomviews(content)
-        session['annotime'] = datetime.now()
         annotations = github.updateAnnos(session)
         if status > 299:
             session['annotations'] = []
@@ -941,6 +939,7 @@ def origin_contents():
     try:
         content = json.loads(response.content.decode('utf-8').replace('&lt;', '<').replace('&gt;', '>'))
     except Exception as e:
+        print(e)
         content = {'annotations': [], 'images': [], 'manifests': [], 'customviews': [], 'collections': []}
         triggerbuild()
         try:
@@ -981,7 +980,6 @@ def delete_annos(anno):
         response = github.raw_request('delete', data['url'], data=json.dumps(data['data']), params=payload)
         if response.status_code < 400:
             session['annotations'] = [x for x in session['annotations'] if anno not in x['filename']]
-            session['annotime'] = datetime.now()
         return {'message': response.content, 'status_code': response.status_code}
     else:
         return {'message': 'no annotation exists', 'status_code': 400}
@@ -1048,7 +1046,6 @@ def writetogithub(filename, annotation, order):
             session['annotations'].append(listdata)
         if canvas not in canvases:
             createlistpage(canvas, manifest)
-        session['annotime'] = datetime.now()
     return response
 
 # create Annotation page file, filename based on canvas, and write to GitHub
