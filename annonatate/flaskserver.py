@@ -674,6 +674,9 @@ def updatedata():
     data = request.form['updatedata']
     jsondata = json.loads(data)
     jsondata['settings'] = getSettings(jsondata['settings'])
+    for key in jsondata:
+        if key != 'settings' and jsondata[key] == {}:
+            jsondata[key] = []
     yamldata = yaml.dump(jsondata)
     github.sendgithubrequest(session, 'preload.yml', yamldata, '_data')
     session['preloaded'] = jsondata
@@ -873,7 +876,6 @@ def getannotations():
                 else:
                     session['preloaded'][preloadkey] = getSettings(content['preloadedcontent'][preloadkey])
         checkTempUser(session['preloaded'])
-        print('after temp user')
         session['upload'] = {'images': content['images'], 'manifests': content['manifests']}
         parsecustomviews(content)
         annotations = github.updateAnnos(session)

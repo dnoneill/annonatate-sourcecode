@@ -1,8 +1,17 @@
 <button onclick="updateData()" class="button" style="float: right;">Update</button>
+<div style="padding-top: 20px; width: 90%">
+You can edit any of the items below, just edit the text and click update.<br>
+<b>Manifests and images</b> are links to external manifests and images that you would like to annotate,
+but don't want to upload, but want to have easily avaliable on the homepage.<br>
+<b>Settings</b> are settings for your Annonatate workspace, these are specific to each workspace (not your user).
+A list of <a href="https://annonatate.github.io/settings.html">settings options</a> are avaliable in the link.
+<br>If you have uploaded a <b>Vocab</b> you can edit it here.<br>
+<b>To create a new list item hit enter. You must keep the list format otherwise you will cause problems.</b>
+</div>
 {% for key in session['preloaded'] %}
+<h2>{{key.title()}}</h2>
 <div class="listitems" id="{{key}}" contenteditable="true">
-  <h2>{{key.title()}}</h2>
-  <ul>
+  <ul style="outline: none;box-shadow: 0px 0px 5px #61C5FA;border:1px solid #5AB0DB;">
     {% if session['preloaded'][key] is iterable and (session['preloaded'][key] is not string and session['preloaded'][key] is not mapping) %}
         {% for listitem in session['preloaded'][key] %}
             <li>{{listitem}}</li>
