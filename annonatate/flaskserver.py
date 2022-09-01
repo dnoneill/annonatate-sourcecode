@@ -127,8 +127,7 @@ def upload():
 @app.route('/sitestatus')
 def sitestatus():
     content, status_code = origin_contents()
-    timediff = (datetime.now() - datetime.strptime(session['login_time'], '%Y-%m-%d %H:%M:%S.%f')).seconds
-    if status_code > 299 and timediff > 40:
+    if status_code > 299:
         triggerbuild()
     time.sleep(1)
     return content, status_code
@@ -265,7 +264,7 @@ def createimage():
         convertiiif = image.createActionScript(githubfilefolder, filenames)
         ymlname = '{}.yml'.format(actionname)
         github.sendgithubrequest(session, ymlname, convertiiif, ".github/workflows").json()
-        time.sleep(1)
+        time.sleep(2)
         triggerAction(ymlname)
     #triggerbuild()
     return render_template('uploadsuccess.html', output=output, actionname=actionname, uploadurl=uploadurl, successmessage=successmessage, uploadtype=uploadtype)
@@ -402,8 +401,6 @@ def index():
     if 'user_id' in session:
         try:
             data, status = origin_contents()
-            if status > 299:
-                return errorchecking(request)
             arraydata = getContents()
             manifests = session['preloaded']['manifests'] + session['upload']['manifests']
             images = session['preloaded']['images'] + session['upload']['images']
@@ -445,17 +442,14 @@ def changeworkspace():
     prevworkspace = session['currentworkspace']['full_name']
     updateworkspace(workspace)
     content, status_code = origin_contents()
-    if status_code < 299:
-        getContents()
-    else:
+    getContents()
+    if status_code > 299:
         if session['defaults']['iswax']:
             try:
                 github.get(session['currentworkspace']['contents_url'].replace('/{+path}', session['defaults']['apiurl']))
             except:
                 updateWax()
         triggerbuild()
-        next_url += '?switcherror={}'.format(workspace)
-        updateworkspace(prevworkspace)
     return redirect(next_url)
 
 # update config in wax site and update config
@@ -712,8 +706,13 @@ def buildWorkspaces():
 
 # trigger build of GitHub pages website
 def triggerbuild(url=False):
-    pagebuild = url if url else session['currentworkspace']['url'] + '/pages'
-    return github.raw_request("post", '{}/builds'.format(pagebuild), headers={'Accept': 'application/vnd.github.mister-fantastic-preview+json'})
+    params = {'created': '>={}'.format(datetime.now().date())}
+    runs = github.get('{}/actions/runs'.format(session['currentworkspace']['url'], params))
+    statuses = ['in_progress', 'queued', 'waiting']
+    isbuilding = list(filter(lambda x: 'pages-build' in x['path'] and x['status'] in statuses,runs['workflow_runs']))
+    if len(isbuilding) == 0:
+        pagebuild = url if url else session['currentworkspace']['url'] + '/pages'
+        return github.raw_request("post", '{}/builds'.format(pagebuild), headers={'Accept': 'application/vnd.github.mister-fantastic-preview+json'})
 
 # Get user info from GitHub user api, get all repos user has access to.
 # If no workspaces, fork Annnonatate repo, enable pages
@@ -855,7 +854,7 @@ def getannotations():
     if 'annotime' in session.keys():
         now = datetime.now()
         duration = (now - session['annotime']).total_seconds()
-    if 'annotations' not in session.keys() or session['annotations'] == '' or  duration > 35:
+    if 'annotations' not in session.keys() or session['annotations'] == [] or  duration > 35:
         content, status = origin_contents()
         for item in content['annotations']:
             item['canvas'] = getCanvas(item['json'])
@@ -881,7 +880,7 @@ def getannotations():
         session['annotime'] = datetime.now()
         annotations = github.updateAnnos(session)
         if status > 299:
-            session['annotations'] = ''
+            session['annotations'] = []
         else:
             session['annotations'] = annotations
     else:
@@ -942,8 +941,15 @@ def origin_contents():
     try:
         content = json.loads(response.content.decode('utf-8').replace('&lt;', '<').replace('&gt;', '>'))
     except Exception as e:
-        print(e)
         content = {'annotations': [], 'images': [], 'manifests': [], 'customviews': [], 'collections': []}
+        triggerbuild()
+        try:
+            preloads = github.raw_request('get', session['currentworkspace']['contents_url'].replace('/{+path}', '_data/preload.yml'))
+            if preloads.status_code < 299:
+                yamlcontents = github.decodeContent(preloads.json()['content'])
+                content['preloadedcontent'] = yaml.load(yamlcontents)
+        except:
+            print('preloaded')
     return content, response.status_code
 
 # remove escaped tags
