@@ -264,7 +264,7 @@ def createimage():
         convertiiif = image.createActionScript(githubfilefolder, filenames)
         ymlname = '{}.yml'.format(actionname)
         github.sendgithubrequest(session, ymlname, convertiiif, ".github/workflows").json()
-        time.sleep(1)
+        time.sleep(2)
         triggerAction(ymlname)
     #triggerbuild()
     return render_template('uploadsuccess.html', output=output, actionname=actionname, uploadurl=uploadurl, successmessage=successmessage, uploadtype=uploadtype)
