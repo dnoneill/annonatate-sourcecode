@@ -51,7 +51,8 @@ const annoview = Vue.component('annoview', {
         <span>{{drawtool.label}}</span></label>
     </div>
     <div v-if="isMobile">
-      <b>Tap and drag to create new annotation
+      <b>Click pencil icon (<i class="fas fa-pencil-alt"></i>) so there is no slash through it.<br>
+      Then tap and drag to create new annotation.
       <span v-if="currentdrawtool == 'polygon'">
         <br>
         To stop Polygon annotation selection long touch the screen.
@@ -329,7 +330,7 @@ const annoview = Vue.component('annoview', {
                 'checked': checked, 'xywh': xywh
               })
             }
-            thumb = thumb.replace(`/${fullvalue}/0`, `/${size}/0`)
+            thumb = thumb ? thumb.replace(`/${fullvalue}/0`, `/${size}/0`) : thumb;
             images.push({'image': thumb, 'canvas': canvas, 'tiles': tiles})
             if (loadcanvas == canvas) {
               this.currentposition = i;
