@@ -125,6 +125,10 @@ const annoview = Vue.component('annoview', {
     }
     console.log(navigator.userAgent)
     const params = new URLSearchParams(window.location.search);
+    const mobileparam = params.get('view');
+    if (mobileparam) {
+      this.isMobile = mobileparam == 'desktop' ? false : true;
+    }
     const manifesturl = params.get('manifesturl');
     const imageurl = params.get('imageurl');
     const mode = params.get('mode');
