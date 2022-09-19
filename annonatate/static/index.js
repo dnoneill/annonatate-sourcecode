@@ -116,7 +116,8 @@ const annoview = Vue.component('annoview', {
       ingesturl: '',
       fragmentunit: 'pixel',
       currentposition: 0,
-      widgets: ['comment-with-purpose','tag','geotagging']
+      widgets: ['comment-with-purpose','tag','geotagging'],
+      draftannos: []
   	}
   },
   mounted() {
@@ -449,6 +450,11 @@ const annoview = Vue.component('annoview', {
         vue.write_annotation(annotation, 'delete');
         vue.enableDrawing();
       });
+      this.anno.on('selectAnnotation', function(annotation, element) {
+        if (vue.draftannos.indexOf(annotation['id']) > -1) {
+          document.getElementsByClassName('delete-annotation')[0].style.display = 'none';
+        }
+      });
     },
     write_annotation: function(annotation, method) {
       var vue = this;
@@ -456,6 +462,8 @@ const annoview = Vue.component('annoview', {
       if (annotation['order']){
         senddata['order'] = annotation['order'];
       }
+      this.draftannos.push(senddata['id'])
+      const index = this.draftannos.length;
       jQuery.ajax({
         url: `/${method}_annotations/`,
         type: "POST",
@@ -464,6 +472,7 @@ const annoview = Vue.component('annoview', {
         contentType: "application/json; charset=utf-8",
         success: function(data) {
           if (annotation && method != 'delete') {
+            delete vue.draftannos[index]
             vue.anno.removeAnnotation(annotation);
             annotation['id'] = data['id']
             annotation['order'] = data['order'];
