@@ -452,7 +452,9 @@ const annoview = Vue.component('annoview', {
       });
       this.anno.on('selectAnnotation', function(annotation, element) {
         if (vue.draftannos.indexOf(annotation['id']) > -1) {
-          document.getElementsByClassName('delete-annotation')[0].style.display = 'none';
+          if (document.getElementsByClassName('delete-annotation').length> 0){
+            document.getElementsByClassName('delete-annotation')[0].style.display = 'none';
+          }
         }
       });
     },

@@ -56,9 +56,21 @@ class GitHubAnno(GitHub):
             githubfilenames = list(map(lambda x: x['name'], githubresponse))
             session['annotations'] = list(filter(lambda x: x['filename'].split('/')[-1] in githubfilenames, session['annotations']))
             filenames = list(map(lambda x: x['filename'].split('/')[-1], session['annotations']))
-            notinsession = list(filter(lambda x: x['name'] not in filenames and '-list' not in x['name'],githubresponse))
+            notinsession = []
+            sizename = {}
+            for anno in githubresponse:
+                if '-list' not in anno['name']:
+                    if anno['name'] not in filenames:
+                        notinsession.append(anno)
+                    if 'sizename' in session.keys() and anno['name'] in session['sizename'].keys() and anno['size']-session['sizename'][anno['name']] != 0:
+                        index = [i for i, d in enumerate(session['annotations']) if d['filename'].split('/')[-1] == anno['name']]
+                        if len(index) > 0:
+                            anno['index'] = index[0]
+                        notinsession.append(anno)
+                    sizename[anno['name']] = anno['size']
             #beforefilenames = list(map(lambda x: x['filename'].split('/')[-1], annotations))
             #remove = list(set(beforefilenames).difference(filenames))
+            session['sizename'] = sizename
             for item in notinsession:
                 try:
                     downloadresponse = self.get(item['download_url'])
@@ -68,7 +80,10 @@ class GitHubAnno(GitHub):
                     yamlparse['filename'] = item['name']
                     filenamelist = listfilename(yamlparse['canvas'])
                     indexof = [idx for idx, annotation in enumerate(session['annotations']) if filenamelist in annotation['filename']]
-                    session['annotations'].append(yamlparse)
+                    if 'index' in item.keys():
+                        session['annotations'][item['index']] = yamlparse
+                    else:
+                        session['annotations'].append(yamlparse)
                     if len(indexof) > 0:
                         itemskey = 'items' if 'items' in session['annotations'][indexof[0]]['json'].keys() else 'resources'
                         session['annotations'][indexof[0]]['json'][itemskey].append(yamlparse['json'])

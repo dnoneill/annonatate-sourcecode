@@ -715,7 +715,7 @@ def checkBuildStatus():
     params = {'created': '>={}'.format(datetime.now().date())}
     runs = github.get('{}/actions/runs'.format(session['currentworkspace']['url'], params))
     statuses = ['in_progress', 'queued', 'waiting']
-    isbuilding = list(filter(lambda x: 'pages-build' in x['path'] and x['status'] in statuses,runs['workflow_runs']))
+    isbuilding = list(filter(lambda x: 'pages-build' in x['path'] and x['status'] in statuses and x['conclusion'] == None,runs['workflow_runs']))
     return isbuilding
 
 # trigger build of GitHub pages website
