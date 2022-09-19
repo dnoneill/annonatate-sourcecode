@@ -95,7 +95,8 @@ const annoview = Vue.component('annoview', {
     'filepaths': Object,
     'userinfo': Object,
     'tags': Array,
-    'originurl': String
+    'originurl': String,
+    'updatepage': String
   },
   data: function() {
   	return {
@@ -144,8 +145,32 @@ const annoview = Vue.component('annoview', {
       this.inputurl = imageurl;
       this.loadAnno();
     }
+    if (this.updatepage){
+      this.setUpdate();
+    }
   },
   methods: {
+    setUpdate: function() {
+      setInterval(() => {
+        var vue = this;
+        if (this.anno) {
+          jQuery.ajax({
+            url: "/update",
+            type: "GET",
+            success: function(data) {
+              vue.filepaths = data;
+              const selected = vue.anno.getSelected();
+              if (!selected || (selected && selected['type'] != 'Selection')){
+                vue.annoLoadOSD(true);
+                if (selected){
+                  vue.anno.selectAnnotation(selected['id']);
+                }
+              }
+            }
+          });
+        }
+      }, "60000")
+    },
     next: function(nextorprev) {
       this.currentposition = nextorprev == 'next' ? this.currentposition + 1 : this.currentposition -1;
       this.manifestLoad(this.manifestdata[this.currentposition])
@@ -193,6 +218,14 @@ const annoview = Vue.component('annoview', {
       }
       return widgets;
     },
+    annoLoadOSD: function(clearold=false) {
+      var existing = this.currentmanifest ? this.filepaths[this.canvas] : this.filepaths[this.inputurl];
+    // Load annotations in W3C WebAnnotation format
+      if (existing){
+        const clean = existing.map(elem => JSON.parse(JSON.stringify(elem).replace("pct:", "percent:")))
+        var annotation = this.anno.setAnnotations(clean);
+      }
+    },
     loadAnno: function() {
       document.getElementById('openseadragon1').innerHTML = '';
       var tilesources = [this.inputurl]
@@ -226,7 +259,6 @@ const annoview = Vue.component('annoview', {
 
       var id = this.inputurl;
       // Initialize the Annotorious plugin
-      var existing = this.currentmanifest ? this.filepaths[this.canvas] : this.filepaths[this.inputurl];
       var widgets = this.buildWidgetList();
       this.anno = OpenSeadragon.Annotorious(viewer, 
         { image: 'openseadragon1',
@@ -235,10 +267,7 @@ const annoview = Vue.component('annoview', {
           allowEmpty: true,
           widgets: widgets});
     // Load annotations in W3C WebAnnotation format
-      if (existing){
-        const clean = existing.map(elem => JSON.parse(JSON.stringify(elem).replace("pct:", "percent:")))
-        var annotation = this.anno.setAnnotations(clean);
-      }
+      this.annoLoadOSD();
       Annotorious.SelectorPack(this.anno);
       Annotorious.TiltedBox(this.anno);
       this.drawtools = []

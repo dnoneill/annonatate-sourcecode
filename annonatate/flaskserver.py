@@ -394,12 +394,17 @@ def collections(collectionid=''):
         collections=session['collections']
     return render_template('collections.html', collections=collections, collectionurl='{}{}'.format(session['origin_url'], session['defaults']['collections']))
 
+@app.route('/update')
+def updateindex():
+    arraydata = getContents()
+    return arraydata['contents'], 200
+
+
 # Homepage if logged in. Get contents of API and load into homepage.
 @app.route('/')
 def index():
     if 'user_id' in session:
         try:
-            data, status = origin_contents()
             arraydata = getContents()
             manifests = session['preloaded']['manifests'] + session['upload']['manifests']
             images = session['preloaded']['images'] + session['upload']['images']
@@ -536,7 +541,7 @@ def delete_anno():
     response = delete_annos(id)
     if len(canvases[canvas]) == 1:
         delete_annos(listfilename(canvas))
-    return jsonify(response['message'].decode("utf-8")), response['status_code']
+    return jsonify(response['message']), response['status_code']
 
 # Get repository invites, collaborators, user info/organizations, render profile page
 @app.route('/profile/')
@@ -1087,4 +1092,5 @@ def workspaceCheck(method=False):
 
         getContents()
         g.error = '<i class="fas fa-exclamation-triangle"></i> You have lost access to {}, we have updated your workspace to {}'.format(prevsession['full_name'], session['currentworkspace']['full_name'])
-        
+    else:
+        session['currentworkspace']['numbcollabs'] = len(response.json())
