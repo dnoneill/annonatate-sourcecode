@@ -162,6 +162,7 @@ const annoview = Vue.component('annoview', {
               vue.filepaths = data;
               const selected = vue.anno.getSelected();
               if (!selected || (selected && selected['type'] != 'Selection')){
+                vue.anno.clearAnnotations();
                 vue.annoLoadOSD(true);
                 if (selected){
                   vue.anno.selectAnnotation(selected['id']);

@@ -73,8 +73,8 @@ class GitHubAnno(GitHub):
             session['sizename'] = sizename
             for item in notinsession:
                 try:
-                    downloadresponse = self.get(item['download_url'])
-                    contentssplit = downloadresponse.content.decode("utf-8").rsplit('---\n', 1)
+                    downloadresponse = self.get(item['url'])
+                    contentssplit = self.decodeContent(downloadresponse['content']).rsplit('---\n', 1)
                     yamlparse = yaml.load(contentssplit[0], Loader=yaml.FullLoader)
                     yamlparse['json'] = json.loads(contentssplit[-1])
                     yamlparse['filename'] = item['name']
