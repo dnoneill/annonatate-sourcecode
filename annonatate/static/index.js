@@ -466,7 +466,7 @@ const annoview = Vue.component('annoview', {
         senddata['order'] = annotation['order'];
       }
       this.draftannos.push(senddata['id'])
-      const index = this.draftannos.length;
+      const index = this.draftannos.length-1;
       jQuery.ajax({
         url: `/${method}_annotations/`,
         type: "POST",
