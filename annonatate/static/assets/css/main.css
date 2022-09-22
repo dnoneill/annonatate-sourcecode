@@ -426,6 +426,17 @@ h3 {
   font-size: 1.7em!important;
 }
 
+.manifestimages.noanno {
+  border: 2px solid #61177C;
+}
+.ingesturlcontainer.noanno {
+  border: 2px solid #004EC2;
+}
+
+.noanno {
+  padding: 10px;
+}
+
 .removeboard, .linkbutton {
   display: inline-block;
     border: none;

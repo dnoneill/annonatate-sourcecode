@@ -9,10 +9,9 @@ const annoview = Vue.component('annoview', {
     </button>
   </div>
   <div style="position:absolute;right: 10px;top: 52px;">
-    Currently in {{this.fragmentunit}} mode.<br>
-    Switch to <a v-on:click="updateUnit()" href="#">{{this.fragmentunit =='pixel' ? 'percent' : 'pixel' }} mode</a>
+    Switch to <a v-on:click="updateIsMobile()" class="linkbutton">{{this.isMobile ==true ? 'Desktop' : 'Mobile' }} view.</a><br>
   </div>
-  <div class="manifestimages">
+  <div class="manifestimages" :class="{'noanno' : !anno}">
     <div v-for="manifest in existing['manifests']">
       <button v-if="manifest" class="linkbutton" v-on:click="getManifest(manifest)">
         • {{manifest}}
@@ -24,7 +23,7 @@ const annoview = Vue.component('annoview', {
       </button>
     </div>
   </div>
-  <div>
+  <div class="ingesturlcontainer" :class="{'noanno' : !anno}">
     <label for="ingesturl">Manifest or Image URL: </label>
     <input id="ingesturl" v-on:change="getManifest(ingesturl)" v-model="ingesturl"></input>
     <button v-on:click="showManThumbs = !showManThumbs" v-if="currentmanifest">
@@ -70,8 +69,18 @@ const annoview = Vue.component('annoview', {
   </div>
   <div v-else>
     <p>
-    The links above are a list of demo images you can click on and they will be loaded into the annotation viewer. These links can be edited on the <a href="/profile?tab=data">profile page</a>.<br>
-    You can also add in your own link to an image or <a href="https://iiif.io" target="_blank">IIIF manfiest</a> into the box next to "Manifest or Image URL".
+    Welcome to Annonatate. A platform for annotating images.
+    </p>
+    <p>
+    The links in the <span style="color: #61177C">purple</span> box are 
+    example links are images you can annotate. Click on any of them and an image will appear for you to annotate.
+    Some of these links are a special type of item called a <a href="https://iiif.io" target="_blank">IIIF manifest</a>, this allows multiple images to be placed in the same view,
+    for example, all the pages of a book can be put into one link, and you can page through all those images and annotate the choosen image.
+    You can edit the links to point to images and/or manifests of your choice on the <a href="/profile?tab=data">profile page</a>
+    Additionally, any images or manifests you upload via the <a href="/upload">upload page</a> will automatically get added after they are finished processing.
+    </p>
+    The item in the <span style="color: #004EC2">blue</span> box is a box where you can put your own images or manifest links. 
+    The items in the purple box are there for ease of use, however if you are only going to use a resource once, this might be where you want to enter your link. 
     </p>
   </div>
   <div class="layers gridparent" v-if="alltiles.length > 1">
@@ -187,13 +196,20 @@ const annoview = Vue.component('annoview', {
         localStorage.removeItem('erranno');
       }
     },
+    updateIsMobile: function() {
+      const switchUnit = this.isMobile ? 'desktop' : 'mobile' ;
+      this.updateUrl('view', switchUnit);
+    },
     updateUnit: function() {
       const switchUnit = this.fragmentunit =='pixel' ? 'percent' : 'pixel' ;
+      this.updateUrl('mode', switchUnit);
+    },
+    updateUrl: function(param, variable) {
       var url = new URL(location.href);
-      if (url.searchParams.get('mode')){
-        url.searchParams.set('mode', switchUnit);
+      if (url.searchParams.get(param)){
+        url.searchParams.set(param, variable);
       } else{
-        url.searchParams.append('mode', switchUnit);
+        url.searchParams.append(param, variable);
       }
       window.location.href = url.toString();
     },
@@ -242,7 +258,8 @@ const annoview = Vue.component('annoview', {
       var viewer = OpenSeadragon({
         id: "openseadragon1",
         prefixUrl: "/assets/openseadragon/images/",
-        tileSources: tilesources
+        tileSources: tilesources,
+        zoomPerClick: 1
       });
       this.viewer = viewer;
       var vue = this;
