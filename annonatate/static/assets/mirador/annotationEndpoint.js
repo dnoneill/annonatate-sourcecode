@@ -29,6 +29,16 @@
           _this.eventEmitter.publish('REMOVE_SLOT_FROM_WINDOW', 'slot1')
         }
       });
+      setInterval(() => {
+        jQuery.ajax({
+          url: "/update",
+          type: "GET",
+          success: function(data) {
+            _this.allannotations = data;
+            _this.eventEmitter.publish('updateAnnotationList.'+_this.windowID);
+          }
+        });
+      }, "60000")
     },
     checkErrorAnnos: function(){
       const erroranno = JSON.parse(localStorage.getItem('erranno'));
