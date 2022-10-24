@@ -9,3 +9,4 @@ github_repo = "annonatate"
 github_branch = "main"
 uploadfolder="/tmp"
 githubuserapi="https://api.github.com/user"
+set_user_token=os.environ.get('ANNONATATE_USER')

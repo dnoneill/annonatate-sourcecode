@@ -87,7 +87,10 @@ def getDefaults():
 def login():
     argsnext = urllib.parse.quote(request.args.get('next')) if request.args.get('next') else url_for('index')
     nexturl = url_for('authorized', _external=True) + "?next={}".format(argsnext)
-    return github.authorize(scope="repo,workflow", redirect_uri=nexturl)
+    if set_user_token:
+        return authorized()
+    else:
+        return github.authorize(scope="repo,workflow", redirect_uri=nexturl)
 
 # clears session, redirects to github logout
 @app.route('/logout')
@@ -101,6 +104,8 @@ def logout():
 @app.route('/authorize')
 @github.authorized_handler
 def authorized(oauth_token):
+    if set_user_token:
+        oauth_token = set_user_token
     if oauth_token is None:
         #flash("Authorization failed.")
         return render_template('error.html')
@@ -406,8 +411,8 @@ def index():
     if 'user_id' in session:
         try:
             arraydata = getContents()
-            manifests = session['preloaded']['manifests'] + session['upload']['manifests']
-            images = session['preloaded']['images'] + session['upload']['images']
+            manifests = session['upload']['manifests'] + session['preloaded']['manifests']
+            images = session['upload']['images'] + session['preloaded']['images']
             existing = {'manifests': manifests, 'images': images, 'settings': session['preloaded']['settings']}
             if 'vocab' in session['preloaded'].keys():
                 labelonlyvocab = [item['label'] if type(item) == dict else item for item in session['preloaded']['vocab']]
