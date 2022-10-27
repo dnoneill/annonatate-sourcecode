@@ -41,7 +41,10 @@ def before_request():
     if 'user_id' not in session.keys() and '_anno' in request.endpoint:
         return 'You have been logged out of the application. You will now be redirected to the login page.', 418
     elif 'user_id' not in session.keys() and request.endpoint not in nolandingpage:
-        return render_template('landingpage.html')
+        if landingpage:
+            return render_template('landingpage.html')
+        else:
+            return redirect('/login')
     g.error = ''
     # If the user has been logged in for longer than 3 days, clear the session and log them back in
     if 'login_time' in session.keys():

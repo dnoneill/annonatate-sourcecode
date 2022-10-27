@@ -10,3 +10,7 @@ github_branch = "main"
 uploadfolder="/tmp"
 githubuserapi="https://api.github.com/user"
 set_user_token=os.environ.get('ANNONATATE_USER')
+if os.environ.get('REMOVELANDINGPAGE'):
+    landingpage=False
+else:
+    landingpage=True
