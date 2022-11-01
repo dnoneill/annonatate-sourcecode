@@ -19,7 +19,7 @@
 {% endif %}
 <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14"></script>
 <div id="app">
-  {% set updatepage = 'true' if session['currentworkspace']['numbcollabs'] > 1 or session['tempuser'] else 'false' %}
+  {% set updatepage = 'true' if session['currentworkspace']['numbcollabs'] > 1 else 'false' %}
   <annoview :existing='{{existingitems | tojson}}' :updatepage="{{updatepage}}" :filepaths='{{ filepaths|tojson }}' :userinfo='{{userinfo | tojson}}' :tags='{{tags|tojson}}' :originurl='{{session["origin_url"] | tojson}}'></annoview>
 </div>
 {% if ismirador %}
