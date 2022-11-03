@@ -41,7 +41,10 @@ def before_request():
     if 'user_id' not in session.keys() and '_anno' in request.endpoint:
         return 'You have been logged out of the application. You will now be redirected to the login page.', 418
     elif 'user_id' not in session.keys() and request.endpoint not in nolandingpage:
-        return render_template('landingpage.html')
+        if landingpage:
+            return render_template('landingpage.html')
+        else:
+            return redirect('/login')
     g.error = ''
     # If the user has been logged in for longer than 3 days, clear the session and log them back in
     if 'login_time' in session.keys():
@@ -87,7 +90,10 @@ def getDefaults():
 def login():
     argsnext = urllib.parse.quote(request.args.get('next')) if request.args.get('next') else url_for('index')
     nexturl = url_for('authorized', _external=True) + "?next={}".format(argsnext)
-    return github.authorize(scope="repo,workflow", redirect_uri=nexturl)
+    if set_user_token:
+        return authorized()
+    else:
+        return github.authorize(scope="repo,workflow", redirect_uri=nexturl)
 
 # clears session, redirects to github logout
 @app.route('/logout')
@@ -101,6 +107,8 @@ def logout():
 @app.route('/authorize')
 @github.authorized_handler
 def authorized(oauth_token):
+    if set_user_token:
+        oauth_token = set_user_token
     if oauth_token is None:
         #flash("Authorization failed.")
         return render_template('error.html')
