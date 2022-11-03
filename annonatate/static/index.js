@@ -42,14 +42,7 @@ const annoview = Vue.component('annoview', {
       </button>
     </div>
   </div>
-  <div class="drawingtools" v-if="anno">
-    <label for="current-tool">Current Annotation drawing shape: </label>
-    <div id="current-tool" v-for="drawtool in drawtools" v-on:change="updateDrawTool()">
-      <label class="toolbutton" v-bind:for="drawtool.name">
-        <input type="radio" v-bind:id="drawtool.name" v-bind:name="drawtool.name" v-bind:value="drawtool.name" v-model="currentdrawtool">
-        <span>{{drawtool.label}}</span></label>
-    </div>
-    <div v-if="isMobile">
+  <div v-if="isMobile && anno">
       <b>Click pencil icon (<i class="fas fa-pencil-alt"></i>) so there is no slash through it.<br>
       Then tap and drag to create new annotation.
       <span v-if="currentdrawtool == 'polygon'">
@@ -58,7 +51,7 @@ const annoview = Vue.component('annoview', {
       </span>
       </b>
     </div>
-    <div v-else>
+    <div v-else-if="anno">
       <b>Hold <code>SHIFT</code> while clicking and dragging the mouse to create a new annotation.
       <span v-if="currentdrawtool == 'polygon'">
         <br>
@@ -66,6 +59,20 @@ const annoview = Vue.component('annoview', {
       </span>
       </b>
     </div>
+  <div v-if="title" style="font-weight:900">{{title[0]['value']}}: 
+  <span v-if="alltiles.length > 0 && alltiles[0]['label']">{{alltiles[0]['label']}}</span>
+  </div>
+  <div class="drawingtools" v-if="anno">
+    <label for="current-tool">Current shape: </label>
+    <div id="current-tool" v-for="drawtool in drawtools" v-on:change="updateDrawTool()">
+      <label class="toolbutton" v-bind:for="drawtool.name">
+        <input type="radio" v-bind:id="drawtool.name" v-bind:name="drawtool.name" v-bind:value="drawtool.name" v-model="currentdrawtool">
+        <span v-html="drawtool.label"></span></label>
+    </div>
+    <button v-on:click="setVisible()">
+      <i class="fas fa-eye" v-if="!annosvisible"></i>  
+      <i class="fas fa-eye-slash" v-else-if="annosvisible"></i>  
+    </button>
   </div>
   <div v-else>
     <p>
@@ -90,9 +97,6 @@ const annoview = Vue.component('annoview', {
       <div class="slidecontainer">Opacity: <input v-on:change="setOpacity(item, $event)" type="range" min="0" max="100" v-bind:value="item.opacity*100" class="slider"></div>
       <img :src="item['thumbnail']" style="max-width:100px;padding:5px;"  alt="tile thumbnail">
     </div>
-  </div>
-  <div v-if="title" style="font-weight:900">{{title[0]['value']}}: 
-  <span v-if="alltiles.length > 0 && alltiles[0]['label']">{{alltiles[0]['label']}}</span>
   </div>
   <a class="prev prevnext" v-on:click="next('prev')" v-if="manifestdata && manifestdata[currentposition-1]">&lt;</a>
   <a class="next prevnext" v-on:click="next('next')" v-if="manifestdata && manifestdata[currentposition+1]">&gt;</a>
@@ -126,7 +130,8 @@ const annoview = Vue.component('annoview', {
       fragmentunit: 'pixel',
       currentposition: 0,
       widgets: ['comment-with-purpose','tag','geotagging'],
-      draftannos: []
+      draftannos: [],
+      annosvisible: true
   	}
   },
   mounted() {
@@ -243,6 +248,11 @@ const annoview = Vue.component('annoview', {
         const clean = existing.map(elem => JSON.parse(JSON.stringify(elem).replace("pct:", "percent:")))
         var annotation = this.anno.setAnnotations(clean);
       }
+
+    },
+    setVisible: function() {
+      this.annosvisible = !this.annosvisible;
+      this.anno.setVisible(this.annosvisible);
     },
     loadAnno: function() {
       document.getElementById('openseadragon1').innerHTML = '';
@@ -259,7 +269,7 @@ const annoview = Vue.component('annoview', {
         id: "openseadragon1",
         prefixUrl: "/assets/openseadragon/images/",
         tileSources: tilesources,
-        zoomPerClick: 1
+        zoomPerScroll: 1
       });
       this.viewer = viewer;
       var vue = this;

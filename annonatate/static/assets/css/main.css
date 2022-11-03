@@ -295,11 +295,14 @@ label.toolbutton input:checked+span {
 }
 
 .drawingtools {
-  padding-bottom: 12px;
+  position: absolute;
+  margin-left: 200px;
+  z-index: 200;
+  background: rgba(255,255,255,.5)
 }
 
 #openseadragon1.active {
-  height:100vh;
+  height:90vh;
   width: 95%;
   outline: 1px solid black;
 }
