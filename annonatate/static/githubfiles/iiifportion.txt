@@ -10,6 +10,7 @@ manifestlabel = '''replacewithlabel'''
 dst = os.path.join('img/derivatives/iiif/', 'replacewithfolder') + '/'
 baseurl = os.path.join('replacewithoriginurl', dst)
 data = []
+allfiles = []
 for idx, filedict in enumerate(files):
     file = filedict[0]
     filepath,ext = file.rsplit('.', 1)
@@ -18,15 +19,16 @@ for idx, filedict in enumerate(files):
         for i in range(len(images)):
             imagefilename = filepath + '-' + str(i) +'.jpg'
             images[i].save(imagefilename, 'JPEG')
-            files.append([imagefilename, filedict[1]])
-        del files[idx]
+            allfiles.append([imagefilename, filedict[1]])
         os.remove(file)
     elif ext != 'jpg' and ext != 'jpeg':
         os.system('convert {} {}.jpg'.format(file, filepath))
-        files.append(('%s.jpg'%filepath, filedict[1]))
-        del files[idx]
+        allfiles.append(('%s.jpg'%filepath, filedict[1]))
         os.remove(file)
-for filedict in files:
+    else:
+        allfiles.append(filedict)
+
+for filedict in allfiles:
     file = filedict[0]
     filepath,ext = file.rsplit('.', 1)
     filename = os.path.basename(filepath)

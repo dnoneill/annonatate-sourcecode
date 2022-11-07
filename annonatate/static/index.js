@@ -9,10 +9,9 @@ const annoview = Vue.component('annoview', {
     </button>
   </div>
   <div style="position:absolute;right: 10px;top: 52px;">
-    Currently in {{this.fragmentunit}} mode.<br>
-    Switch to <a v-on:click="updateUnit()" href="#">{{this.fragmentunit =='pixel' ? 'percent' : 'pixel' }} mode</a>
+    Switch to <a v-on:click="updateIsMobile()" class="linkbutton">{{this.isMobile ==true ? 'Desktop' : 'Mobile' }} view.</a><br>
   </div>
-  <div class="manifestimages">
+  <div class="manifestimages" :class="{'noanno' : !anno}">
     <div v-for="manifest in existing['manifests']">
       <button v-if="manifest" class="linkbutton" v-on:click="getManifest(manifest)">
         • {{manifest}}
@@ -24,7 +23,7 @@ const annoview = Vue.component('annoview', {
       </button>
     </div>
   </div>
-  <div>
+  <div class="ingesturlcontainer" :class="{'noanno' : !anno}">
     <label for="ingesturl">Manifest or Image URL: </label>
     <input id="ingesturl" v-on:change="getManifest(ingesturl)" v-model="ingesturl"></input>
     <button v-on:click="showManThumbs = !showManThumbs" v-if="currentmanifest">
@@ -43,14 +42,7 @@ const annoview = Vue.component('annoview', {
       </button>
     </div>
   </div>
-  <div class="drawingtools" v-if="anno">
-    <label for="current-tool">Current Annotation drawing shape: </label>
-    <div id="current-tool" v-for="drawtool in drawtools" v-on:change="updateDrawTool()">
-      <label class="toolbutton" v-bind:for="drawtool.name">
-        <input type="radio" v-bind:id="drawtool.name" v-bind:name="drawtool.name" v-bind:value="drawtool.name" v-model="currentdrawtool">
-        <span>{{drawtool.label}}</span></label>
-    </div>
-    <div v-if="isMobile">
+  <div v-if="isMobile && anno">
       <b>Click pencil icon (<i class="fas fa-pencil-alt"></i>) so there is no slash through it.<br>
       Then tap and drag to create new annotation.
       <span v-if="currentdrawtool == 'polygon'">
@@ -59,7 +51,7 @@ const annoview = Vue.component('annoview', {
       </span>
       </b>
     </div>
-    <div v-else>
+    <div v-else-if="anno">
       <b>Hold <code>SHIFT</code> while clicking and dragging the mouse to create a new annotation.
       <span v-if="currentdrawtool == 'polygon'">
         <br>
@@ -67,11 +59,35 @@ const annoview = Vue.component('annoview', {
       </span>
       </b>
     </div>
+  <div v-if="title" style="font-weight:900">{{title[0]['value']}}: 
+  <span v-if="alltiles.length > 0 && alltiles[0]['label']">{{alltiles[0]['label']}}</span>
+  </div>
+  <div class="drawingtools" v-if="anno">
+    <label for="current-tool">Current shape: </label>
+    <div id="current-tool" v-for="drawtool in drawtools" v-on:change="updateDrawTool()">
+      <label class="toolbutton" v-bind:for="drawtool.name">
+        <input type="radio" v-bind:id="drawtool.name" v-bind:name="drawtool.name" v-bind:value="drawtool.name" v-model="currentdrawtool">
+        <span v-html="drawtool.label"></span></label>
+    </div>
+    <button v-on:click="setVisible()">
+      <i class="fas fa-eye" v-if="!annosvisible"></i>  
+      <i class="fas fa-eye-slash" v-else-if="annosvisible"></i>  
+    </button>
   </div>
   <div v-else>
     <p>
-    The links above are a list of demo images you can click on and they will be loaded into the annotation viewer. These links can be edited on the <a href="/profile?tab=data">profile page</a>.<br>
-    You can also add in your own link to an image or <a href="https://iiif.io" target="_blank">IIIF manfiest</a> into the box next to "Manifest or Image URL".
+    Welcome to Annonatate. A platform for annotating images.
+    </p>
+    <p>
+    The links in the <span style="color: #61177C">purple</span> box are 
+    example links are images you can annotate. Click on any of them and an image will appear for you to annotate.
+    Some of these links are a special type of item called a <a href="https://iiif.io" target="_blank">IIIF manifest</a>, this allows multiple images to be placed in the same view,
+    for example, all the pages of a book can be put into one link, and you can page through all those images and annotate the choosen image.
+    You can edit the links to point to images and/or manifests of your choice on the <a href="/profile?tab=data">profile page</a>
+    Additionally, any images or manifests you upload via the <a href="/upload">upload page</a> will automatically get added after they are finished processing.
+    </p>
+    The item in the <span style="color: #004EC2">blue</span> box is a box where you can put your own images or manifest links. 
+    The items in the purple box are there for ease of use, however if you are only going to use a resource once, this might be where you want to enter your link. 
     </p>
   </div>
   <div class="layers gridparent" v-if="alltiles.length > 1">
@@ -81,9 +97,6 @@ const annoview = Vue.component('annoview', {
       <div class="slidecontainer">Opacity: <input v-on:change="setOpacity(item, $event)" type="range" min="0" max="100" v-bind:value="item.opacity*100" class="slider"></div>
       <img :src="item['thumbnail']" style="max-width:100px;padding:5px;"  alt="tile thumbnail">
     </div>
-  </div>
-  <div v-if="title" style="font-weight:900">{{title[0]['value']}}: 
-  <span v-if="alltiles.length > 0 && alltiles[0]['label']">{{alltiles[0]['label']}}</span>
   </div>
   <a class="prev prevnext" v-on:click="next('prev')" v-if="manifestdata && manifestdata[currentposition-1]">&lt;</a>
   <a class="next prevnext" v-on:click="next('next')" v-if="manifestdata && manifestdata[currentposition+1]">&gt;</a>
@@ -117,7 +130,8 @@ const annoview = Vue.component('annoview', {
       fragmentunit: 'pixel',
       currentposition: 0,
       widgets: ['comment-with-purpose','tag','geotagging'],
-      draftannos: []
+      draftannos: [],
+      annosvisible: true
   	}
   },
   mounted() {
@@ -187,13 +201,20 @@ const annoview = Vue.component('annoview', {
         localStorage.removeItem('erranno');
       }
     },
+    updateIsMobile: function() {
+      const switchUnit = this.isMobile ? 'desktop' : 'mobile' ;
+      this.updateUrl('view', switchUnit);
+    },
     updateUnit: function() {
       const switchUnit = this.fragmentunit =='pixel' ? 'percent' : 'pixel' ;
+      this.updateUrl('mode', switchUnit);
+    },
+    updateUrl: function(param, variable) {
       var url = new URL(location.href);
-      if (url.searchParams.get('mode')){
-        url.searchParams.set('mode', switchUnit);
+      if (url.searchParams.get(param)){
+        url.searchParams.set(param, variable);
       } else{
-        url.searchParams.append('mode', switchUnit);
+        url.searchParams.append(param, variable);
       }
       window.location.href = url.toString();
     },
@@ -227,6 +248,11 @@ const annoview = Vue.component('annoview', {
         const clean = existing.map(elem => JSON.parse(JSON.stringify(elem).replace("pct:", "percent:")))
         var annotation = this.anno.setAnnotations(clean);
       }
+
+    },
+    setVisible: function() {
+      this.annosvisible = !this.annosvisible;
+      this.anno.setVisible(this.annosvisible);
     },
     loadAnno: function() {
       document.getElementById('openseadragon1').innerHTML = '';
@@ -242,7 +268,8 @@ const annoview = Vue.component('annoview', {
       var viewer = OpenSeadragon({
         id: "openseadragon1",
         prefixUrl: "/assets/openseadragon/images/",
-        tileSources: tilesources
+        tileSources: tilesources,
+        zoomPerScroll: 1
       });
       this.viewer = viewer;
       var vue = this;
