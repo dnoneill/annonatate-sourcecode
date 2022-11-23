@@ -744,6 +744,13 @@ def populateuserinfo():
     username = userinfo['name'] if userinfo['name'] != None else userinfo['login']
     session['user_name'] = username if 'tempuser' not in session.keys() else session['tempuser']
     repos = github.get('{}/repos?per_page=300&sort=name'.format(githubuserapi))
+    if len(repos) == 100:
+        page = 2
+        repos2 = repos
+        while len(repos2) == 100:
+            repos2 = github.get('{}/repos?per_page=100&sort=name&page={}'.format(githubuserapi,page))
+            repos = repos + repos2
+            page += 1
     relevantworkspaces = []
     for repo in repos:
         repotypes = ["wax", github_repo]

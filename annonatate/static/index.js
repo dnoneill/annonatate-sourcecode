@@ -69,7 +69,7 @@ const annoview = Vue.component('annoview', {
         <input type="radio" v-bind:id="drawtool.name" v-bind:name="drawtool.name" v-bind:value="drawtool.name" v-model="currentdrawtool">
         <span v-html="drawtool.label"></span></label>
     </div>
-    <button v-on:click="setVisible()">
+    <button v-on:click="setVisible()" style="height: 22px; width: 35px; font-size: 15px;">
       <i class="fas fa-eye" v-if="!annosvisible"></i>  
       <i class="fas fa-eye-slash" v-else-if="annosvisible"></i>  
     </button>
@@ -492,6 +492,7 @@ const annoview = Vue.component('annoview', {
       if (annotation['order']){
         senddata['order'] = annotation['order'];
       }
+      const key = senddata['json']['target']['source'];
       this.draftannos.push(senddata['id'])
       const index = this.draftannos.length-1;
       jQuery.ajax({
@@ -501,12 +502,20 @@ const annoview = Vue.component('annoview', {
         data: JSON.stringify(senddata),
         contentType: "application/json; charset=utf-8",
         success: function(data) {
+          const inlist = vue.filepaths[key] ? vue.filepaths[key].findIndex(x => x['id'] === senddata['id']) : false;
           if (annotation && method != 'delete') {
             delete vue.draftannos[index]
             vue.anno.removeAnnotation(annotation);
             annotation['id'] = data['id']
             annotation['order'] = data['order'];
             vue.anno.addAnnotation(annotation);
+            if (typeof(inlist) == 'number') {
+              vue.filepaths[key][inlist] = annotation
+            } else {
+              vue.filepaths[key] = [annotation]
+            }
+          } else if (method == 'delete' && typeof(inlist) == 'number') {
+            delete vue.filepaths[key][inlist]
           }
         },
         error: function(err) {
