@@ -40,13 +40,16 @@
         <i class="fa fa-caret-down"></i>
       </button>
       <div class="dropdown-content" id="workspaceDropdown">
-        {% if session['currentworkspace']['permissions']['admin'] %}
-        <a href="/profile/?tab=profile#invite">Invite Collaborators</a>
-        {% endif %}
-        <a href="/profile/?tab=workspaces">Create New Workspace</a>
+        <a href="/profile"><i class="fas fa-exchange-alt"></i>
+          Switch Workspace</a>
+        <a href="/profile/?tab=workspaces"><i class="fas fa-plus"></i> Create New Workspace</a>
         <a href="/profile/?tab=workspaces#renameworkspace">
-          Update Workspace Name</a>
-        <a href="/profile/?tab=data">Settings</a>
+          <i class="fas fa-pen-alt"></i> Update Workspace Name</a>
+        {% if session['currentworkspace']['permissions']['admin'] %}
+        <a href="/profile/?tab=profile#invite">
+          <i class="fas fa-paper-plane"></i> Invite Collaborators</a>
+        {% endif %}
+        <a href="/profile/?tab=data"><i class="fas fa-cog"></i> Workspace Settings</a>
       </div>
     </div>
 
