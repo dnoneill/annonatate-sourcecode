@@ -552,3 +552,19 @@ body {
 .show {
   display: block;
 }
+
+.dropdown.share {
+  font-size: 30px;
+  float: none;
+  display: inline-flex;
+}
+
+.dropdown.share .dropbtn {
+  color: black;
+  font-size: 35px;
+  padding: 0px;
+}
+
+.dropdown.share .dropdown-content {
+  font-size: 14px;
+}

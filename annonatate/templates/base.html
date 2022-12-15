@@ -35,7 +35,7 @@
       <i class="fa fa-bars"></i>
     </a>
     <div class="dropdown">
-      <button class="dropbtn" onclick="workspaceDropdownToggle()">
+      <button class="dropbtn" onclick="dropdownToggle('workspaceDropdown')">
         {{session['currentworkspace']['name']}}
         <i class="fa fa-caret-down"></i>
       </button>
@@ -75,19 +75,6 @@
         x.className = "topnav";
       }
     }
-    function workspaceDropdownToggle() {
-        document.getElementById("workspaceDropdown").classList.toggle("show");
-      }
-
-      // // Close the dropdown if the user clicks outside of it
-      window.onclick = function(e) {
-        if (!e.target.matches('.dropbtn')) {
-        var myDropdown = document.getElementById("workspaceDropdown");
-          if (myDropdown.classList.contains('show')) {
-            myDropdown.classList.remove('show');
-          }
-        }
-      }
     </script>    
 </body>
 </html>
