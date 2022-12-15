@@ -1015,9 +1015,10 @@ def get_tabs(viewtype):
         if session['defaults']['iswax']:
             tabs.append({ 'value': 'collection', 'label': 'Process Wax Collection'})
     elif viewtype == 'profile':
-        tabs = [{ 'value': 'profile', 'label': 'Edit Profile and Workspaces'},
-            { 'value': 'data', 'label': 'Edit preloaded manifests/images'},
-            { 'value': 'uploads', 'label': 'Edit uploaded manifests/images'}]
+        tabs = [{ 'value': 'profile', 'label': 'Workspaces'},
+            { 'value': 'workspaces', 'label': 'Edit Workspaces'},
+            { 'value': 'data', 'label': 'Settings'},
+            { 'value': 'uploads', 'label': 'Uploaded content'}]
         if 'inprocess' in session.keys() and len(session['inprocess']) > 0:
             tabs.insert(0, {'value': 'status', 'label': 'Upload Status'})
     return tabs

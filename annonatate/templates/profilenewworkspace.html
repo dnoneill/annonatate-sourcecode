@@ -1,0 +1,65 @@
+<div>
+<h2 id="newworkspace">Create a new workspace</h2>
+{% set error = request.args.get('error') %}
+{% if error %}
+<i class="fas fa-exclamation-triangle"></i> {{error}}
+{% endif %}
+<form action="{{ url_for('add_repos') }}" method="post">
+    <fieldset>
+    <legend>New workspace</legend>
+    <div><label for="owner">GitHub Username/Organization:</label>
+        <select name="owner" id="owner">
+            {% for user in session['orgs'] %}
+            <option value="{{user}}">{{user}}</option>
+            {% endfor %}
+        </select>
+    <div>
+    <div><label for="name">Workspace name:</label>
+        <input name="name" id="name"/></div>
+    <div>
+    <div><label for="private"><b>Private</b> (only check this if you have private GitHub pages availaible. This is not avaliable on the free version.):</label>
+        <input type="checkbox" name="private" id="private"/></div>
+    <div>
+    <div><label for="mirador"><b>Mirador 2</b> (will use Mirador 2 for creating annotations):</label>
+        <input type="checkbox" name="mirador" id="mirador"/></div>
+    <div>
+    <div><label for="wax">Create <b><a href="https://minicomp.github.io/wax/">Wax</a></b> website</label>
+        <input type="checkbox" name="wax" id="wax"/></div>
+    <div>
+    <button name="button" type="submit" value="submit">Submit</button>
+    </div>
+    </fieldset>
+</form>
+
+<h2 id="updatedefault">Update Default Workspace</h2>
+<p>When you have multiple workspaces, this allows you to set the workspace that you are in when logging in. By default, it is the first in the list alphabetically.</p>
+<form action="{{ url_for('defaultworkspace') }}" method="post">
+    <fieldset>
+        <legend>Update Default workspace</legend>
+        <select name="workspace" id="workspace">
+            {% for workspace in session['workspaces'] %}
+            {% if session['workspaces'][workspace]['permissions']['maintain'] %}
+            <option value="{{workspace}}">{{workspace}}</option>
+            {% endif %}
+            {% endfor %}
+        </select>
+          <button name="button" type="submit" value="submit">Submit</button>
+        </div>
+    </fieldset>
+</form>
+
+<h2 id="renameexisting">Rename workspace</h2>
+{% if renameerror %}
+    <i class="fas fa-exclamation-triangle"></i> {{renameerror}}
+{% endif %}
+<form action="{{ url_for('renameGitHub') }}" method="post">
+    <fieldset>
+    <legend>Rename {{session['currentworkspace']['full_name'] }} workspace</legend>
+    <div><label for="newname">New workspace name:</label>
+        <input name="newname" id="newname"/></div>
+    <div>
+      <button name="button" type="submit" value="submit">Submit</button>
+    </fieldset>
+</form>
+
+</div>

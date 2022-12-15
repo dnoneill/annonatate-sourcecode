@@ -20,7 +20,7 @@
 	</div>
   <div class="topnav" id="myTopnav">
     {% if 'user_id' in session.keys() %}
-    <a href="{{ url_for('index') }}" aria-label="index link"><i class="fa fa-home" aria-hidden="true"></i>
+    <a href="{{ url_for('index') }}" aria-label="index link">Home
     </a>
     <a href="{{ url_for('listannotations') }}">Annotations</a>
     <a href="{{ url_for('search') }}">Search</a>
@@ -28,15 +28,28 @@
     <a href="{{ url_for('customviews') }}">Custom views</a>
     <a href="{{ url_for('collections') }}">Collections</a>
     <a href="https://annonatate.github.io/annonatate-help/" target="_blank">Help</a>
-    <a href="/profile" style="float: right;">
+    <a href="/profile" class="show" style="float: right;">
       <i class="fas fa-user"></i>
     </a>
-     {% if session['workspaces'] | length > 1 %}
-    	<a style="float: right;" href="{{session['currentworkspace']['html_url']}}" target="_blank">{{session['currentworkspace']['full_name'].split('/')[-1]}}</a>
-    {% endif %}
-    <a href="javascript:void(0);" aria-label="hamburger menu" class="icon" onclick="myFunction()">
+    <a href="javascript:void(0);" aria-label="hamburger menu" class="icon" onclick="responsiveMenu()">
       <i class="fa fa-bars"></i>
     </a>
+    <div class="dropdown">
+      <button class="dropbtn" onclick="workspaceDropdownToggle()">
+        {{session['currentworkspace']['name']}}
+        <i class="fa fa-caret-down"></i>
+      </button>
+      <div class="dropdown-content" id="workspaceDropdown">
+        {% if session['currentworkspace']['permissions']['admin'] %}
+        <a href="/profile/?tab=profile#invite">Invite Collaborators</a>
+        {% endif %}
+        <a href="/profile/?tab=workspaces">Create New Workspace</a>
+        <a href="/profile/?tab=workspaces#renameworkspace">
+          Update Workspace Name</a>
+        <a href="/profile/?tab=data">Settings</a>
+      </div>
+    </div>
+
     {% else %}
     <a style="float:right" href="{{ url_for('login', next=request.url) }}">Login</a>
     {% endif %}
@@ -54,7 +67,7 @@
     {% endif %}
   </section>
   <script>
-    function myFunction() {
+    function responsiveMenu() {
       var x = document.getElementById("myTopnav");
       if (x.className === "topnav") {
         x.className += " responsive";
@@ -62,6 +75,19 @@
         x.className = "topnav";
       }
     }
+    function workspaceDropdownToggle() {
+        document.getElementById("workspaceDropdown").classList.toggle("show");
+      }
+
+      // // Close the dropdown if the user clicks outside of it
+      window.onclick = function(e) {
+        if (!e.target.matches('.dropbtn')) {
+        var myDropdown = document.getElementById("workspaceDropdown");
+          if (myDropdown.classList.contains('show')) {
+            myDropdown.classList.remove('show');
+          }
+        }
+      }
     </script>    
 </body>
 </html>
