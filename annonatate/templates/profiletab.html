@@ -1,6 +1,5 @@
 
 	<div class="profile">
-        {% set adminaccounts = [] %}
         <h2>User Display Name (used for creator information)</h2>
         {% for key, value in userinfo.items() %}
             <div>
@@ -37,29 +36,30 @@
         {% endif %}
         {% for key, value in session['workspaces'].items() %}
         <div>
-        <div>
-        <a href="{{value['html_url']}}" target="_blank">{{key}}</a>
-        <span class="switchorcurrent">
-        {% if 'default-workspace' in value['topics'] %}
-        <code>(default-workspace)</code>
-        {% endif %}
-        {% if session['currentworkspace']['full_name'] == key %}
-            <div style="color: green">(Current workspace)</div></div>
-            <div class="workspaceusers">
-            <h3>Users for current workspace</h3>
-            {% for collaborator in collaborators %}
-            <div style="display: block;">
-            <img src="{{collaborator['avatar_url']}}"  alt="github user icon for {{collaborator['login']}}" class="githubicon" style="height: 100px">
-            <a href="{{collaborator['html_url']}}" target="_blank">
-            {{collaborator['login']}}</a>{% if value['permissions']['admin'] and collaborator['login'] != session['currentworkspace']['owner']['login'] %}
-            <form onsubmit="return confirm(`Do you really want to remove {{collaborator['login']}} from this workspace?`);" action="{{ url_for('removecollaborator', next=request.path) }}" method="post" style="display: inline-block;">
-                <button name="user" type="submit" value="{{collaborator['login']}}" aria-label="remove {{collaborator['login']}} access to workspace">
-                    <i class="fas fa-user-slash"></i>
-                </button>
-            </form>
-            {% endif %}
+            <div>
+                <a href="{{value['html_url']}}" target="_blank">{{key}}</a>
+                <span class="switchorcurrent">
+                {% if 'default-workspace' in value['topics'] %}
+                <code>(default-workspace)</code>
+                {% endif %}
+                {% if session['currentworkspace']['full_name'] == key %}
+                <div style="color: green">(Current workspace)</div>
             </div>
-            {% endfor %}
+            <div class="workspaceusers">
+                <h3>Users for current workspace</h3>
+                {% for collaborator in collaborators %}
+                <div style="display: block;">
+                    <img src="{{collaborator['avatar_url']}}"  alt="github user icon for {{collaborator['login']}}" class="githubicon" style="height: 100px"/>
+                    <a href="{{collaborator['html_url']}}" target="_blank">
+                        {{collaborator['login']}}</a>{% if value['permissions']['admin'] and collaborator['login'] != session['currentworkspace']['owner']['login'] %}
+                    <form onsubmit="return confirm(`Do you really want to remove {{collaborator['login']}} from this workspace?`);" action="{{ url_for('removecollaborator', next=request.path) }}" method="post" style="display: inline-block;">
+                        <button name="user" type="submit" value="{{collaborator['login']}}" aria-label="remove {{collaborator['login']}} access to workspace">
+                            <i class="fas fa-user-slash"></i>
+                        </button>
+                    </form>
+                    {% endif %}
+                </div>
+                {% endfor %}
             </div>
         {% elif value['has_pages'] %}
         <form action="{{ url_for('changeworkspace', next=request.path) }}" method="post">
@@ -72,28 +72,10 @@
         {% endif %}
         </span>
         </div>
-        {% if value['permissions']['maintain'] %}
-        {% set adminaccounts = adminaccounts.append(value['full_name']) %}
-        {% endif %}
         {% endfor %}
-    <h2>Update Default Workspace</h2>
-    <p>When you have multiple workspaces, this allows you to set the workspace that you are in when logging in. By default, it is the first in the list alphabetically.</p>
-    <form action="{{ url_for('defaultworkspace') }}" method="post">
-        <fieldset>
-            <legend>Update Default workspace</legend>
-            <select name="workspace" id="workspace">
-                {% for workspace in session['workspaces'] %}
-                {% if session['workspaces'][workspace]['permissions']['maintain'] %}
-                <option value="{{workspace}}">{{workspace}}</option>
-                {% endif %}
-                {% endfor %}
-            </select>
-              <button name="button" type="submit" value="submit">Submit</button>
-            </div>
-        </fieldset>
-    </form>
+        
     {% if session['isadmin'] %}
-    <h2>Invite collaborators to {{session['currentworkspace']['full_name']}}</h2>
+    <h2 id="invite">Invite collaborators to {{session['currentworkspace']['full_name']}}</h2>
     <form action="{{ url_for('add_collaborator') }}" method="post">
         <fieldset>
         <legend>Collaborator</legend>
@@ -111,59 +93,6 @@
         </fieldset>
     </form>
     {% endif %}
-    {% if adminaccounts | length > 0 %}
-    <h2>Rename existing workspaces</h2>
-    {% if renameerror %}
-    <i class="fas fa-exclamation-triangle"></i> {{renameerror}}
-    {% endif %}
-    <form action="{{ url_for('renameGitHub') }}" method="post">
-        <fieldset>
-        <legend>Rename workspace</legend>
-        <div><label for="workspace">Existing Workspace:</label>
-            <select name="workspace" id="workspace">
-                {% for workspace in adminaccounts %}
-                <option value="{{workspace}}">{{workspace}}</option>
-                {% endfor %}
-            </select>
-        </div>
-        <div><label for="newname">Workspace new name:</label>
-            <input name="newname" id="newname"/></div>
-        <div>
-          <button name="button" type="submit" value="submit">Submit</button>
-        </div>
-        </fieldset>
-    </form>
-    {% endif %}
-
-    <h2>Create a new workspace</h2>
-    {% set error = request.args.get('error') %}
-    {% if error %}
-    <i class="fas fa-exclamation-triangle"></i> {{error}}
-    {% endif %}
-    <form action="{{ url_for('add_repos') }}" method="post">
-        <fieldset>
-        <legend>New workspace</legend>
-        <div><label for="owner">GitHub Username/Organization:</label>
-            <select name="owner" id="owner">
-                {% for user in session['orgs'] %}
-                <option value="{{user}}">{{user}}</option>
-                {% endfor %}
-            </select>
-        <div>
-        <div><label for="name">Workspace name:</label>
-            <input name="name" id="name"/></div>
-        <div>
-        <div><label for="private"><b>Private</b> (only check this if you have private GitHub pages availaible. This is not avaliable on the free version.):</label>
-            <input type="checkbox" name="private" id="private"/></div>
-        <div>
-        <div><label for="mirador"><b>Mirador 2</b> (will use Mirador 2 for creating annotations):</label>
-            <input type="checkbox" name="mirador" id="mirador"/></div>
-        <div>
-        <div><label for="wax">Create <b><a href="https://minicomp.github.io/wax/">Wax</a></b> website</label>
-            <input type="checkbox" name="wax" id="wax"/></div>
-        <div>
-          <button name="button" type="submit" value="submit">Submit</button>
-        </div>
-        </fieldset>
-    </form>
-    </div>
+</div>
+</div>
+</div>

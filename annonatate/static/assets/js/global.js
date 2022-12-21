@@ -32,3 +32,19 @@ function UrlExists(url){
       });
       return {'status': status, 'data': senddata};
 }
+
+function dropdownToggle(tag) {
+    document.getElementById(tag).classList.toggle("show");
+}
+
+  // // Close the dropdown if the user clicks outside of it
+window.onclick = function(e) {
+    if (!e.target.matches('.dropbtn') && !e.target.parentElement.matches('.dropbtn')) {
+    var myDropdown = document.getElementsByClassName('dropdown-content');
+        for (var i=0; i<myDropdown.length; i++){
+        if (myDropdown[i].classList.contains('show')) {
+            myDropdown[i].classList.remove('show');
+        }
+        }
+    }
+  }

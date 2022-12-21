@@ -37,36 +37,48 @@
 {% set styling = "startposition: 1; toggleoverlay: true; hide_nextbuttons:true;" %}
 {% endif %}
 {% if annodata %}
+{% set annoidfilename = anno['filename'].split('/')[-1] %}
 <div class="annoitem">
 <div class="annonaview">
 <h1>
-	<a id="singleviewpage" href="{{ url_for('listannotations', annoid=anno['filename'].split('/')[-1]) }}">{{anno['filename'].split("/")[-1]}}</a>
+	<a id="singleviewpage" href="{{ url_for('listannotations', annoid=annoidfilename) }}">{{annoidfilename}}</a>
+	{% if 'http' in anno['filename'] %}
+	<div class="dropdown share">
+		<button class="dropbtn" onclick="dropdownToggle('shareDropdown{{annoidfilename}}')">
+		  <i class="fas fa-share-alt-square"></i>
+		</button>
+		<div class="dropdown-content" id="shareDropdown{{annoidfilename}}">
+		  <a href="{{anno['filename']}}" target="_blank">Annotation File <i class="fas fa-external-link-alt"></i></a>
+		  <a target="_blank" href="https://ncsu-libraries.github.io/annona/tools/#/display?url={{anno['filename']}}&viewtype=iiif-storyboard&settings=%7B%22fullpage%22%3Atrue%7D">
+			Annona Storyboard <i class="fas fa-external-link-alt"></i></a>
+		  <a target="_blank" href="https://ncsu-libraries.github.io/annona/tools/#/display?url={{anno['filename']}}&viewtype=iiif-annotation&settings=%7B%22fullpage%22%3Atrue%7D">
+			Image List <i class="fas fa-external-link-alt"></i></a>
+		  {% if annodata | manifest in session['upload']['manifests'] %}
+			<a id="displaystoryboard" target="_blank" href="https://ncsu-libraries.github.io/annona/tools/#/display?url={{annodata | manifest | urlencode}}&viewtype=iiif-rangestoryboard&settings=%7B%22fullpage%22%3Atrue%7D">
+				View All Images in Annona <i class="fas fa-external-link-alt"></i>
+			</a>
+			<a id="mirador3" target="_blank" href="https://projectmirador.org/embed/?iiif-content={{annodata | manifest | urlencode}}">
+				View in Mirador 3 <i class="fas fa-external-link-alt"></i>
+			</a>
+			<a id="uv" target="_blank" href="https://uv-v3.netlify.app/#?c=&m=&s=&cv=&manifest={{annodata | manifest | urlencode}}">
+				View in Universal Viewer <i class="fas fa-external-link-alt"></i>
+			</a>
+			{% endif %}
+		</div>
+	  </div>
+	{% endif %}
+
+	{% if annodata | manifest %}
+	<a id="annonatate" href="/?manifesturl={{annodata | manifest}}&canvas={{annodata | canvas}}">
+		<i class="fas fa-edit"></i>
+	</a>
+	{% else %}
+	<a id="annonatate" href="/?imageurl={{annodata | canvas}}">
+		<i class="fas fa-edit"></i>
+	</a>
+	{% endif %}
 </h1>	
-<i class="fab fa-github-square"></i> 
 {% if 'http' in anno['filename'] %}
-	Github URL:
-	<a id="githubpage" href="{{anno['filename']}}" target="_blank">{{anno['filename']}}</a>
-	<div>
-		<i class="fas fa-external-link-alt"></i> Display URL for:
-		<a id="displaystoryboard" target="_blank" href="https://ncsu-libraries.github.io/annona/tools/#/display?url={{anno['filename']}}&viewtype=iiif-storyboard&settings=%7B%22fullpage%22%3Atrue%7D">
-			Storyboard
-		</a> | 
-		<a id="displaystoryboard" target="_blank" href="https://ncsu-libraries.github.io/annona/tools/#/display?url={{anno['filename']}}&viewtype=iiif-annotation">
-			Image View
-		</a>
-		{% if annodata | manifest in session['upload']['manifests'] %}
-		| 
-		<a id="displaystoryboard" target="_blank" href="https://ncsu-libraries.github.io/annona/tools/#/display?url={{annodata | manifest | urlencode}}&viewtype=iiif-rangestoryboard&settings=%7B%22fullpage%22%3Atrue%7D">
-			Range Storyboard View
-		</a> | 
-		<a id="mirador3" target="_blank" href="https://projectmirador.org/embed/?iiif-content={{annodata | manifest | urlencode}}">
-			View in Mirador 3
-		</a> | 
-		<a id="uv" target="_blank" href="https://uv-v3.netlify.app/#?c=&m=&s=&cv=&manifest={{annodata | manifest | urlencode}}">
-			View in Universal Viewer
-		</a>
-		{% endif %}
-	</div>
 	<div>
 	{% if session['annocollections'][anno['filename']] or session['annocustomviews'][anno['filename']] or anno['canvas'] %}
 		<i class="fas fa-clipboard-list"></i> Is part of:
@@ -113,16 +125,6 @@
 	</div>
 {% else %}
 GitHub URL for {{anno['filename']}} will be loaded in a minute.
-{% endif %}
-<i class="fas fa-pen"></i> Edit:  
-{% if annodata | manifest %}
-<a id="annonatate" href="/?manifesturl={{annodata | manifest}}&canvas={{annodata | canvas}}">
-	{{anno['filename']}}
-</a>
-{% else %}
-<a id="annonatate" href="/?imageurl={{annodata | canvas}}">
-	{{anno['filename']}}
-</a>
 {% endif %}
 <script type="application/json" id="{{anno['filename']}}">
 	{{anno['json'] | tojson_pretty | safe}}
