@@ -39,6 +39,15 @@
     float: right;
     display: block;
   }
+  label[for=current-tool]{
+     display: none;
+  }
+  .drawingtools {
+    font-size: 11px;
+  }
+  label.toolbutton span {
+    padding: 3px 6px!important;
+  }
 }
 
 @media screen and (max-width: 785px) {
@@ -301,9 +310,9 @@ label.toolbutton input:checked+span {
 
 .drawingtools {
   position: absolute;
-  margin-left: 200px;
   z-index: 200;
-  background: rgba(255,255,255,.5)
+  background: rgba(255,255,255,.5);
+  padding-left: 2px;
 }
 
 #openseadragon1.active {
