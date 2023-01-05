@@ -48,7 +48,7 @@ class Image:
         replacefields = ["label", "folder", "description", "rights", "language", "direction"]
         for field in replacefields:
             replacestring = "replacewith{}".format(field)
-            formvalue = self.request_form[field]
+            formvalue = self.request_form[field].replace(':', '&#58;')
             if field == "language" and not formvalue:
                 formvalue = "en"
             elif field == "folder":

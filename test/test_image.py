@@ -25,7 +25,7 @@ class TestManifest(unittest.TestCase):
 
 class TestImageDefault(unittest.TestCase):
    def setUp(self):
-      self.request_form = {'upload': 'uploadimage', 'version': 'v3', 'label': 'This is the label', 'direction': 'left-to-right', 'description': 'This is the description', 'rights': 'This is the rights', 'folder': 'testing', 'language': ''}
+      self.request_form = {'upload': 'uploadimage', 'version': 'v3', 'label': 'This is the label', 'direction': 'left-to-right', 'description': 'This is the description: with colon', 'rights': 'This is the rights', 'folder': 'testing', 'language': ''}
       self.request_files = []
       self.request_files.append(("file", FileStorage(io.BytesIO(b'my file contents'), 'filename.jpg')))
       self.request_files.append(("file", FileStorage(io.BytesIO(b'my file contents'), 'filename2.png')))

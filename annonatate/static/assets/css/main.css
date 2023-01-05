@@ -537,6 +537,7 @@ body {
 .menu .dropdown-content {
   right: 0;
   top: 48px;
+  z-index: 20;
 }
 
 .dropdown-content a {
