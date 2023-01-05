@@ -59,7 +59,8 @@ const annoview = Vue.component('annoview', {
       </span>
       </b>
     </div>
-  <div v-if="title" style="font-weight:900">{{title[0]['value']}}: 
+  <div v-if="title" style="font-weight:900">
+  <span v-html="title[0]['value'] + ':'"></span>
   <span v-if="alltiles.length > 0 && alltiles[0]['label']">{{alltiles[0]['label']}}</span>
   </div>
   <div class="drawingtools" v-if="anno">
