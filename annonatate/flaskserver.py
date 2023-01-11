@@ -187,22 +187,20 @@ def deleteItemAnnonCustomViews(url, deletetype=''):
 # Rename GitHub repo, update workspaces in session
 @app.route('/rename', methods=['POST'])
 def renameGitHub():
-    oldname = request.form['workspace']
+    oldname = session['currentworkspace']['full_name']
     newname = request.form['newname']
     oldworkspace = session['workspaces'][oldname]
     oldurl = oldworkspace['url']
     newhtmlurl = '{}.github.io/{}'.format(oldworkspace['owner']['login'], newname)
-    iscurrentworkspace = session['currentworkspace']['full_name'] == oldname
     updatedata = {'homepage': newhtmlurl, 'name': newname}
     response = github.raw_request('patch', oldurl, data=json.dumps(updatedata))
     if response.status_code < 299:
         content = response.json()
         del session['workspaces'][oldname]['url']
         session['workspaces'][content['full_name']] = content
-        if iscurrentworkspace:
-            session['currentworkspace'] = content
-            session['defaults'] = getDefaults()
-            updateworkspace(content['full_name'])
+        session['currentworkspace'] = content
+        session['defaults'] = getDefaults()
+        updateworkspace(content['full_name'])
     else:
         error = parseGitHubErrors(response.json())
         return redirect('/profile?renameerror={}'.format(error))
