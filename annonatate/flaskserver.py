@@ -118,7 +118,7 @@ def authorized(oauth_token):
     isfirstbuild = buildWorkspaces()
     session['defaults'] = getDefaults()
     next_url = request.args.get('next')
-    if next_url and isfirstbuild != True:
+    if next_url and 'origin_url' in session.keys():
         getContents()
     else:
         next_url =  url_for('index', firstbuild=isfirstbuild)
@@ -763,7 +763,7 @@ def populateuserinfo():
         workspaces[workspace['full_name']] = workspace
     if len(workspaces) == 0:
         response = github.post('https://api.github.com/repos/annonatate/{}/forks'.format(github_repo))
-        time.sleep(1)
+        time.sleep(2)
         enablepages = enablepagesfunc(response['url'])
         if enablepages.status_code > 299:
             enablepages = enablepagesfunc(response['url'])
