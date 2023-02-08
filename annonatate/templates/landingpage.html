@@ -1,23 +1,77 @@
 {% extends 'base.html' %}
 {% block content %}
-<h2>Welcome to Annonatate</h2>
-<p>
-    You are seeing this page because you are not logged in. 
-    <p>
-    In order to use Annonatate the only account you need is a GitHub account.
-    </p>
-    <p>
-    If you have a GitHub account go ahead and <a href="{{ url_for('login', next=request.url) }}">Login</a>.
-    </p>
-    <p>
-    If you don't have a GitHub account the login pages has a <b>New to GitHub? Create an account</b>. 
-</p>
-</p>
-<h3>About Annonatate</h3>
-<p>Annonatate is an application that allows you to create W3 web annotations on images.
-    <b>W3 Web Annontations</b> is an open source standard for creating annotations. 
+<h1>
+<img style="width:100%"src="/images/annonatate_logo.png" alt="Text Annonatate over an annona plant"/>
+</h1>
+<p>Annonatate is an application that allows you to create annotations on images in an open source standard. 
     Because of it's open source nature these annotations can be used with many other tools.
-    Annonatate also is compatible with <b>IIIF images and/or IIIF manifests. </b>
+    Annonatate also is compatible with <b>IIIF images and/or IIIF manifests.</b>
 </p>
-<img src="/images/landingpage.png"  alt="landing page icon" style="width: 100%">
+<p>
+<hr>
+<center class="github-login">
+<a id="github-button"  href="{{ url_for('login', next=request.url) }}">
+    <i class="fab fa-github"></i> <span>Log in with Github</span>
+</a>
+<p>
+Annonatate uses GitHub to store the annotations you create. <br>
+Don't have a GitHub Account? <a href="https://github.com/join?return_to={{ url_for('index', next=request.url) }}">Sign up for one!</a>
+</p>
+</center>
+</p>
+<hr>
+<h2>Features of Annonatate</h2>
+<div style="display: grid;
+grid-template-columns: auto;
+grid-gap: 10px;
+padding: 10px;">
+    <div class="right">
+        <img src="/images/feature1.png" alt="image from NCSU state collection showing "/>
+        <h3>Flexible & Collaborative</h3>
+        <p>Annonatate was built to be a tool for both teaching, learning, individual research projects and small scale digital exhibits. 
+        As such it is customizable to meet your needs. 
+        Users can choose if they want to create annotations with <a href="https://recogito.github.io/annotorious">Annotorious</a> or <a href="https://projectmirador.org">Mirador 2.</a>
+        You can also update which fields you want to display for annotating in the Annotorious viewer.
+        You can invite users to collaborate with you on your repositories and use your annotations with other tools and in other websites.
+        </p>
+    </div>
+    <div class="left">
+        <img src="/images/feature2.png" alt="image from NCSU state collection showing "/>
+        <h3>Never lose your work!</h3>
+        <p>Most services provide users a way to export their data out of their systems but users are reliant on the system to continuing to exist. 
+            Annonatate doesn't work this way. If this site were to go down tomorrow you would not lose anything. All your
+            annotations are saved to a GitHub repository that you own.
+        </p>
+    </div>
+    <div class="right"> 
+        <img src="/images/feature3.png" alt="image from NCSU state collection showing "/>
+        <h3>Built on open standards</h3>
+        <p>Annonatate uses open standards which guarantees that your annotations are in a non-proprietary format. This allows for greater interoperability for users. The annotations and images on <a href="https://ddnp.vercel.app/notes/bleak-house/mirador">Digital Dickens Note Project’s Bleak House</a> page were created using Annonatate. The creators were then able to use Mirador, an application that uses the same open standards, to display their annotations.
+
+        </p>
+    </div>
+    <div class="left">
+        <img src="/images/feature4.png" alt="image from NCSU state collection showing "/>
+        <h3>Integrates with <a href="https://github.com/minicomp/wax">Wax</a></h3>
+        <p>
+            <a href="https://minicomp.github.io/wax/">Wax</a> is a template for creating minimal small scale exhibits. In order to currently use Wax you need knowledge of how to run command line scripts. Annonatate removes this requirement by running the scripts for you via a form. Your site can get easily built via the interface and you can create annotations that can be displayed in the site.
+        </p>
+    </div>
+    <div class="right">
+        <img src="/images/feature5.png" alt="image from NCSU state collection showing "/>
+        <h3>Open Source</h3>
+        <p>Annonatate is an open source software. You can host your own version using <a href="https://github.com/dnoneill/annonatate-sourcecode">our code located on GitHub</a></a></p>
+    </div>
+    <div class="left">
+        <img src="/images/feature6.png" alt="image from NCSU state collection showing "/>
+        <h3>Host your own images</h3>
+        <p>
+            Annonatate allows users to upload your own images. The application will create a <a href="https://iiif.io">IIIF</a> manifest (to tie multiple images together) and tiled images for a smoother viewing experience.
+        </p>
+    </div>
+
+
+
+
+</div>
 {% endblock %}

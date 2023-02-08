@@ -742,10 +742,12 @@ def populateuserinfo():
     username = userinfo['name'] if userinfo['name'] != None else userinfo['login']
     session['user_name'] = username if 'tempuser' not in session.keys() else session['tempuser']
     repos = github.get('{}/repos?per_page=300&sort=name'.format(githubuserapi))
+    print(len(repos))
     if len(repos) == 100:
         page = 2
         repos2 = repos
         while len(repos2) == 100:
+            print('repos2')
             repos2 = github.get('{}/repos?per_page=100&sort=name&page={}'.format(githubuserapi,page))
             repos = repos + repos2
             page += 1
@@ -1009,8 +1011,9 @@ def delete_annos(anno):
 
 def get_tabs(viewtype):
     if viewtype == 'upload':
-        tabs = [{ 'value': 'manifest', 'label': 'Create Manifest'},
+        tabs = [
             { 'value': 'image', 'label': 'Upload Image'},
+            { 'value': 'manifest', 'label': 'Copy Manifest'},
             { 'value': 'vocab', 'label': 'Upload Vocabulary'}]
         if session['defaults']['iswax']:
             tabs.append({ 'value': 'collection', 'label': 'Process Wax Collection'})

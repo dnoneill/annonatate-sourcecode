@@ -11,16 +11,20 @@ const annoview = Vue.component('annoview', {
   <div style="position:absolute;right: 10px;top: 52px;">
     Switch to <a v-on:click="updateIsMobile()" class="linkbutton">{{this.isMobile ==true ? 'Desktop' : 'Mobile' }} view.</a><br>
   </div>
-  <div class="manifestimages" :class="{'noanno' : !anno}">
-    <div v-for="manifest in existing['manifests']">
-      <button v-if="manifest" class="linkbutton" v-on:click="getManifest(manifest)">
-        • {{manifest}}
-      </button>
-    </div>
-    <div v-for="image in existing['images']">
-      <button v-if="image" class="linkbutton" v-on:click="inputurl = image; ingesturl = image; loadImage()">
-        • {{image}}
-      </button>
+  <h2 style="margin:0px" v-on:click="manimageshown = !manimageshown">Image List <i class="fas" v-bind:class="[manimageshown ? 'fa-caret-up' : 'fa-caret-down']"></i></h2>
+  <div v-if="manimageshown">
+    <div>This is a list of images and manifests you have uploaded. You can change these via <a href="profile/?tab=data">settings.</a></div>
+    <div class="manifestimages" :class="{'noanno' : !anno}">
+      <div v-for="manifest in existing['manifests']">
+        <button v-if="manifest" class="linkbutton" v-on:click="getManifest(manifest)">
+          • {{manifest}}
+        </button>
+      </div>
+      <div v-for="image in existing['images']">
+        <button v-if="image" class="linkbutton" v-on:click="inputurl = image; ingesturl = image; loadImage()">
+          • {{image}}
+        </button>
+      </div>
     </div>
   </div>
   <div class="ingesturlcontainer" :class="{'noanno' : !anno}">
@@ -64,19 +68,9 @@ const annoview = Vue.component('annoview', {
   <span v-if="alltiles.length > 0 && alltiles[0]['label']">{{alltiles[0]['label']}}</span>
   </div>
   <div v-else>
-    <p>
-    Welcome to Annonatate. A platform for annotating images.
-    </p>
-    <p>
-    The links in the <span style="color: #61177C">purple</span> box are 
-    example links are images you can annotate. Click on any of them and an image will appear for you to annotate.
-    Some of these links are a special type of item called a <a href="https://iiif.io" target="_blank">IIIF manifest</a>, this allows multiple images to be placed in the same view,
-    for example, all the pages of a book can be put into one link, and you can page through all those images and annotate the choosen image.
-    You can edit the links to point to images and/or manifests of your choice on the <a href="/profile?tab=data">profile page</a>
-    Additionally, any images or manifests you upload via the <a href="/upload">upload page</a> will automatically get added after they are finished processing.
-    </p>
-    The item in the <span style="color: #004EC2">blue</span> box is a box where you can put your own images or manifest links. 
-    The items in the purple box are there for ease of use, however if you are only going to use a resource once, this might be where you want to enter your link. 
+    <p style="background:#e7e7e7; padding: 10px">
+    Welcome to Annonatate. A platform for annotating images.<br>
+    Click on a link in the <span style="color: #61177C">purple</span> box or add a URL to the <span style="color: #004EC2">blue</span> box to start annotating images.
     </p>
   </div>
   <div class="layers gridparent" v-if="alltiles.length > 1">
@@ -88,13 +82,12 @@ const annoview = Vue.component('annoview', {
     </div>
   </div>
   <div class="drawingtools" v-if="anno">
-    <label for="current-tool">Current shape: </label>
     <div id="current-tool" v-for="drawtool in drawtools" v-on:change="updateDrawTool()">
       <label class="toolbutton" v-bind:for="drawtool.name">
         <input type="radio" v-bind:id="drawtool.name" v-bind:name="drawtool.name" v-bind:value="drawtool.name" v-model="currentdrawtool">
         <span v-html="drawtool.label"></span></label>
     </div>
-    <button v-on:click="setVisible()" style="height: 22px; width: 35px; font-size: 15px;">
+    <button v-bind:title="annosvisible ? 'Hide Annotations' : 'Show Annotations'" v-on:click="setVisible()" style="height: 22px; width: 35px; font-size: 15px;">
       <i class="fas fa-eye" v-if="!annosvisible"></i>
       <i class="fas fa-eye-slash" v-else-if="annosvisible"></i>
     </button>
@@ -132,7 +125,8 @@ const annoview = Vue.component('annoview', {
       currentposition: 0,
       widgets: ['comment-with-purpose','tag','geotagging'],
       draftannos: [],
-      annosvisible: true
+      annosvisible: true, 
+      manimageshown: true
   	}
   },
   mounted() {

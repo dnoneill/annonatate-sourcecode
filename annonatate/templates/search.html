@@ -1,17 +1,17 @@
 {% extends 'base.html' %}
 {% block header %}
-  <h1>{% block title %}Search{% endblock %}</h1>
+  <h1>{% block title %}Search Annotations{% endblock %}</h1>
 {% endblock %}
 <link rel="stylesheet" type="text/css" href="https://dnoneill.github.io/jekyll-lunr-js-custom-search/dist/custom-search.css">
 {% block content %}
-<form action="{{ url_for('search') }}" method="get">
-<label for="q">Query: </label>
-<input name="q" id="q" value="{{request.args['q']}}">
-<input type="hidden" name="tag" value="{{request.args['tag']}}"> 
-<input type="hidden" name="creator" value="{{request.args['creator']}}"> 
-<input type=submit value=Submit>
+<p>This page provides an interface for searching all the annotations you have created in this workspace.</p>
+<form action="{{ url_for('search') }}" method="get" style="background: lightgrey;padding: 20px">
+  <input style="width: 50%" name="q" id="q" value="{{request.args['q']}}" placeholder="Search annotations in {{session['currentworkspace']['name']}}" aria-label="Search annotations in {{session['currentworkspace']['name']}}">
+  <input type="hidden" name="tag" value="{{request.args['tag']}}"> 
+  <input type="hidden" name="creator" value="{{request.args['creator']}}"> 
+  <input type=submit value=Submit>
 </form>
-<div class="content" style="display: inline-flex;">
+<div class="content" style="display: inline-flex; width: 100%;">
 <div style="float: left; width: 20%; ">
   <div id="facets">
     {% for facet in facets %}

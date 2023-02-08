@@ -2,7 +2,7 @@
 
 .topnav {
   overflow: hidden;
-  background-color: #333;
+  background-color: rgb(1,4,10);
   height: 48px;
 }
 
@@ -67,7 +67,7 @@
   }
 }
 section.content {
-  padding: 2em;
+  padding: 0em 2em;
 }
 
 /**
@@ -580,4 +580,41 @@ body {
 
 .dropdown.share .dropdown-content {
   font-size: 14px;
+}
+
+
+#github-button  {
+  padding: 10px;
+  font-size: 30px;
+  text-decoration:none;
+  border-radius: 15px;
+  font-weight: 900;
+  background-color: black;
+  color: white;
+  
+}
+.github-login {
+  padding-top: 20px;
+}
+
+.left, .right {
+  width: 100%;
+  display: block;
+}
+.left h3, .right h3 {
+  margin: .5em 0;
+}
+
+.left h3, .left p {
+  text-align: right;
+}
+
+.left img {
+  float: left;
+  width: 350px;
+}
+
+.right img {
+  float: right;
+  width: 350px;
 }
