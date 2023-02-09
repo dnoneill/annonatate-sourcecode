@@ -4,6 +4,19 @@
 {% endblock %}
 {% block content %}
 
+<div>
+Collections allow you to add annotations into a list that can be viewed in a single viewer. 
+This allows images to be tied together into a "collection."
+An example of a
+<a href="https://ncsu-libraries.github.io/annona/tools/#/display?url=https%3A%2F%2Fannonatatetester.github.io%2Fdemos%2Fcollections%2FMaps.json&viewtype=iiif-storyboard&manifesturl=&settings=%7B%22toggleoverlay%22%3Atrue,%22fit%22%3A%22vertical%22,%22overlaycolor%22%3A%22%23adff04%22,%22activecolor%22%3A%22%23FFFF00%22,%22fullpage%22%3Atrue%7D">
+collection displayed in a custom view is shown in this link.
+</a>
+{% if collections.keys() | length == 0 %}
+<b>You currently have no collections</b>
+{% endif %}
+
+</div>
+
 <div class="gridparent">
 {% for (key, collection) in collections.items() %}
 {% set githuburl = collectionurl + '/' + key | urlencode + '.json' %}

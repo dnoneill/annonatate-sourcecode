@@ -270,6 +270,7 @@ const annoview = Vue.component('annoview', {
       this.viewer = viewer;
       var vue = this;
       viewer.addHandler('open', function(){
+        vue.updateDrawTool();
         if (vue.alltiles.length > 1){
           for (var k=0; k<vue.alltiles.length; k++){
             vue.alltiles[k]['order'] = k;

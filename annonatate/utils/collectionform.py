@@ -43,7 +43,7 @@ def parsetype(board):
     return m.group(1)
     
 def parseboard(board):
-    regex = r"((annotationurls?|rangeurl)=['\"])(.+?)(?=['\"])"
+    regex = r"((annotationurls?|rangeurl|url)=['\"])(.+?)(?=['\"])"
     m = re.search(regex, board)
     if m:
         return {'url': m.group(3), 'type': m.group(2)}

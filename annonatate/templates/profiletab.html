@@ -13,6 +13,7 @@
         {% if invites | length > 0 %}
         <div>
         <h2>Invitations</h2>
+        <div class="about">Invitations from other users to join their workspaces.</div>
         {% for invite in invites %}
         <img src="{{invite['inviter']['avatar_url']}}" class="githubicon" alt="github user icon">
             <a href="{{invite['inviter']['html_url']}}" target="_blank">{{invite['inviter']['login']}}</a> has invited you to collaborate on
@@ -24,6 +25,7 @@
         </div>
         {% endif %}
         <h2>Workspaces</h2>
+        <div class="about">Workspaces on GitHub are repos. These allow work to be seperated based on user needs.</div>
         {% set switcherror = request.args.get('switcherror') %}
         {% set renameerror = request.args.get('renameerror') %}
         {% if switcherror %}

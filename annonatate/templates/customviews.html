@@ -3,12 +3,16 @@
   <h1>{% block title %}Custom Views{% endblock %}</h1>
 {% endblock %}
 {% block content %}
-<div>
-<a href="{{ url_for('annonaview') }}">Build Custom view</a>
-</div>
-{% if session['annocustomviews'] | length == 0 %}
-<b>Currently there are no custom views</b>
-{% endif %}
+
+  {% if session['annocustomviews'] | length == 0 %}
+  <b>You currently don't have any custom views. </b>
+  {% endif %}
+  Custom views allow you to create a view that is outside the default view. 
+  For example, if you want your viewer to show overlays on load, you can set your <a href="https://annonatatetester.github.io/demos/customviews/customviewdemo/">viewer to do so and save that view as a sharable URL.</a>
+<br>
+<br>
+<a href="{{ url_for('annonaview') }}">Start building custom views!</a>
+<br>
 <div class="gridparent">
 {% for key, allviews in session['annocustomviews'].items() %}
 {% if key %}

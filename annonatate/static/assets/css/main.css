@@ -398,7 +398,7 @@ body {font-family: Arial;}
   float: right;
   font-size: 1.5em;
   font-weight: 900;
-  margin-top: -130px!important;
+  margin-top: -100px!important;
 }
 
 .button {
@@ -617,4 +617,8 @@ body {
 .right img {
   float: right;
   width: 350px;
+}
+
+.about {
+  padding-bottom: 6px;
 }
