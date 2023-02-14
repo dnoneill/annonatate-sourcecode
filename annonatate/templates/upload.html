@@ -25,16 +25,16 @@
 	<div id="image" class="tabcontent">
 	  <h2>Upload Image</h2>
 	  <p>
-	  When you upload an image/s this will create
-	  a IIIF derivative of the image/s with a corresponding manifest with the metadata you enter in the form below.
+	  When you upload an image(s) this will create
+	  a IIIF derivative (tiled for high quality zoom) of the image(s) with a corresponding <a href="https://iiif.io/api/presentation/">IIIF manifest</a> which will contain metadata you enter in the form below.
 	</p>
 	  <form action="{{ url_for('createimage') }}" enctype=multipart/form-data method="post">
 		<div>
-			<label for="upload-image">Upload image or PDF files from computer (each file must be 25MB or smaller): </label>
+			<label for="upload-image">Image(s) or PDF files (each file must be 99MB or smaller): </label>
 			<input type="text"  id="upload-image" name="upload" value="uploadimage" style="display: none">
 			<input type=file  onchange="checkImages(this);" id="upload-image" name=file accept="image/* pdf/*" required multiple>
 			 <div>
-				<label for="label">Title of Image (Required): </label>
+				<label for="label">Title of Image(s) (Required): </label>
 				<input value="" id="label" name="label" required>
 				</div>
 			   <div>
