@@ -8,7 +8,7 @@ from werkzeug.datastructures import FileStorage, ImmutableMultiDict
 
 class TestManifest(unittest.TestCase):
    def setUp(self):
-      self.request_form = {'upload': 'test/testdata/manifest.json'}
+      self.request_form = ImmutableMultiDict({'upload': 'test/testdata/manifest.json'})
       with patch('requests.get') as mock_request:
          url = self.request_form['upload']
          mock_request.return_value.status_code = 200
@@ -25,7 +25,7 @@ class TestManifest(unittest.TestCase):
 
 class TestImageDefault(unittest.TestCase):
    def setUp(self):
-      self.request_form = {'upload': 'uploadimage', 'version': 'v3', 'label': 'This is the label', 'direction': 'left-to-right', 'description': 'This is the description: with colon', 'rights': 'This is the rights', 'folder': 'testing', 'language': ''}
+      self.request_form = ImmutableMultiDict({'upload': 'uploadimage', 'version': 'v3', 'label': 'This is the label', 'direction': 'left-to-right', 'description': 'This is the description: with colon', 'rights': 'This is the rights', 'language': ''})
       self.request_files = []
       self.request_files.append(("file", FileStorage(io.BytesIO(b'my file contents'), 'filename.jpg')))
       self.request_files.append(("file", FileStorage(io.BytesIO(b'my file contents'), 'filename2.png')))
@@ -44,11 +44,11 @@ class TestImageDefault(unittest.TestCase):
       self.parsedActionScript= yaml.load(self.actionscript, Loader=yaml.FullLoader)['jobs']['convertimages']['steps']
       self.assertTrue("iiifpapi3.BASE_URL" in self.parsedActionScript[4]['run'])
       self.assertFalse("fac.set_iiif_image_info(2.0, 2)" in self.parsedActionScript[4]['run'])
-      self.assertEqual(self.parsedActionScript[5]['run'], 'echo -e "---\\n---\\n$(cat img/derivatives/iiif/testing/manifest.json)" > img/derivatives/iiif/testing/manifest.json')
+      self.assertEqual(self.parsedActionScript[5]['run'], 'echo -e "---\\n---\\n$(cat img/derivatives/iiif/Thisisthelabel/manifest.json)" > img/derivatives/iiif/Thisisthelabel/manifest.json')
 
 class TestImageV2(unittest.TestCase):
    def setUp(self):
-      self.request_form = {'upload': 'uploadimage', 'version': 'v2', 'label': 'This is the label', 'direction': 'left-to-right', 'description': 'This is the description', 'rights': 'This is the rights', 'folder': 'testing', 'language': ''}
+      self.request_form = ImmutableMultiDict({'upload': 'uploadimage', 'version': 'v2', 'label': 'This is the label', 'direction': 'left-to-right', 'description': 'This is the description', 'rights': 'This is the rights', 'language': ''})
       self.request_files = []
       self.request_files.append(("file", FileStorage(io.BytesIO(b'my file contents'), 'filename.jpg')))
       self.request_files.append(("file", FileStorage(io.BytesIO(b'my file contents'), 'filename2.png')))
@@ -67,7 +67,7 @@ class TestImageV2(unittest.TestCase):
       self.parsedActionScript= yaml.load(self.actionscript, Loader=yaml.FullLoader)['jobs']['convertimages']['steps']
       self.assertFalse("iiifpapi3.BASE_URL" in self.parsedActionScript[4]['run'])
       self.assertTrue("fac.set_iiif_image_info(2.0, 2)" in self.parsedActionScript[4]['run'])
-      self.assertEqual(self.parsedActionScript[5]['run'], 'echo -e "---\\n---\\n$(cat img/derivatives/iiif/testing/manifest.json)" > img/derivatives/iiif/testing/manifest.json')
+      self.assertEqual(self.parsedActionScript[5]['run'], 'echo -e "---\\n---\\n$(cat img/derivatives/iiif/Thisisthelabel/manifest.json)" > img/derivatives/iiif/Thisisthelabel/manifest.json')
 
 class TestAddAnnotationList(unittest.TestCase):
    def setUp(self):
