@@ -259,7 +259,7 @@ def createimage():
             imagespath = "images"
             response = github.sendgithubrequest(session, afile['filename'], afile['encodedimage'], imagespath).json()
             if 'content' in response.keys():
-                actionname = 'convert_images_{}'.format(request.form['folder'])
+                actionname = 'convert_images_{}'.format(image.folder)
                 uploadurl = "{}img/derivatives/iiif/{}/manifest.json".format(image.origin_url, image.folder)
                 successmessage = successtext(uploadurl, uploadtype, actionname)
                 filenames.append((os.path.join(imagespath, afile['filename']), afile['label']))
@@ -591,7 +591,7 @@ def deletefile():
         deletescript = open(os.path.join(githubfilefolder, 'deleteimage.yml')).read()
         deletescript = deletescript.replace("replacewithimagepath", path)
         github.sendgithubrequest(session, 'deleteimage.yml', deletescript, ".github/workflows").json()
-        time.sleep(1)
+        time.sleep(2)
         triggerAction('deleteimage.yml')
         session['upload']['manifests'].remove(url)
     else:
@@ -742,7 +742,6 @@ def populateuserinfo():
     username = userinfo['name'] if userinfo['name'] != None else userinfo['login']
     session['user_name'] = username if 'tempuser' not in session.keys() else session['tempuser']
     repos = github.get('{}/repos?per_page=300&sort=name'.format(githubuserapi))
-    print(len(repos))
     if len(repos) == 100:
         page = 2
         repos2 = repos
@@ -802,11 +801,11 @@ def add_repos():
     }
     response = github.raw_request('post', 'https://api.github.com/repos/annonatate/{}/generate'.format(forkrepo),headers={'Accept': 'application/vnd.github.baptiste-preview+json'}, data=json.dumps(repodata)).json()
     if 'url' in response.keys():
-        time.sleep(1)
+        time.sleep(2)
         enablepages = enablepagesfunc(response['url'])
         if enablepages.status_code > 299:
-            error = 'problem enabling GitHub pages. Did it manually or delete this repository.'
-            return redirect('/profile?tab=profile&error={}'.format(error))
+            error = 'Problem enabling GitHub pages. Do it manually or delete this repository.'
+            return redirect('/profile?tab=workspaces&error={}'.format(error))
         else:
             updates = {'homepage': enablepages.json()['html_url'], 'topics': ['annonatate']}
             updatehomepage = github.raw_request('patch', response['url'], data=json.dumps(updates))
@@ -814,7 +813,7 @@ def add_repos():
             updatepreload = github.sendgithubrequest({'github_url': response['contents_url'].replace('/{+path}', ''), 'github_branch': 'main'}, 'preload.yml', open(os.path.join(githubfilefolder, "miradordata.yml")).read(), '_data')
     else:
         error = parseGitHubErrors(response.json())
-        return redirect('/profile?tab=profile&error={}'.format(error))
+        return redirect('/profile?tab=workspaces&error={}'.format(error))
     return redirect('/profile?tab=profile')
 
 @app.route('/updatetempuser', methods=['POST'])

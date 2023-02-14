@@ -13,7 +13,7 @@ class Image:
         self.iiifimage = request_form['upload'] # might be 'uploadimage', or a url
         self.isimage = bool(re.match("^upload(iiif|image)$", self.iiifimage.strip()))
         self.origin_url = origin_url
-        self.request_form = request_form
+        self.request_form = request_form.to_dict()
         self.request_files = request_files
         if not self.isimage:
             # handle uploaded url
@@ -28,8 +28,9 @@ class Image:
         else:
             # handle uploaded image
             files = request_files.getlist("file")
-            self.folder = "".join(re.findall(r'[0-9A-Za-z]+', self.request_form['folder']))
+            self.folder = "".join(re.findall(r'[0-9A-Za-z]+', request_form['label']))
             self.files = []
+            self.request_form['folder'] = self.folder
             for filename in request_files.getlist("file"):
                 filenameonly, ext = pathsplitext(filename.filename)
                 cleanfilename = "".join(re.findall(r'[0-9A-Za-z]+', filenameonly)) +  ext
