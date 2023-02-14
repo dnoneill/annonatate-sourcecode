@@ -36,7 +36,7 @@
 <form action="{{ url_for('defaultworkspace') }}" method="post">
     <fieldset>
         <legend>Update Default workspace</legend>
-        <select name="workspace" id="workspace">
+        <select name="workspace" id="workspace" aria-label="update default workspace">
             {% for workspace in session['workspaces'] %}
             {% if session['workspaces'][workspace]['permissions']['maintain'] %}
             <option value="{{workspace}}">{{workspace}}</option>

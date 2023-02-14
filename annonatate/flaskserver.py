@@ -99,7 +99,7 @@ def login():
 @app.route('/logout')
 def logout():
     clearSession()
-    return redirect('https://github.com/logout')
+    return redirect('https://github.com/logout?return_to=https://annonatate.fly.dev')
 
 #After logging into GitHub, library returns oauth token, load that token into session
 #add login time, get defaults, get/build workspaces
@@ -747,7 +747,6 @@ def populateuserinfo():
         page = 2
         repos2 = repos
         while len(repos2) == 100:
-            print('repos2')
             repos2 = github.get('{}/repos?per_page=100&sort=name&page={}'.format(githubuserapi,page))
             repos = repos + repos2
             page += 1

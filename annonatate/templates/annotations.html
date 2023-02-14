@@ -44,7 +44,7 @@
 	<a id="singleviewpage" href="{{ url_for('listannotations', annoid=annoidfilename) }}">{{annoidfilename}}</a>
 	{% if 'http' in anno['filename'] %}
 	<div class="dropdown share">
-		<button class="dropbtn" onclick="dropdownToggle('shareDropdown{{annoidfilename}}')">
+		<button class="dropbtn" onclick="dropdownToggle('shareDropdown{{annoidfilename}}')" aria-label="share">
 		  <i class="fas fa-share-alt-square"></i>
 		</button>
 		<div class="dropdown-content" id="shareDropdown{{annoidfilename}}">
@@ -69,11 +69,11 @@
 	{% endif %}
 
 	{% if annodata | manifest %}
-	<a id="annonatate" href="/?manifesturl={{annodata | manifest}}&canvas={{annodata | canvas}}">
+	<a id="annonatate" href="/?manifesturl={{annodata | manifest}}&canvas={{annodata | canvas}}" aria-label="edit annotation">
 		<i class="fas fa-edit"></i>
 	</a>
 	{% else %}
-	<a id="annonatate" href="/?imageurl={{annodata | canvas}}">
+	<a id="annonatate" href="/?imageurl={{annodata | canvas}}" aria-label="edit annotation">
 		<i class="fas fa-edit"></i>
 	</a>
 	{% endif %}
