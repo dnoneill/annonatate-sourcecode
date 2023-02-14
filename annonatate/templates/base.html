@@ -32,16 +32,15 @@
     <a href="{{nav['url']}}" {% if request.path == nav['url'] %}class="active"{% endif %}>{{nav['label']}}
     </a>
     {% endfor %}
-    
     <a href="https://annonatate.github.io/annonatate-help/" target="_blank">Help</a>
     <a href="javascript:void(0);" aria-label="hamburger menu" class="icon" onclick="responsiveMenu()">
       <i class="fa fa-bars"></i>
     </a>
     <div class="dropdown menu">
-      <button class="dropbtn" onclick="dropdownToggle('workspaceDropdown')">
+      <a class="dropbtn{% if request.path == '/profile/' %} active{% endif %}" onclick="dropdownToggle('workspaceDropdown')" {% if request.path == '/profile/' %}class="active"{% endif %}>
         {{session['currentworkspace']['name']}}
         <i class="fa fa-caret-down"></i>
-      </button>
+      </a>
       <div class="dropdown-content" id="workspaceDropdown">
         <a href="/profile"><i class="fas fa-exchange-alt"></i>
           Switch Workspace</a>
