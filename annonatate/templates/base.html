@@ -21,13 +21,18 @@
 	</div>
   <div class="topnav" id="myTopnav">
     {% if 'user_id' in session.keys() %}
-    <a href="{{ url_for('index') }}" aria-label="index link">Home
+    {% set navigation = [{'url': url_for('index'), 'label': 'Home'},
+    {'url': url_for('listannotations'), 'label': 'Annotations'},
+    {'url': url_for('search'), 'label': 'Search'},
+    {'url': url_for('upload'), 'label': 'Upload'},
+    {'url': url_for('customviews'), 'label': 'Custom views'},
+    {'url': url_for('collections'), 'label': 'Collections'}
+    ] %}
+    {% for nav in navigation %}
+    <a href="{{nav['url']}}" {% if request.path == nav['url'] %}class="active"{% endif %}>{{nav['label']}}
     </a>
-    <a href="{{ url_for('listannotations') }}">Annotations</a>
-    <a href="{{ url_for('search') }}">Search</a>
-    <a href="{{ url_for('upload') }}">Upload</a>
-    <a href="{{ url_for('customviews') }}">Custom views</a>
-    <a href="{{ url_for('collections') }}">Collections</a>
+    {% endfor %}
+    
     <a href="https://annonatate.github.io/annonatate-help/" target="_blank">Help</a>
     <a href="javascript:void(0);" aria-label="hamburger menu" class="icon" onclick="responsiveMenu()">
       <i class="fa fa-bars"></i>

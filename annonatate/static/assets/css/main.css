@@ -3,7 +3,7 @@
 .topnav {
   overflow: hidden;
   background-color: rgb(1,4,10);
-  height: 48px;
+  height: 46px;
 }
 
 .responsive {
@@ -25,7 +25,7 @@
 }
 
 .topnav a.active {
-  background-color: #4CAF50;
+  background-color: teal;
   color: white;
 }
 
@@ -312,7 +312,6 @@ label.toolbutton input:checked+span {
   position: absolute;
   z-index: 200;
   background: rgba(255,255,255,.5);
-  padding-left: 2px;
 }
 
 #openseadragon1.active {

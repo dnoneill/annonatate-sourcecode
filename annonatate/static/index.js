@@ -11,9 +11,9 @@ const annoview = Vue.component('annoview', {
   <div style="position:absolute;right: 10px;top: 52px;">
     Switch to <a v-on:click="updateIsMobile()" class="linkbutton">{{this.isMobile ==true ? 'Desktop' : 'Mobile' }} view.</a><br>
   </div>
-  <h2 style="margin:0px" v-on:click="manimageshown = !manimageshown">Image List <i class="fas" v-bind:class="[manimageshown ? 'fa-caret-up' : 'fa-caret-down']"></i></h2>
+  <h2 style="margin:0px" v-on:click="manimageshown = !manimageshown" title="Click to expand/collapse image list">Image List <i class="fas" v-bind:class="[manimageshown ? 'fa-caret-up' : 'fa-caret-down']"></i></h2>
   <div v-if="manimageshown">
-    <div>This is a list of images and manifests you have uploaded. You can change these via <a href="profile/?tab=data">settings.</a></div>
+    <div>This is a list of images and manifests you have uploaded or set. For new users, this list contains examples to explore. You can change the examples in <a href="profile/?tab=data">settings.</a></div>
     <div class="manifestimages" :class="{'noanno' : !anno}">
       <div v-for="manifest in existing['manifests']">
         <button v-if="manifest" class="linkbutton" v-on:click="getManifest(manifest)">
@@ -67,7 +67,7 @@ const annoview = Vue.component('annoview', {
   <span v-html="title[0]['value'] + ':'"></span>
   <span v-if="alltiles.length > 0 && alltiles[0]['label']">{{alltiles[0]['label']}}</span>
   </div>
-  <div v-else>
+  <div v-if="!anno">
     <p style="background:#e7e7e7; padding: 10px">
     Welcome to Annonatate. A platform for annotating images.<br>
     Click on a link in the <span style="color: #61177C">purple</span> box or add a URL to the <span style="color: #004EC2">blue</span> box to start annotating images.
