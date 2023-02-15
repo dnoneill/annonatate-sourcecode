@@ -20,7 +20,8 @@
 <div class="customview">
 {% if 'filename' in view %}
 {% if 'slug' not in view %}
-<a href="{{view['filename']}}" target="_blank">{{view['filename'].replace('.html', '')}}</a>
+{% set customviewurl =  view['filename'].replace('.html', '') %}
+<a href="{{customviewurl}}" target="_blank">{{customviewurl}}</a>
 {% else %}
 <div id="{{view['slug']}}-render">
 {{view['slug']}} is still rendering
@@ -31,7 +32,7 @@
 {% endwith %}
 {% if 'slug' not in view %}
 <div class="embedview">
-<iframe src="{{view['filename']}}" id="{{view['filename'].replace('.html', '')}}" style="height: 600px;width: 100%;"></iframe>
+<iframe src="{{customviewurl}}" id="{{customviewurl}}" style="height: 600px;width: 100%;"></iframe>
 </div>
 {% else %}
 <div id="{{view['slug']}}-embedview" class="embedview">
@@ -66,11 +67,12 @@
 </script>
 {% endif %}
 {% else %}
-<a href="{{view}}" target="_blank">{{view.replace('.html', '')}}</a>
+{% set customviewurl =  view.replace('.html', '') %}
+<a href="{{customviewurl}}" target="_blank">{{customviewurl}}</a>
 {% with file=view, next=request.path %}
 {% include 'deletebutton.html' %}
 {% endwith %}
-<iframe src="{{view}}" id="{{view.replace('.html', '')}}" style="height: 660px; width: 100%;"></iframe>
+<iframe src="{{customviewurl}}" id="{{customviewurl}}" style="height: 660px; width: 100%;"></iframe>
 {% endif %}
 </div> 
 {% endfor %}

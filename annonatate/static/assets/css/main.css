@@ -410,6 +410,7 @@ body {font-family: Arial;}
   display: inline-block;
   margin: 4px 2px;
   cursor: pointer;
+  font: inherit;
 }
 
 #incollections{

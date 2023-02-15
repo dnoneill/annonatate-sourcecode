@@ -269,7 +269,6 @@ def createimage():
         convertiiif = image.createActionScript(githubfilefolder, filenames)
         ymlname = '{}.yml'.format(actionname)
         response = github.sendgithubrequest(session, ymlname, convertiiif, ".github/workflows").json()
-        time.sleep(2)
         triggerAction(ymlname)
     #triggerbuild()
     return render_template('uploadsuccess.html', output=output, actionname=actionname, uploadurl=uploadurl, successmessage=successmessage, uploadtype=uploadtype)
@@ -319,7 +318,6 @@ def processwaxcollection():
         yamlcontents = yamlcontents.replace('replacewithbranch', session['currentworkspace']['default_branch'])
         response = github.sendgithubrequest(session, '.github/workflows/{}.yml'.format(collectionname), yamlcontents)
         if response.status_code < 299:
-            time.sleep(2)
             triggerAction(response.json()['content']['name'])
         else:
             output = response.json()
@@ -328,8 +326,12 @@ def processwaxcollection():
 # Trigger a GitHub action to run
 def triggerAction(ident):
     currrentworkspace = session['currentworkspace']
+    time.sleep(2)
     response = github.raw_request('post', '{}/actions/workflows/{}/dispatches'.format(currrentworkspace['url'], ident), headers={'Accept': 'application/vnd.github.v3+json'}, data=json.dumps({"ref":currrentworkspace['default_branch']}))
     print(response.content)
+    if 'Not Found' in str(response.content):
+        triggerAction(ident)
+
 
 @app.route('/defaultworkspace', methods=['POST'])
 def defaultworkspace():
@@ -591,7 +593,6 @@ def deletefile():
         deletescript = open(os.path.join(githubfilefolder, 'deleteimage.yml')).read()
         deletescript = deletescript.replace("replacewithimagepath", path)
         github.sendgithubrequest(session, 'deleteimage.yml', deletescript, ".github/workflows").json()
-        time.sleep(2)
         triggerAction('deleteimage.yml')
         session['upload']['manifests'].remove(url)
     else:
@@ -652,7 +653,8 @@ def annonaview():
 @app.route('/saveannonaview', methods=['POST'])
 def saveannonaview():
     jsonitems = json.loads(request.data)
-    frontmatter = ''
+    frontmatter = 'tagurl: {}\n'.format(jsonitems['url'])
+    tag = jsonitems['tag'].replace('styling=', 'styling=fullpage:true;')
     if session['defaults']['iswax']:
         title = jsonitems['slug'].replace('_', ' ').title()
         date = datetime.now().strftime('%Y-%m-%d')
@@ -668,7 +670,7 @@ def saveannonaview():
     <body>
     {}
     </body>
-    </html>""".format(frontmatter, jsonitems['tag'])
+    </html>""".format(frontmatter, tag)
     response = github.sendgithubrequest(session, '{}.html'.format(jsonitems['slug']), content, folder)
     if response.status_code < 300:
         annourl = parseboard(jsonitems['tag'])['url']
@@ -916,13 +918,17 @@ def getSettings(settings):
 # Load custom views JSON into a dict that sorts custom views based on the url being read
 def parsecustomviews(content):
     parseddict = {}
+    customdict = {}
     for customview in content['customviews']:
         annourl = parseboard(customview['json'])['url']
+        if 'editurl' in customview.keys():
+            customdict[customview['filename']] = customview['editurl']
         if annourl in parseddict.keys() and customview['filename'] not in parseddict[annourl]:
             parseddict[annourl].append(customview['filename'])
         else:
             parseddict[annourl] = [customview['filename']]
     session['annocustomviews'] = parseddict
+    session['customviewpage'] = customdict
 
 # grab all collection names, group collections by url in board, if collection not in api update index
 def parsecollections(content):
