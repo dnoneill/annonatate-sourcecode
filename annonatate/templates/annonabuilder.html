@@ -3,12 +3,16 @@
   <head>
     {% extends 'base.html' %}
     {% block header %}
-    <h1>{% block title %}Tag Builder{% endblock %}</h1>
+    <h1 style="margin-bottom: 0px">{% block title %}Tag Builder{% endblock %}</h1>
     {% endblock %}
     {% block content %}
-    <b>When building any type of storyboard custom view the <b>fullpage</b>
-    setting is recommended. It is also recommended to wait until right before you save your custom view to select it because it will continually pop up with every new setting you enable.
-  </b>
+    <p>Custom views allow you save a view into a webpage. 
+      {% set filename = request.args.get('url').split('/')[-1].split('.json')[0] %}
+      The filename will populate the url, unless you change the filename field,
+      your URL will be: <a href="{{session['origin_url']}}customviews/{{filename}}">{{session['origin_url']}}customviews/{{filename}}</a>. 
+      The preview in the viewer will reflect the view you will save. 
+      You can also add a custom view to a collection instead of saving it as a webpage.
+    </p>
     <script type="application/json" id="collections">
       {{session["collectionnames"] | tojson | safe}}
     </script>
