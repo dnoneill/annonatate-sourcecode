@@ -405,8 +405,12 @@ const annoview = Vue.component('annoview', {
           }
         },
         error: function(err) {
-          vue.manifestdata = 'failure';
-          console.log(err)
+          if (err.status < 300){
+            vue.inputurl = manifest;
+            vue.loadImage();
+          } else {
+            vue.manifestdata = 'failure';
+          }
         }
       });
     },
