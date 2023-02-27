@@ -48,20 +48,20 @@
 		  <i class="fas fa-share-alt-square"></i>
 		</button>
 		<div class="dropdown-content" id="shareDropdown{{annoidfilename}}">
-		  <a href="{{anno['filename']}}" target="_blank">Annotation File <i class="fas fa-external-link-alt"></i></a>
+		  <a href="{{anno['filename']}}" target="_blank">JSON File <i class="fas fa-link"></i></a>
 		  <a target="_blank" href="https://ncsu-libraries.github.io/annona/tools/#/display?url={{anno['filename']}}&viewtype=iiif-storyboard&settings=%7B%22fullpage%22%3Atrue%7D">
-			Annona Storyboard <i class="fas fa-external-link-alt"></i></a>
+			Dynamic Annotation viewer <i class="fas fa-link"></i></a>
 		  <a target="_blank" href="https://ncsu-libraries.github.io/annona/tools/#/display?url={{anno['filename']}}&viewtype=iiif-annotation&settings=%7B%22fullpage%22%3Atrue%7D">
-			Image List <i class="fas fa-external-link-alt"></i></a>
+			Annotations as a list of images <i class="fas fa-link"></i></a>
 		  {% if annodata | manifest in session['upload']['manifests'] %}
 			<a id="displaystoryboard" target="_blank" href="https://ncsu-libraries.github.io/annona/tools/#/display?url={{annodata | manifest | urlencode}}&viewtype=iiif-rangestoryboard&settings=%7B%22fullpage%22%3Atrue%7D">
-				View All Images in Annona <i class="fas fa-external-link-alt"></i>
+				Dyanmic Annotation view of all images <i class="fas fa-link"></i>
 			</a>
 			<a id="mirador3" target="_blank" href="https://projectmirador.org/embed/?iiif-content={{annodata | manifest | urlencode}}">
-				View in Mirador 3 <i class="fas fa-external-link-alt"></i>
+				View in Mirador 3 <i class="fas fa-link"></i>
 			</a>
 			<a id="uv" target="_blank" href="https://uv-v3.netlify.app/#?c=&m=&s=&cv=&manifest={{annodata | manifest | urlencode}}">
-				View in Universal Viewer <i class="fas fa-external-link-alt"></i>
+				View in Universal Viewer <i class="fas fa-link"></i>
 			</a>
 			{% endif %}
 		</div>
