@@ -1,3 +1,4 @@
+<p>This page lists content you have already uploaded. To upload new content go to the <a href="{{url_for('upload')}}">Upload page.</a></p>
 {% for key in session['upload'] %}
 <div class="uploadlist" id="{{key}}">
   <h2>{{key.title()}}</h2>
@@ -6,6 +7,7 @@
     <a href="{{url}}">{{url}}</a>
     {% with file=url, next='/profile?tab=uploads' %}
     {% include 'deletebutton.html' %}
+    <a href="{{url_for('index', manifesturl=url) }}" class="button" style="padding: 5px 7px;">Annotate</a>
     {% endwith %}
     </div>
 {% endfor %}

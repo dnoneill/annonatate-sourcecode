@@ -30,7 +30,17 @@
 {% else %}
 <script src="index.js"></script>
 {% endif %}
-<p>
-   
-</p>
+<script>
+  function listfilename(canvas){
+    const r = /\d+/gm;
+    canvas = canvas.replace('.json', '')
+    const canvaslist = canvas.split('/')
+    withnumbs = canvaslist.filter(elem => elem.match(r));
+    filename = withnumbs.length > 0 ? withnumbs.join("-") : canvaslist.slice(-1)[0];
+    console.log(filename)
+    filename = filename.replace(/[^A-Za-z0-9]+/g, "-").toLowerCase();
+    filename = "{{ session['origin_url'] }}{{session['defaults']['annotations']}}".replace("_", "") + '/' + filename + '-list.json';
+    return filename
+  }
+</script>
 {% endblock %}

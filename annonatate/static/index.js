@@ -1,7 +1,7 @@
 const annoview = Vue.component('annoview', {
   template: `<div>
-  <div v-if="isMobile && anno" style="position:fixed;right: 8px;">
-    <button v-on:click="enableDrawing(!drawingenabled)" style="width: 50px;height:50px;border-radius: 10px;">
+  <div v-if="isMobile && anno" style="position:fixed;right: 4px;">
+    <button v-on:click="enableDrawing(!drawingenabled)" style="width: 45px;height:45px;border-radius: 10px;">
       <span class="fa-stack fa-2x">
         <i class="fas fa-pencil-alt fa-stack-1x"></i>
         <i v-if="!drawingenabled" class="fas fa-slash fa-stack-1x" style="color:Tomato"></i>
@@ -46,7 +46,7 @@ const annoview = Vue.component('annoview', {
       </button>
     </div>
   </div>
-  <div v-if="isMobile && anno">
+  <div v-if="isMobile && anno" class="helptext">
       <b>Click pencil icon (<i class="fas fa-pencil-alt"></i>) so there is no slash through it.<br>
       Then tap and drag to create new annotation.
       <span v-if="currentdrawtool == 'polygon'">
@@ -55,7 +55,7 @@ const annoview = Vue.component('annoview', {
       </span>
       </b>
     </div>
-    <div v-else-if="anno">
+    <div v-else-if="anno" class="helptext">
       <b>Hold <code>SHIFT</code> while clicking and dragging the mouse to create a new annotation.
       <span v-if="currentdrawtool == 'polygon'">
         <br>
@@ -66,6 +66,23 @@ const annoview = Vue.component('annoview', {
   <div v-if="title" style="font-weight:900">
   <span v-html="title[0]['value'] + ':'"></span>
   <span v-if="alltiles.length > 0 && alltiles[0]['label']">{{alltiles[0]['label']}}</span>
+  <div class="dropdown share homepagedrop" v-if="anno">
+    <button class="dropbtn" onclick="dropdownToggle('homepageshare')" aria-label="share">
+      <i class="fas fa-share-alt-square"></i>
+    </button>
+    <div class="dropdown-content" id="homepageshare">
+      <a target="_blank" v-bind:href="'https://ncsu-libraries.github.io/annona/tools/#/display?url='+annolistname+ '&viewtype=iiif-storyboard&settings=%7B%22fullpage%22%3Atrue%7D'">
+      Dynamic annotation view for current image <i class="fas fa-link"></i></a>
+      <a target="_blank" v-bind:href="'https://ncsu-libraries.github.io/annona/tools/#/display?url='+annolistname+'&viewtype=iiif-annotation&settings=%7B%22fullpage%22%3Atrue%7D'">
+        Annotations as list for current image <i class="fas fa-link"></i></a>
+        <a v-if="currentmanifest" id="displaystoryboard" target="_blank" v-bind:href="'https://ncsu-libraries.github.io/annona/tools/#/display?url=' + currentmanifest + '&viewtype=iiif-storyboard&settings=%7B%22fullpage%22%3Atrue%7D'">
+            Dyanmic annotation view of all images <i class="fas fa-link"></i>
+        </a>
+        <a v-if="currentmanifest" id="mirador3" target="_blank" v-bind:href="'https://projectmirador.org/embed/?iiif-content=' + currentmanifest">
+            View in Mirador 3 <i class="fas fa-link"></i>
+        </a>
+    </div>
+</div>
   </div>
   <div v-if="!anno">
     <p style="background:#e7e7e7; padding: 10px">
@@ -126,8 +143,18 @@ const annoview = Vue.component('annoview', {
       widgets: ['comment-with-purpose','tag','geotagging'],
       draftannos: [],
       annosvisible: true, 
-      manimageshown: true
+      manimageshown: true,
+      annolistname: ''
   	}
+  },
+  watch: {
+    canvas: function() {
+      this.annolistname = listfilename(this.canvas);
+      this.updateUrlParams('canvas', this.canvas);
+    },
+    currentmanifest: function() {
+      this.updateUrlParams('manifesturl', this.currentmanifest);
+    }
   },
   mounted() {
     this.isMobile = /Mobi/.test(navigator.userAgent);
@@ -196,9 +223,15 @@ const annoview = Vue.component('annoview', {
         localStorage.removeItem('erranno');
       }
     },
+    updateUrlParams: function(field, replacement) {
+      var url = new URL(window.location);
+      url.searchParams.set(field, replacement);
+      window.history.pushState({}, '', url);
+    },
     updateIsMobile: function() {
-      const switchUnit = this.isMobile ? 'desktop' : 'mobile' ;
-      this.updateUrl('view', switchUnit);
+      const switchUnit = this.isMobile ? 'desktop' : 'mobile';
+      this.isMobile = switchUnit == 'mobile';
+      this.updateUrlParams('view', switchUnit);
     },
     updateUnit: function() {
       const switchUnit = this.fragmentunit =='pixel' ? 'percent' : 'pixel' ;
@@ -301,7 +334,7 @@ const annoview = Vue.component('annoview', {
       for (var dt=0; dt<drawingtools.length; dt++){
         const name = drawingtools[dt];
         var cleanname = name.replaceAll("annotorious", "").replaceAll("-", " ").trim();
-        const label = name == 'rect' ? 'Rectangle' : cleanname.charAt(0).toUpperCase() + cleanname.slice(1);
+        const label = name == 'rect' ? 'Rectangle' : name == 'annotorious-tilted-box' ? 'Angled box' : cleanname.charAt(0).toUpperCase() + cleanname.slice(1);
         this.drawtools.push({'name': name, 'label': label})
       }
       this.drawtools = this.drawtools.sort((a, b) => (a.label > b.label) ? 1 : -1)

@@ -33,6 +33,7 @@
 			<label for="upload-image">Image(s) or PDF files (each file must be 99MB or smaller): </label>
 			<input type="text"  id="upload-image" name="upload" value="uploadimage" style="display: none">
 			<input type=file  onchange="checkImages(this);" id="upload-image" name=file accept="image/* pdf/*" required multiple>
+			<div id="imagepreview"></div>
 			 <div>
 				<label for="label">Title of Image(s) (Required): </label>
 				<input value="" id="label" name="label" required>
@@ -142,6 +143,25 @@
 				document.getElementById("imagesubmit").disabled = true;
 			} else {
 				document.getElementById('imagerror').innerHTML = '';
+				var preview = document.createElement('img');
+				preview.style.height = "150px";
+  				var files    = document.querySelector('input[type=file]').files;
+				var imgpreview = document.getElementById('imagepreview');
+				imgpreview.innerHTML = ''
+				for (file of files) {
+					const reader = new FileReader();
+					reader.readAsDataURL(file);
+					reader.fileName = file.name;
+					reader.onload = (event) => {
+					const fileName = event.target.fileName;
+					const content = event.currentTarget.result;
+					imgpreview.innerHTML += `<div><img style="height: 150px" src="${content}"/>
+					<figcaption style="text-align:right">${fileName}</figcaption></div>`
+					};
+					if (!imgpreview.style.marginBottom){
+						imgpreview.style.marginBottom = '20px';
+					}
+ 				}
 				document.getElementById("imagesubmit").disabled = false;
 			}
 		}

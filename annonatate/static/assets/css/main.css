@@ -258,7 +258,6 @@ tbody {
 
 .manifestimages {
   max-height: 120px;
-  width: 95%;
   overflow: auto;
   margin-bottom: 8px;
   word-break: break-all;
@@ -316,7 +315,6 @@ label.toolbutton input:checked+span {
 
 #openseadragon1.active {
   height:90vh;
-  width: 95%;
   outline: 1px solid black;
 }
 
@@ -622,4 +620,53 @@ body {
 
 .about {
   padding-bottom: 6px;
+}
+
+#imagepreview {
+  display: inline-flex;
+  overflow-y: auto;
+  max-width: 100%;
+
+}
+
+#imagepreview::-webkit-scrollbar {
+  width: 20px;
+}
+
+#imagepreview::-webkit-scrollbar-track {
+  box-shadow: inset 0 0 5px grey; 
+  border-radius: 10px;
+}
+ 
+/* Handle */
+#imagepreview::-webkit-scrollbar-thumb {
+  background: teal; 
+  border-radius: 10px;
+}
+
+/* Handle on hover */
+#imagepreview::-webkit-scrollbar-thumb:hover {
+  background: teal; 
+}
+
+#imagepreview div {
+  padding: 5px;
+}
+
+#homepageshare {
+  z-index: 201;
+}
+
+.helptext {
+  outline: 2px solid firebrick;
+  width: fit-content;
+  padding: 5px;
+}
+
+.homepagedrop, .homepagedrop .dropbtn {
+  font-size: inherit!important;
+}
+
+#app {
+  padding: 0px 20px;
 }
