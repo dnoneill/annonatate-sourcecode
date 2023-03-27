@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import re, json
+import re, json, yaml
 from os.path import join as pathjoin
 from os.path import splitext as pathsplitext
 from iiif_prezi.loader import ManifestReader
@@ -23,8 +23,10 @@ class Image:
             self.manifestpath = pathjoin("manifests/", "/".join(folderpath[-2:]))
             self.manifesturl = "{}{}/manifest.json".format(self.origin_url, self.manifestpath)
             self.manifest = self.createmanifest()
+            self.thumbnail, self.title = getThumbnailTitle(self.manifest)
             if type(self.manifest) != dict: # manifest creation failed
-                self.manifest_markdown = "---\n---\n{}".format(self.manifest)
+                manifestdata = yaml.dump({"thumbnail": self.thumbnail, "title": self.title})
+                self.manifest_markdown = "---\n{}\n---\n{}".format(manifestdata, self.manifest)
         else:
             # handle uploaded image
             files = request_files.getlist("file")
@@ -66,6 +68,35 @@ class Image:
         manifest = json.dumps(manifestresponse, indent=2)
         return manifest
 
+def getThumbnailTitle(manifest):
+    if type(manifest) == bytes:
+        manifest = manifest.decode('utf-8')
+    manifest = json.loads(manifest)
+    try:
+        manifest = parseManifest(manifest)
+        label = manifest.label if type(manifest.label) != dict else [manifest.label]
+        if manifest.thumbnail:
+            thumbnail = manifest.thumbnail if type(manifest.thumbnail) == str else manifest.thumbnail.id
+        else:
+            thumbnail = manifest.sequences[0].canvases[0].images[0].resource.id.replace("full/0", "120,/0")
+        return thumbnail, label
+    except:
+        try: 
+            manifest = read_API3_json_dict(manifest)
+            if fieldIsPresent(manifest.thumbnail):
+                thumbnail = manifest.thumbnail.id 
+            else:
+                thumbnail = manifest.items[0].items[0].items[0].body['id']
+            label = manifest.label if type(manifest.label) != dict else [manifest.label]
+            return thumbnail, label
+        except:
+            return '', ''
+
+def fieldIsPresent(field):
+    try:
+        return field.id
+    except:
+        return False
 
 def addAnnotationList(manifest, session):
     try:

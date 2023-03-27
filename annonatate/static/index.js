@@ -1,35 +1,65 @@
 const annoview = Vue.component('annoview', {
   template: `<div>
-  <div v-if="isMobile && anno" style="position:fixed;right: 4px;">
-    <button v-on:click="enableDrawing(!drawingenabled)" style="width: 45px;height:45px;border-radius: 10px;">
-      <span class="fa-stack fa-2x">
-        <i class="fas fa-pencil-alt fa-stack-1x"></i>
-        <i v-if="!drawingenabled" class="fas fa-slash fa-stack-1x" style="color:Tomato"></i>
-      </span>
-    </button>
-  </div>
-  <div style="position:absolute;right: 10px;top: 52px;">
-    Switch to <a v-on:click="updateIsMobile()" class="linkbutton">{{this.isMobile ==true ? 'Desktop' : 'Mobile' }} view.</a><br>
-  </div>
-  <h2 style="margin:0px" v-on:click="manimageshown = !manimageshown" title="Click to expand/collapse image list">Image List <i class="fas" v-bind:class="[manimageshown ? 'fa-caret-up' : 'fa-caret-down']"></i></h2>
-  <div v-if="manimageshown">
-    <div>This is a list of images and manifests you have uploaded or set. For new users, this list contains examples to explore. You can change the examples in <a href="profile/?tab=data">settings.</a></div>
-    <div class="manifestimages" :class="{'noanno' : !anno}">
-      <div v-for="manifest in existing['manifests']">
-        <button v-if="manifest" class="linkbutton" v-on:click="getManifest(manifest)">
-          • {{manifest}}
-        </button>
+  <h2 style="margin:0px" v-on:click="manimageshown = !manimageshown" title="Click to expand/collapse image list">
+    My Images <i class="fas" v-bind:class="[manimageshown ? 'fa-caret-up' : 'fa-caret-down']"></i>
+  </h2>
+  <div id="myModal" class="modal" v-if="showModal">
+  <div class="modal-content">
+    <span class="close-modal" v-on:click="showModal=false;externalModal=false;">&times;</span>
+    <div class="optionsmodal" v-if="!externalModal">
+      <div class="modal-options icontextbutton">
+        <a href="/upload">
+        Upload your own image
+        <i class="fas fa-upload"></i>
+        </a>
       </div>
-      <div v-for="image in existing['images']">
-        <button v-if="image" class="linkbutton" v-on:click="inputurl = image; ingesturl = image; loadImage()">
-          • {{image}}
+      <div class="modal-options icontextbutton">
+        <a v-on:click="externalModal=true">
+        Use external image
+          <i class="fas fa-link"></i>
+        </a>
+      </div>
+      <hr>
+      Not ready to add images? Try our demo images:
+      <div class="demoimages">
+        <div v-for="image in demoimages">
+            <button v-if="image['url']" class="linkbutton" v-on:click="checkType(image); showModal=false;">
+              <img class="imgthumb" v-bind:alt="image['title']" v-if="image['thumbnail']" v-bind:src="image['thumbnail']"/>
+              <figcaption>{{image['title']}}</figcaption>
+            </button>
+        </div>
+      </div>
+    </div>
+    <div v-if="externalModal">
+      <span class="back" style="float:left" v-on:click="externalModal=false;"><i class="fas fa-arrow-left"></i></span>
+      <input id="ingesturl" v-model="externalurl"></input>
+      <button v-on:click="externalClick('addtodata', externalurl);"><i class="fas fa-plus"></i> Add to My Images</button>
+      <button v-on:click="externalClick('copy', externalurl);" v-if="externalurl.indexOf('manifest') > -1"><i class="fas fa-copy"></i> Make Copy</button>
+      <button v-on:click="externalClick('noadd', externalurl);"><i class="fas fa-eye"></i> View without adding to My Images</button>
+    </div>
+  </div>
+
+</div>
+  <div v-if="manimageshown">
+    <div class="manifestimages" :class="{'noanno' : !anno}">
+      <div>
+        <div v-on:click="showModal=true" class="icontextbutton">
+          <i class="fas fa-plus"></i>
+          Add Image
+        </div>
+      </div>
+      <div v-for="image in imageslist">
+        <button v-if="image['url']" class="linkbutton" v-on:click="checkType(image)">
+          <img class="imgthumb" v-bind:alt="image['title'] ? image['title'] : image['url']" v-if="image['thumbnail']" v-bind:src="image['thumbnail']"/>
+          <img class="imgthumb" v-bind:alt="image['title'] ? image['title'] : image['url']" v-else-if="!image['iiif']" v-bind:src="image['url']"/>
+          <figcaption>{{image['title'] ? image['title'] : image['url']}}</figcaption>
         </button>
       </div>
     </div>
   </div>
   <div class="ingesturlcontainer" :class="{'noanno' : !anno}">
-    <label for="ingesturl">Manifest or Image URL: </label>
-    <input id="ingesturl" v-on:change="getManifest(ingesturl)" v-model="ingesturl"></input>
+    <!-- <label for="ingesturl">Manifest or Image URL: </label>
+    <input id="ingesturl" v-on:change="getManifest(ingesturl)" v-model="ingesturl"></input> -->
     <button v-on:click="showManThumbs = !showManThumbs" v-if="currentmanifest">
       <span v-if="showManThumbs">Hide</span><span v-else>Show</span> Manifest Thumbnails
     </button>
@@ -46,23 +76,12 @@ const annoview = Vue.component('annoview', {
       </button>
     </div>
   </div>
-  <div v-if="isMobile && anno" class="helptext">
-      <b>Click pencil icon (<i class="fas fa-pencil-alt"></i>) so there is no slash through it.<br>
-      Then tap and drag to create new annotation.
-      <span v-if="currentdrawtool == 'polygon'">
-        <br>
-        To stop Polygon annotation selection long touch the screen.
-      </span>
-      </b>
-    </div>
-    <div v-else-if="anno" class="helptext">
-      <b>Hold <code>SHIFT</code> while clicking and dragging the mouse to create a new annotation.
-      <span v-if="currentdrawtool == 'polygon'">
-        <br>
-        To stop Polygon annotation selection double click.
-      </span>
-      </b>
-    </div>
+  <div v-if="anno" v-bind:class="[currentdrawtool == 'polygon' ? 'helptext' : '']">
+    <span v-if="currentdrawtool == 'polygon'">
+      To stop Polygon annotation selection double click.
+    </span>
+    </b>
+  </div>
   <div v-if="title" style="font-weight:900">
   <span v-html="title[0]['value'] + ':'"></span>
   <span v-if="alltiles.length > 0 && alltiles[0]['label']">{{alltiles[0]['label']}}</span>
@@ -126,7 +145,7 @@ const annoview = Vue.component('annoview', {
   	return {
       inputurl: '',
       drawtools: [],
-      currentdrawtool: 'rect',
+      currentdrawtool: 'disable',
       anno: '',
       viewer: '',
       manifestdata: '',
@@ -134,7 +153,6 @@ const annoview = Vue.component('annoview', {
       showManThumbs: false,
       canvas: '',
       title: '',
-      isMobile: false,
       alltiles: [],
       drawingenabled: false,
       ingesturl: '',
@@ -144,29 +162,43 @@ const annoview = Vue.component('annoview', {
       draftannos: [],
       annosvisible: true, 
       manimageshown: true,
-      annolistname: ''
+      annolistname: '',
+      imageslist: [],
+      externalurl: '',
+      showModal: false,
+      externalModal: false,
+      demoimages: [{'title': 'Demo image (IIIF manifest): Insectes. [patterns]', 'url': 'https://d.lib.ncsu.edu/collections/catalog/segIns_020/manifest.json', 'thumbnail': 'https://iiif.lib.ncsu.edu/iiif/segIns_020/full/120,/0/default.jpg'},
+        {'title': 'Demo images (IIIF manifest): National Gallery of Art Collection Highlights', 'url': 'https://media.nga.gov/public/manifests/nga_highlights.json', 'thumbnail': 'https://media.nga.gov/iiif/public/objects/1/0/6/3/8/2/106382-primary-0-nativeres.ptif/full/120,/0/default.jpg'},
+        {'title': 'Demo IIIF image: from Duke Collection', 'url': 'https://repository.duke.edu/fcgi-bin/iipsrv.fcgi?IIIF=/nas/repo_deriv/hydra/multires_image/40/58/a6/28/4058a628-c593-463e-9736-8a821e178fee/info.json', 'thumbnail': 'https://repository.duke.edu/fcgi-bin/iipsrv.fcgi?IIIF=/nas/repo_deriv/hydra/multires_image/40/58/a6/28/4058a628-c593-463e-9736-8a821e178fee/full/120,/0/default.jpg'},
+        {'title': 'Demo image: from Wikimedia', 'url': 'https://upload.wikimedia.org/wikipedia/commons/7/7e/PowersBibleQuilt_1886.jpg', 'thumbnail': 'https://upload.wikimedia.org/wikipedia/commons/7/7e/PowersBibleQuilt_1886.jpg'}
+      ]
   	}
   },
   watch: {
     canvas: function() {
       this.annolistname = listfilename(this.canvas);
       this.updateUrlParams('canvas', this.canvas);
+      this.updateUrlParams('imageurl', '');
+    },
+    inputurl: function() {
+      if (!this.canvas || !this.currentmanifest){
+        this.updateUrlParams('imageurl', this.inputurl);
+        this.updateUrlParams('manifesturl', '');
+        this.updateUrlParams('canvas', '');
+      }
     },
     currentmanifest: function() {
       this.updateUrlParams('manifesturl', this.currentmanifest);
-    }
+    }    
+  },
+  created(){
+    this.parseExisting();
   },
   mounted() {
-    this.isMobile = /Mobi/.test(navigator.userAgent);
     if (this.existing.settings && this.existing.settings.widgets){
       this.widgets = this.existing.settings.widgets.split(",").map(elem => elem.trim());
     }
-    console.log(navigator.userAgent)
     const params = new URLSearchParams(window.location.search);
-    const mobileparam = params.get('view');
-    if (mobileparam) {
-      this.isMobile = mobileparam == 'desktop' ? false : true;
-    }
     const manifesturl = params.get('manifesturl');
     const imageurl = params.get('imageurl');
     const mode = params.get('mode');
@@ -180,6 +212,7 @@ const annoview = Vue.component('annoview', {
     }
     if (imageurl) {
       this.inputurl = imageurl;
+      this.ingesturl = imageurl;
       this.loadAnno();
     }
     if (this.updatepage){
@@ -187,6 +220,105 @@ const annoview = Vue.component('annoview', {
     }
   },
   methods: {
+    checkType: function(manifetdict) {
+      if (manifetdict.constructor.name == 'String'){
+        this.getManifest(manifetdict)
+      } else if (manifetdict['iiif'] || manifetdict['url'].indexOf('/manifest') > -1) {
+        this.getManifest(manifetdict)
+      } else {
+        this.inputurl = manifetdict['url'];
+        this.ingesturl = manifetdict['url'];
+        this.loadImage();
+      }
+    },
+    parseExisting: function() {
+      const manifests = this.existing['manifests'].filter(elem => elem);
+      for (var em=0; em<manifests.length; em++){
+        var man = manifests[em];
+        if (man['json']) {
+          var manifestmeta = this.getManifestMeta(man);
+          var title = man['title'];
+          const titlelang = Array.isArray(title) && title.length > 0 ? title.filter(elem => elem['locale'] == navigator.language || elem == navigator.language) : [];
+          title = titlelang.length > 0 ? titlelang[0] :Array.isArray(title) ? title[0] : title;
+          title = title['value'] ? title['value'] : title instanceof Object ? title[Object.keys(title)][0] : title;
+          man['title'] = title;
+          this.imageslist.push(man)
+        } else {
+          if (man.constructor.name == 'String') {
+            man = {'title': '', 'url': man, 'thumbnail': ''}
+          }
+          this.imageslist.push(man)
+        }
+      }
+    },
+    externalClick: function(type, url){
+      var vue = this;
+      if (type == 'noadd'){
+        this.getManifest(url);
+      } else if (type == 'addtodata') {
+        var form_data = new FormData();
+        form_data.append('addurl', url);
+        jQuery.ajax({
+          url: "/updatedata",
+          type: "POST",
+          data: form_data,
+          contentType: false, 
+          processData: false,
+          success: function(data) {
+            if (data['images'][0]['url'] == url) {
+              vue.imageslist.unshift(data['images'][0])
+            }
+          }, error: function(err) { 
+            console.log(err)
+            return 0;
+          }
+        });
+      } else if (type=='copy') {
+        var form_data = new FormData();
+        form_data.append('returnjson', true);
+        form_data.append('upload', url);
+        jQuery.ajax({
+          url: "/createimage",
+          type: "POST",
+          data: form_data,
+          contentType: false, 
+          processData: false,
+          success: function(data) {
+            console.log(data)
+            if (data['output'] == true) {
+              console.log('testing')
+              vue.imageslist.unshift(data);
+              vue.getManifest(data);
+            }
+          }, error: function(err) { 
+            console.log(err)
+            return 0;
+          }
+        });
+      }
+      this.externalModal=false;
+      this.showModal=false;
+    },
+    getManifestMeta: function(manifest){
+      var m = manifesto.parseManifest(JSON.parse(manifest['json']));
+      var title = m ? m.getLabel() : "";
+      var fullvalue = m.context.indexOf('3') > -1 ? 'max' : 'full';
+      const sequence = m.getSequenceByIndex(0);
+      const firstcanvas = sequence.getCanvasByIndex(0);
+      var thumbnail = m.getThumbnail();
+      thumbnail = thumbnail ? thumbnail : firstcanvas.getThumbnail();
+      thumbnail ? thumbnail = this.getId(thumbnail['__jsonld']) : ''
+      if (!thumbnail){
+        var manifestimages = firstcanvas['__jsonld']['images'] ? firstcanvas['__jsonld']['images'] : firstcanvas['__jsonld']['items'];
+        manifestimages = manifestimages[0]['items'] ? manifestimages[0]['items'] : manifestimages;  
+        var resourceitem = manifestimages[0]['resource'] ? manifestimages[0]['resource'] : manifestimages[0]['body'] ? manifestimages[0]['body'] :  Array.isArray(manifestimages[0]['items']) ? manifestimages[0]['items'][0] : manifestimages[0]['items'];
+        thumbnail = this.getId(resourceitem);     
+      }
+      thumbnail = thumbnail.replace(`/${fullvalue}/0`, `/100,/0`).replace("{{ '/' | absolute_url }}", this.originurl)
+      manifest['thumbnail'] = thumbnail;
+      manifest['title'] = title;
+      return manifest;
+    },
     setUpdate: function() {
       setInterval(() => {
         var vue = this;
@@ -227,11 +359,6 @@ const annoview = Vue.component('annoview', {
       var url = new URL(window.location);
       url.searchParams.set(field, replacement);
       window.history.pushState({}, '', url);
-    },
-    updateIsMobile: function() {
-      const switchUnit = this.isMobile ? 'desktop' : 'mobile';
-      this.isMobile = switchUnit == 'mobile';
-      this.updateUrlParams('view', switchUnit);
     },
     updateUnit: function() {
       const switchUnit = this.fragmentunit =='pixel' ? 'percent' : 'pixel' ;
@@ -337,6 +464,7 @@ const annoview = Vue.component('annoview', {
         const label = name == 'rect' ? 'Rectangle' : name == 'annotorious-tilted-box' ? 'Angled box' : cleanname.charAt(0).toUpperCase() + cleanname.slice(1);
         this.drawtools.push({'name': name, 'label': label})
       }
+      this.drawtools.push({'name': 'disable', 'label': '<i class="fas fa-mouse-pointer"></i>'})
       this.drawtools = this.drawtools.sort((a, b) => (a.label > b.label) ? 1 : -1)
       this.addListeners();
       this.enableDrawing(this.drawingenabled);
@@ -367,85 +495,103 @@ const annoview = Vue.component('annoview', {
       var checked = opacity != 0 ? true : false;
       item.checked = checked;
     },
-    getManifest: function(manifest, loadcanvas=false) {
+    getManifestFunctions: function(data, manifest, loadcanvas=false){
+      const context = data['@context'] && Array.isArray(data['@context']) ? data['@context'].join("") : data['@context'];
+      if (data.constructor.name == 'String' || context && context.indexOf('presentation') == -1){
+        this.inputurl = manifest;
+        this.currentmanifest = '';
+        this.loadImage();
+      }
+      var images = [];
+      var m = manifesto.parseManifest(data);
+      this.title = m ? m.getLabel() : "";
+      const sequence = m.getSequenceByIndex(0);
+      const manifestdata = sequence.getCanvases();
+      if (!manifestdata) {
+        this.manifestdata = 'failure';
+        return;
+      }
+      for (var i=0; i<manifestdata.length; i++){
+        var tiles = [];
+        var manifesthumb = m.getThumbnail();
+        var size = manifesthumb && manifesthumb.id && manifesthumb.id.indexOf('full') > -1 ? manifesthumb.id.split('full/').slice(-1)[0].split('/0')[0] : '100,'
+        var canvas = manifestdata[i].id;
+        var thumb = manifestdata[i].getThumbnail();
+        thumb ? thumb = this.getId(thumb['__jsonld']) : ''
+        var manifestimages = manifestdata[i]['__jsonld']['images'] ? manifestdata[i]['__jsonld']['images'] : manifestdata[i]['__jsonld']['items'];
+        manifestimages = manifestimages[0]['items'] ? manifestimages[0]['items'] : manifestimages;
+        var fullvalue = m.context.indexOf('3') > -1 ? 'max' : 'full';
+        for (var j=0; j<manifestimages.length; j++){
+          var resourceitem = manifestimages[j]['resource'] ? manifestimages[j]['resource'] : manifestimages[j]['body'] ? manifestimages[j]['body'] :  Array.isArray(manifestimages[j]['items']) ? manifestimages[j]['items'][0] : manifestimages[j]['items'];
+          const imagethumb = this.getId(resourceitem);
+          if (!thumb){
+            thumb = imagethumb;
+          }
+          const resourceservice = resourceitem['service'] && Array.isArray(resourceitem['service']) ? resourceitem['service'][0] : resourceitem['service'];
+          var id = resourceservice ? this.trimCharacter(this.getId(resourceservice), '/') + '/info.json' : resourceitem['id'];
+          id = resourceservice ? this.trimCharacter(id.split('/info')[0], '/') + '/info.json' : id;
+          const opacity = j == 0 ? 1 : 0;
+          const checked = j == 0 ? true : false;
+          const resourceid = resourceitem ? this.getId(resourceitem) : '';
+          var xywh = resourceid && resourceid.constructor.name === 'String' && resourceid.indexOf('xywh') > -1 ? resourceid : this.on_structure(manifestimages[j]) && this.on_structure(manifestimages[j])[0].constructor.name === 'String' ? this.on_structure(manifestimages[j])[0] : '';
+          xywh = xywh ? xywh.split("xywh=").slice(-1)[0].split(",") : xywh;
+          const getLabel = manifestdata[i].getLabel();
+          const tilelabel = getLabel && getLabel.length > 0 ? getLabel[0]['value'] : ""
+          tiles.push({'id': id, 'label': tilelabel,
+            thumbnail: imagethumb.replace(`/${fullvalue}/0`, `/${size}/0`), 'opacity': opacity,
+            'checked': checked, 'xywh': xywh
+          })
+        }
+        thumb = thumb ? thumb.replace(`/${fullvalue}/0`, `/${size}/0`) : thumb;
+        images.push({'image': thumb, 'canvas': canvas, 'tiles': tiles})
+        if (loadcanvas == canvas) {
+          this.currentposition = i;
+          this.manifestLoad({'image': thumb, 'canvas': canvas, 'tiles': tiles})
+        }
+      }
+      if (images.length > 1){
+        this.showManThumbs = true;
+      }
+      this.manifestdata = images;
+      if (!loadcanvas){
+        this.manifestLoad(images[0]);
+      }
+    },
+    getManifest: function(manifestdata, loadcanvas=false) {
+      var manifest;
+      var manifestjson;
+      if (manifestdata.constructor.name == 'String'){
+        manifest = manifestdata;
+      } else {
+        manifest = manifestdata['url'];
+        if (manifestdata['json']){
+          manifestjson = JSON.parse(manifestdata['json'].replaceAll("{{ '/' | absolute_url }}", this.originurl));
+        }
+      }
       this.currentmanifest = manifest;
       this.manifestdata = [];
       this.ingesturl = manifest;
       var vue = this;
-      jQuery.ajax({
-        url: manifest,
-        type: "GET",
-        success: function(data) {
-          const context = data['@context'] && Array.isArray(data['@context']) ? data['@context'].join("") : data['@context'];
-          if (data.constructor.name == 'String' || context && context.indexOf('presentation') == -1){
-            vue.inputurl = manifest;
-            vue.currentmanifest = '';
-            vue.loadImage();
-          }
-          var images = [];
-          var m = manifesto.parseManifest(data);
-          vue.title = m ? m.getLabel() : "";
-          const sequence = m.getSequenceByIndex(0);
-          const manifestdata = sequence.getCanvases();
-          if (!manifestdata) {
-            vue.manifestdata = 'failure';
-            return;
-          }
-          for (var i=0; i<manifestdata.length; i++){
-            var tiles = [];
-            var manifesthumb = m.getThumbnail();
-            var size = manifesthumb && manifesthumb.id && manifesthumb.id.indexOf('full') > -1 ? manifesthumb.id.split('full/').slice(-1)[0].split('/0')[0] : '100,'
-            var canvas = manifestdata[i].id;
-            var thumb = manifestdata[i].getThumbnail();
-            thumb ? thumb = vue.getId(thumb['__jsonld']) : ''
-            var manifestimages = manifestdata[i]['__jsonld']['images'] ? manifestdata[i]['__jsonld']['images'] : manifestdata[i]['__jsonld']['items'];
-            manifestimages = manifestimages[0]['items'] ? manifestimages[0]['items'] : manifestimages;
-            var fullvalue = m.context.indexOf('3') > -1 ? 'max' : 'full';
-            for (var j=0; j<manifestimages.length; j++){
-              var resourceitem = manifestimages[j]['resource'] ? manifestimages[j]['resource'] : manifestimages[j]['body'] ? manifestimages[j]['body'] :  Array.isArray(manifestimages[j]['items']) ? manifestimages[j]['items'][0] : manifestimages[j]['items'];
-              const imagethumb = vue.getId(resourceitem);
-              if (!thumb){
-                thumb = imagethumb;
-              }
-              const resourceservice = resourceitem['service'] && Array.isArray(resourceitem['service']) ? resourceitem['service'][0] : resourceitem['service'];
-              var id = resourceservice ? vue.trimCharacter(vue.getId(resourceservice), '/') + '/info.json' : resourceitem['id'];
-              id = resourceservice ? vue.trimCharacter(id.split('/info')[0], '/') + '/info.json' : id;
-              const opacity = j == 0 ? 1 : 0;
-              const checked = j == 0 ? true : false;
-              const resourceid = resourceitem ? vue.getId(resourceitem) : '';
-              var xywh = resourceid && resourceid.constructor.name === 'String' && resourceid.indexOf('xywh') > -1 ? resourceid : vue.on_structure(manifestimages[j]) && vue.on_structure(manifestimages[j])[0].constructor.name === 'String' ? vue.on_structure(manifestimages[j])[0] : '';
-              xywh = xywh ? xywh.split("xywh=").slice(-1)[0].split(",") : xywh;
-              const getLabel = manifestdata[i].getLabel();
-              const tilelabel = getLabel && getLabel.length > 0 ? getLabel[0]['value'] : ""
-              tiles.push({'id': id, 'label': tilelabel,
-                thumbnail: imagethumb.replace(`/${fullvalue}/0`, `/${size}/0`), 'opacity': opacity,
-                'checked': checked, 'xywh': xywh
-              })
-            }
-            thumb = thumb ? thumb.replace(`/${fullvalue}/0`, `/${size}/0`) : thumb;
-            images.push({'image': thumb, 'canvas': canvas, 'tiles': tiles})
-            if (loadcanvas == canvas) {
-              this.currentposition = i;
-              vue.manifestLoad({'image': thumb, 'canvas': canvas, 'tiles': tiles})
+      if (manifestjson) {
+        this.getManifestFunctions(manifestjson, manifest, loadcanvas);
+        console.log('working...')
+      } else {
+        jQuery.ajax({
+          url: manifest,
+          type: "GET",
+          success: function(data) {
+            vue.getManifestFunctions(data, manifest, loadcanvas)
+          },
+          error: function(err) {
+            if (err.status < 300){
+              vue.inputurl = manifest;
+              vue.loadImage();
+            } else {
+              vue.manifestdata = 'failure';
             }
           }
-          if (images.length > 1){
-            vue.showManThumbs = true;
-          }
-          vue.manifestdata = images;
-          if (!loadcanvas){
-            vue.manifestLoad(images[0]);
-          }
-        },
-        error: function(err) {
-          if (err.status < 300){
-            vue.inputurl = manifest;
-            vue.loadImage();
-          } else {
-            vue.manifestdata = 'failure';
-          }
-        }
-      });
+        });
+      }
     },
     trimCharacter: function(word, char) {
       return word.slice(-1)[0] == char ? word.slice(0, -1) : word;
@@ -463,7 +609,13 @@ const annoview = Vue.component('annoview', {
       }
     },
     updateDrawTool: function() {
-      this.anno.setDrawingTool(this.currentdrawtool);
+      var drawingenabled = true;
+      if (this.currentdrawtool == 'disable') {
+        drawingenabled = false;
+      } else {
+        this.anno.setDrawingTool(this.currentdrawtool);
+      }
+      this.enableDrawing(drawingenabled);
     },
     addManifestAnnotation: function(annotation){
       var target = this.inputurl;
@@ -485,10 +637,8 @@ const annoview = Vue.component('annoview', {
       return JSON.parse(annoString);
     },
     enableDrawing: function(enable=true){
-      if (this.isMobile){
-        this.drawingenabled = enable;
-        this.anno.setDrawingEnabled(enable);
-      }
+      this.drawingenabled = enable;
+      this.anno.setDrawingEnabled(enable);
     },
     addListeners: function() {
       // Attach handlers to listen to events

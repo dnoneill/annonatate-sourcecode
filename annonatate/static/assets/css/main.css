@@ -257,14 +257,19 @@ tbody {
 }
 
 .manifestimages {
-  max-height: 120px;
+  max-height: 300px;
   overflow: auto;
   margin-bottom: 8px;
-  word-break: break-all;
+  display: flex;
+  flex-direction: row;
+}
+
+.manifestimages div {
+  padding: 10px;
 }
 
 .manifestimages::-webkit-scrollbar {
-  width: 20px;
+  width: 10px;
 }
 
 /* Track */
@@ -409,6 +414,7 @@ body {font-family: Arial;}
   margin: 4px 2px;
   cursor: pointer;
   font: inherit;
+  max-width: 80px;
 }
 
 #incollections{
@@ -441,11 +447,13 @@ h3 {
   font-size: 1.7em!important;
 }
 
-.manifestimages.noanno {
+.manifestimages {
   border: 2px solid #61177C;
+  padding: 10px;
 }
-.ingesturlcontainer.noanno {
-  border: 2px solid #004EC2;
+.ingesturlcontainer {
+  /* border: 2px solid #004EC2; */
+  padding: 10px;
 }
 
 .noanno {
@@ -492,7 +500,7 @@ body {
 }
 
 .next {
-  right: 9%;
+  right: 60px;
 }
 
 .manifestimagelist {
@@ -623,7 +631,7 @@ body {
 }
 
 #imagepreview {
-  display: inline-flex;
+  display: flex;
   overflow-y: auto;
   max-width: 100%;
 
@@ -669,4 +677,112 @@ body {
 
 #app {
   padding: 0px 20px;
+}
+
+.linkbutton {
+  max-width: 100px;
+  overflow-wrap: break-word;
+}
+.imgthumb {
+  height: 75px;
+}
+
+.uploadlist {
+  display: inline-flex;
+  width: 100%;
+  flex-flow: wrap;
+}
+
+.uploadlist div {
+  display: grid;
+  padding: 10px;
+}
+
+
+.modal {
+  position: fixed; /* Stay in place */
+  z-index: 201; /* Sit on top */
+  left: 0;
+  top: 0;
+  width: 100%; /* Full width */
+  height: 100%; /* Full height */
+  overflow: auto; /* Enable scroll if needed */
+  background-color: rgb(0,0,0); /* Fallback color */
+  background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
+}
+
+/* Modal Content/Box */
+.modal-content {
+  background-color: #fefefe;
+  margin: 15% auto; /* 15% from the top and centered */
+  padding: 20px;
+  border: 1px solid #888;
+  width: 50%; /* Could be more or less, depending on screen size */
+  text-align: center;
+}
+
+/* The Close Button */
+.close-modal {
+  color: #aaa;
+  float: right;
+  font-size: 28px;
+  font-weight: bold;
+}
+
+.close-modal:hover,
+.close-modal:focus {
+  color: black;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.modal-options {
+  width: calc(47% - 20px);
+  padding: 10px;
+  display: inline-block;
+}
+
+.modal-options i {
+  display: block;
+  font-size: 50px;
+  margin: auto;
+  padding-top: 10px;
+}
+
+.demoimages {
+  display: flex;
+  justify-content: center;
+}
+
+.demoimages .linkbutton {
+  padding: 5px;
+}
+
+.icontextbutton i {
+  background:rgb(231, 231, 231);
+  padding: 20px;
+}
+
+.icontextbutton a {
+  color: black;
+  text-decoration: none;
+}
+
+.manifestimages .icontextbutton i {
+  font-size: 30px;
+  padding: 10px;
+}
+
+.manifestimages .icontextbutton {
+  text-align: center;
+  color: darkgrey;
+  background:rgb(231, 231, 231);
+  width: 70px;
+}
+
+.manifestimages figcaption {
+  display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 4;  /* Number of lines displayed before it truncate */
+     overflow: hidden;
 }

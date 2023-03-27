@@ -15,7 +15,7 @@ import os
 from io import StringIO
 
 from annonatate.utils.search import get_search, encodedecode, Search
-from annonatate.utils.image import Image, addAnnotationList, listfilename
+from annonatate.utils.image import Image, addAnnotationList, listfilename, getThumbnailTitle
 from annonatate.utils.collectionform import CollectionForm, parseboard, parsetype
 from annonatate.utils.github import GitHubAnno
 from annonatate.utils.annogetters import getCanvas, getManifest, contextType, isMirador
@@ -31,7 +31,7 @@ github = GitHubAnno(app)
 ALLOWED_EXTENSIONS = set(['png', 'jpg', 'jpeg'])
 app.config['UPLOAD_FOLDER'] = uploadfolder
 githubfilefolder = 'annonatate/static/githubfiles/'
-
+currentversion = '2.5'
 #Before every page loads this runs a series of tests
 @app.before_request
 def before_request():
@@ -271,7 +271,12 @@ def createimage():
         response = github.sendgithubrequest(session, ymlname, convertiiif, ".github/workflows").json()
         triggerAction(ymlname)
     #triggerbuild()
-    return render_template('uploadsuccess.html', output=output, actionname=actionname, uploadurl=uploadurl, successmessage=successmessage, uploadtype=uploadtype)
+    if 'returnjson' in request.form.keys():
+        manifestdict = {'json': image.manifest, 'output': output, 'url': uploadurl, 'iiif': True, 'upload': True, 'title': image.title, 'thumbnail': image.thumbnail}
+        session['upload']['manifests'].insert(0, manifestdict)
+        return jsonify(manifestdict), 200
+    else:
+        return render_template('uploadsuccess.html', output=output, actionname=actionname, uploadurl=uploadurl, successmessage=successmessage, uploadtype=uploadtype)
 
 def successtext(uploadurl, uploadtype, actionname=''):
     if uploadurl:
@@ -414,9 +419,8 @@ def index():
     if 'user_id' in session:
         try:
             arraydata = getContents()
-            manifests = session['upload']['manifests'] + session['preloaded']['manifests']
-            images = session['upload']['images'] + session['preloaded']['images']
-            existing = {'manifests': manifests, 'images': images, 'settings': session['preloaded']['settings']}
+            manifests = session['upload']['manifests'] + session['preloaded']['images']
+            existing = {'manifests': manifests, 'settings': session['preloaded']['settings']}
             if 'vocab' in session['preloaded'].keys():
                 labelonlyvocab = [item['label'] if type(item) == dict else item for item in session['preloaded']['vocab']]
             vocabtags = arraydata['tags'] if 'vocab' not in session['preloaded'].keys() else session['preloaded']['vocab'] + list(filter(lambda tag: tag not in labelonlyvocab, arraydata['tags']))
@@ -574,7 +578,12 @@ def orgs():
 # Used via delete button, delete files from GitHub
 @app.route('/deletefile/', methods=['POST'])
 def deletefile():
-    url = request.args.get('file')
+    try:
+        content = json.loads(request.args.get('file'))
+        url = content['url'] if type(content) == dict else content
+    except:
+        url = request.args.get('file')
+        content = url
     fullfile = url.replace(session['origin_url'], '').strip('/')
     path, filename = fullfile.rsplit('/', 1)
     if path == session['defaults']['customviews'].strip('_'):
@@ -594,10 +603,10 @@ def deletefile():
         deletescript = deletescript.replace("replacewithimagepath", path)
         github.sendgithubrequest(session, 'deleteimage.yml', deletescript, ".github/workflows").json()
         triggerAction('deleteimage.yml')
-        session['upload']['manifests'].remove(url)
+        session['upload']['manifests'].remove(content)
     else:
         uploadtype = path.split('/')[0]
-        session['upload'][uploadtype].remove(url)
+        session['upload'][uploadtype].remove(content)
     payload = {'ref': session['github_branch']}
     data = github.createdatadict(session, filename, 'delete', path)
     response = github.raw_request('delete', data['url'], data=json.dumps(data['data']), params=payload)
@@ -685,17 +694,51 @@ def saveannonaview():
 # Update preloaded manifests and images
 @app.route('/updatedata', methods=['POST'])
 def updatedata():
-    data = request.form['updatedata']
-    jsondata = json.loads(data)
+    addurl = False
+    if request.form and 'updatedata' in request.form.keys():
+        data = request.form['updatedata']
+        jsondata = json.loads(data)
+    elif request.form and 'addurl' in request.form.keys():
+        newurl = request.form['addurl']
+        session['preloaded']['images'].insert(0, newurl)
+        jsondata = session['preloaded']
+        addurl = True
+    else:
+        jsondata = session['preloaded']
     jsondata['settings'] = getSettings(jsondata['settings'])
     for key in jsondata:
         if key != 'settings' and jsondata[key] == {}:
             jsondata[key] = []
+    jsondata['images'] = checkManUrls(jsondata['images'])
     yamldata = yaml.dump(jsondata)
     github.sendgithubrequest(session, 'preload.yml', yamldata, '_data')
     session['preloaded'] = jsondata
     checkTempUser(jsondata)
-    return redirect('/profile?tab=data')
+    if addurl:
+        return jsonify(jsondata), 200
+    else:
+        return redirect('/profile?tab=data')
+
+def checkManUrls(data):
+    returndata = []
+    for man in data:
+        if type(man) == str and man != '':
+            imagetypes = ['jpg', 'jpeg', 'png', 'gif', 'tif', 'tiff']
+            if man.rsplit('.', 1)[-1] not in imagetypes:
+                r = requests.get(man)
+                if 'image' not in r.headers['Content-Type']:
+                    thumbnail, title = getThumbnailTitle(r.content)
+                    returndata.append({'url': man, 'thumbnail': thumbnail, 'title': title, 'iiif': True})
+                else:
+                    mandict = {'url': man, 'iiif': False, 'title': '', 'thumbnail': man}
+                    returndata.append(mandict)
+            else:
+                mandict = {'url': man, 'iiif': False, 'title': '', 'thumbnail': man}
+                returndata.append(mandict)
+        else:
+            returndata.append(man)
+    return returndata
+
 
 def checkTempUser(data):
     if 'tempuser' not in session.keys() and 'tempuser' in data['settings'].keys() and data['settings']['tempuser'] == 'enabled':
@@ -877,7 +920,7 @@ def getContents():
 # Get annotation content
 def getannotations():
     buildstatus = checkBuildStatus()
-    if 'annotations' not in session.keys() or session['annotations'] == [] or len(buildstatus) == 0:
+    if 'annotations' not in session.keys() or len(buildstatus) == 0:
         content, status = origin_contents()
         for item in content['annotations']:
             item['canvas'] = getCanvas(item['json'])
@@ -896,6 +939,15 @@ def getannotations():
                     session['preloaded'][preloadkey] = content['preloadedcontent'][preloadkey]
                 else:
                     session['preloaded'][preloadkey] = getSettings(content['preloadedcontent'][preloadkey])
+        if 'version' not in content['preloadedcontent'].keys() or content['preloadedcontent']['version'] != currentversion:
+            updateindex()
+            for item in session['preloaded']['manifests']:
+                if item:
+                    item['iiif'] = True
+            session['preloaded']['images'] += session['preloaded']['manifests']
+            del session['preloaded']['manifests']
+            session['preloaded']['version'] = currentversion
+            updatedata()
         checkTempUser(session['preloaded'])
         session['upload'] = {'images': content['images'], 'manifests': content['manifests']}
         parsecustomviews(content)
@@ -975,7 +1027,7 @@ def origin_contents():
                 yamlcontents = github.decodeContent(preloads.json()['content'])
                 content['preloadedcontent'] = yaml.load(yamlcontents, Loader=yaml.FullLoader)
             else:
-                content['preloadedcontent'] =  {'images': ['https://repository.duke.edu/fcgi-bin/iipsrv.fcgi?IIIF=/nas/repo_deriv/hydra/multires_image/40/58/a6/28/4058a628-c593-463e-9736-8a821e178fee/info.json', 'https://upload.wikimedia.org/wikipedia/commons/thumb/6/62/Landscape_with_Rainbow_SAAM-1983.95.160_1.tiff/lossy-page1-6819px-Landscape_with_Rainbow_SAAM-1983.95.160_1.tiff.jpg', 'https://upload.wikimedia.org/wikipedia/commons/7/7e/PowersBibleQuilt_1886.jpg'], 'manifests': ['https://dnoneill.github.io/wax-iiif/img/derivatives/iiif/fullBayeux/manifest.json', 'https://dnoneill.github.io/annotate/manifests/parismap.json', 'https://d.lib.ncsu.edu/collections/catalog/mc00084-001-te0159-000-001_0001/manifest.json', 'https://d.lib.ncsu.edu/collections/catalog/mc00336-1911Bldg-May2017/manifest.json', 'https://d.lib.ncsu.edu/collections/catalog/mc00240-001-ff0093-001-001_0010/manifest.json', 'https://d.lib.ncsu.edu/collections/catalog/0002386/manifest.json', 'https://d.lib.ncsu.edu/collections/catalog/nubian-message-2002-04-18/manifest.json', 'https://d.lib.ncsu.edu/collections/catalog/segIns_004/manifest', 'https://damsssl.llgc.org.uk/iiif/2.0/4665992/manifest.json', 'https://purl.stanford.edu/wh234bz9013/iiif/manifest'], 'settings': {'tempuser': 'notenabled', 'viewer': 'default', 'widgets': 'comment-with-purpose, tag, geotagging'}}
+                content['preloadedcontent'] =  {'images': [], 'manifests': [], 'settings': {'tempuser': 'notenabled', 'viewer': 'default', 'widgets': 'comment-with-purpose, tag, geotagging'}}
         except Exception as e:
             print(e)
     return content, response.status_code

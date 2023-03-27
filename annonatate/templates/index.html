@@ -1,5 +1,4 @@
 {% extends 'base.html' %}
-{% block title %}Home{% endblock %}
 {% block content %}
 {% set ismirador = session | isMirador %}
 {% if ismirador %}
@@ -15,10 +14,11 @@
 <script src="/assets/openseadragon/openseadragon-annotorious.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@recogito/geotagging-widget@latest"></script>
 <script src="https://cdn.jsdelivr.net/npm/@recogito/annotorious-tilted-box@latest/dist/annotorious-tilted-box.min.js"></script>
-
 {% endif %}
 <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14"></script>
 <div id="app">
+  <h1 style="margin: 10px 0px;">{% block title %}Home{% endblock %}</h1>
+  <div style="padding-bottom: 10px;">Click on a link in the <span style="color: #61177C">purple</span> box or add a URL to the <span style="color: #004EC2">blue</span> box to start annotating images.</div>
   {% set updatepage = 'true' if session['currentworkspace']['numbcollabs'] > 1 else 'false' %}
   <annoview :existing='{{existingitems | tojson}}' :updatepage="{{updatepage}}" :filepaths='{{ filepaths|tojson }}' :userinfo='{{userinfo | tojson}}' :tags='{{tags|tojson}}' :originurl='{{session["origin_url"] | tojson}}'></annoview>
 </div>
@@ -37,7 +37,6 @@
     const canvaslist = canvas.split('/')
     withnumbs = canvaslist.filter(elem => elem.match(r));
     filename = withnumbs.length > 0 ? withnumbs.join("-") : canvaslist.slice(-1)[0];
-    console.log(filename)
     filename = filename.replace(/[^A-Za-z0-9]+/g, "-").toLowerCase();
     filename = "{{ session['origin_url'] }}{{session['defaults']['annotations']}}".replace("_", "") + '/' + filename + '-list.json';
     return filename

@@ -22,8 +22,6 @@ jobs:
         run: pip3 install iiif pdf2image Pillow iiif-prezi git+https://github.com/giacomomarchioro/pyIIIFpres
       - name: runscript
         run: python3 -c "exec(\"replacewithportion\")"
-      - name: add page jekyll to manifest
-        run: echo -e "---\n---\n$(cat img/derivatives/iiif/replacewithfolder/manifest.json)" > img/derivatives/iiif/replacewithfolder/manifest.json
       - name: commit files
         run: |
           git config --local user.email "action@github.com"
