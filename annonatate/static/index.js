@@ -1,45 +1,47 @@
 const annoview = Vue.component('annoview', {
   template: `<div>
-  <h2 style="margin:0px" v-on:click="manimageshown = !manimageshown" title="Click to expand/collapse image list">
-    My Images <i class="fas" v-bind:class="[manimageshown ? 'fa-caret-up' : 'fa-caret-down']"></i>
-  </h2>
   <div id="myModal" class="modal" v-if="showModal">
-  <div class="modal-content">
-    <span class="close-modal" v-on:click="showModal=false;externalModal=false;">&times;</span>
-    <div class="optionsmodal" v-if="!externalModal">
-      <div class="modal-options icontextbutton">
-        <a href="/upload">
-        Upload your own image
-        <i class="fas fa-upload"></i>
-        </a>
-      </div>
-      <div class="modal-options icontextbutton">
-        <a v-on:click="externalModal=true">
-        Use external image
-          <i class="fas fa-link"></i>
-        </a>
-      </div>
-      <hr>
-      Not ready to add images? Try our demo images:
-      <div class="demoimages">
-        <div v-for="image in demoimages">
-            <button v-if="image['url']" class="linkbutton" v-on:click="checkType(image); showModal=false;">
-              <img class="imgthumb" v-bind:alt="image['title']" v-if="image['thumbnail']" v-bind:src="image['thumbnail']"/>
-              <figcaption>{{image['title']}}</figcaption>
-            </button>
+    <div class="modal-content">
+      <span class="close-modal" v-on:click="showModal=false;externalModal=false;">&times;</span>
+      <span class="back" style="float:left" v-if="externalModal" v-on:click="externalModal=false;"><i class="fas fa-arrow-left"></i></span>
+      <div class="optionsmodal" v-if="!externalModal">
+        <div class="modal-options icontextbutton">
+          <a href="/upload">
+          Upload your own image
+          <i class="fas fa-upload"></i>
+          </a>
+        </div>
+        <div class="modal-options icontextbutton">
+          <a v-on:click="externalModal=true">
+          Use external image
+            <i class="fas fa-link"></i>
+          </a>
+        </div>
+        <hr>
+        Not ready to add images? Try our demo images:
+        <div class="demoimages">
+          <div v-for="image in demoimages">
+              <button v-if="image['url']" class="linkbutton" v-on:click="checkType(image); showModal=false;">
+                <img class="imgthumb" v-bind:alt="image['title']" v-if="image['thumbnail']" v-bind:src="image['thumbnail']"/>
+                <figcaption>{{image['title']}}</figcaption>
+              </button>
+          </div>
         </div>
       </div>
-    </div>
-    <div v-if="externalModal">
-      <span class="back" style="float:left" v-on:click="externalModal=false;"><i class="fas fa-arrow-left"></i></span>
-      <input id="ingesturl" v-model="externalurl"></input>
-      <button v-on:click="externalClick('addtodata', externalurl);"><i class="fas fa-plus"></i> Add to My Images</button>
-      <button v-on:click="externalClick('copy', externalurl);" v-if="externalurl.indexOf('manifest') > -1"><i class="fas fa-copy"></i> Make Copy</button>
-      <button v-on:click="externalClick('noadd', externalurl);"><i class="fas fa-eye"></i> View without adding to My Images</button>
+      <div v-if="externalModal">
+        <h2>Add external link</h2>
+        <input id="ingesturl" v-model="externalurl" placeholder="The URL of an image or IIIF resource" aria-label="The URL of an image or IIIF resource"></input>
+        <button class="button modal-button" title="This will add your image to the My Images section and will open your added image." v-on:click="externalClick('addtodata', externalurl);"><i class="fas fa-plus"></i> Add to My Images</button>
+        <button class="button modal-button" title="This will make a copy of your manifest that you will host. It also ensures links to your annotations will be automatically added to your manifest. It will also add it to the my images section and open your manifest." v-on:click="externalClick('copy', externalurl);" v-if="externalurl.indexOf('manifest') > -1 || (externalurl.indexOf('.json') > -1 && externalurl.indexOf('info.json') == -1)">
+          <i class="fas fa-copy"></i> Make Copy
+        </button>
+        <button class="button modal-button" title="This will open your image for annotation without adding it to the My images section." v-on:click="externalClick('noadd', externalurl);"><i class="fas fa-eye"></i> View</button>
+      </div>
     </div>
   </div>
-
-</div>
+  <h2 style="margin:0px" v-on:click="manimageshown = !manimageshown" title="Click to expand/collapse image list">
+  My Images <i class="fas" v-bind:class="[manimageshown ? 'fa-minus-square' : 'fa-plus-square']"></i>
+  </h2>
   <div v-if="manimageshown">
     <div class="manifestimages" :class="{'noanno' : !anno}">
       <div>
@@ -57,23 +59,21 @@ const annoview = Vue.component('annoview', {
       </div>
     </div>
   </div>
-  <div class="ingesturlcontainer" :class="{'noanno' : !anno}">
-    <!-- <label for="ingesturl">Manifest or Image URL: </label>
-    <input id="ingesturl" v-on:change="getManifest(ingesturl)" v-model="ingesturl"></input> -->
-    <button v-on:click="showManThumbs = !showManThumbs" v-if="currentmanifest">
-      <span v-if="showManThumbs">Hide</span><span v-else>Show</span> Manifest Thumbnails
-    </button>
-  </div>
-  <div class="manifestthumbs" v-show="showManThumbs && currentmanifest">
-    <div v-if="manifestdata == 'failure'"><i class="fas fa-exclamation-triangle"></i> {{currentmanifest}} failed to load! Please check your manifest.</div>
-    <div v-else-if="manifestdata.length == 0">Loading...</div>
-    <div v-else v-for="(item, index) in manifestdata" class="manifestimagelist">
-      <button v-on:click="currentposition = index;manifestLoad(item)" class="linkbutton">
-        <img :src="item['image']" alt="manifest thumbnail">
-        <div class="manthumblabel">
-        {{item['tiles'][0]['label']}}
-        </div>
-      </button>
+  <div>
+    <b v-on:click="showManThumbs = !showManThumbs" v-if="currentmanifest && manifestdata.length > 1">
+      Image pages <i class="fas" v-bind:class="[showManThumbs ? 'fa-minus-square' : 'fa-plus-square']">
+    </b>
+    <div class="manifestthumbs" v-show="showManThumbs && currentmanifest && manifestdata.length > 1">
+      <div v-if="manifestdata == 'failure'"><i class="fas fa-exclamation-triangle"></i> {{currentmanifest}} failed to load! Please check your manifest.</div>
+      <div v-else-if="manifestdata.length == 0">Loading...</div>
+      <div v-else v-for="(item, index) in manifestdata" class="manifestimagelist">
+        <button v-on:click="currentposition = index;manifestLoad(item)" class="linkbutton">
+          <img :src="item['image']" alt="manifest thumbnail">
+          <div class="manthumblabel">
+          {{item['tiles'][0]['label']}}
+          </div>
+        </button>
+      </div>
     </div>
   </div>
   <div v-if="anno" v-bind:class="[currentdrawtool == 'polygon' ? 'helptext' : '']">
@@ -82,55 +82,56 @@ const annoview = Vue.component('annoview', {
     </span>
     </b>
   </div>
-  <div v-if="title" style="font-weight:900">
-  <span v-html="title[0]['value'] + ':'"></span>
-  <span v-if="alltiles.length > 0 && alltiles[0]['label']">{{alltiles[0]['label']}}</span>
-  <div class="dropdown share homepagedrop" v-if="anno">
-    <button class="dropbtn" onclick="dropdownToggle('homepageshare')" aria-label="share">
-      <i class="fas fa-share-alt-square"></i>
-    </button>
-    <div class="dropdown-content" id="homepageshare">
-      <a target="_blank" v-bind:href="'https://ncsu-libraries.github.io/annona/tools/#/display?url='+annolistname+ '&viewtype=iiif-storyboard&settings=%7B%22fullpage%22%3Atrue%7D'">
-      Dynamic annotation view for current image <i class="fas fa-link"></i></a>
-      <a target="_blank" v-bind:href="'https://ncsu-libraries.github.io/annona/tools/#/display?url='+annolistname+'&viewtype=iiif-annotation&settings=%7B%22fullpage%22%3Atrue%7D'">
-        Annotations as list for current image <i class="fas fa-link"></i></a>
-        <a v-if="currentmanifest" id="displaystoryboard" target="_blank" v-bind:href="'https://ncsu-libraries.github.io/annona/tools/#/display?url=' + currentmanifest + '&viewtype=iiif-storyboard&settings=%7B%22fullpage%22%3Atrue%7D'">
-            Dyanmic annotation view of all images <i class="fas fa-link"></i>
-        </a>
-        <a v-if="currentmanifest" id="mirador3" target="_blank" v-bind:href="'https://projectmirador.org/embed/?iiif-content=' + currentmanifest">
-            View in Mirador 3 <i class="fas fa-link"></i>
-        </a>
+  <div class="annotorious-viewer">
+    <div id="header-toolbar">
+      <div v-if="title" class="image-title">
+        <span v-html="title[0]['value'] + ':'"></span>
+        <span v-if="alltiles.length > 0 && alltiles[0]['label']">{{alltiles[0]['label']}}</span>
+      </div>
+      <div class="tools">
+        <div class="dropdown share homepagedrop" v-if="anno">
+          <button class="dropbtn" onclick="dropdownToggle('homepageshare')" aria-label="share">
+            <i class="fas fa-share-alt"></i> Share
+          </button>
+          <div class="dropdown-content" id="homepageshare">
+            <a target="_blank" v-bind:href="'https://ncsu-libraries.github.io/annona/tools/#/display?url='+annolistname+ '&viewtype=iiif-storyboard&settings=%7B%22fullpage%22%3Atrue%7D'">
+              Dynamic annotation view for current image <i class="fas fa-link"></i></a>
+            <a target="_blank" v-bind:href="'https://ncsu-libraries.github.io/annona/tools/#/display?url='+annolistname+'&viewtype=iiif-annotation&settings=%7B%22fullpage%22%3Atrue%7D'">
+              Annotations as list for current image <i class="fas fa-link"></i></a>
+            <a v-if="currentmanifest" id="displaystoryboard" target="_blank" v-bind:href="'https://ncsu-libraries.github.io/annona/tools/#/display?url=' + currentmanifest + '&viewtype=iiif-storyboard&settings=%7B%22fullpage%22%3Atrue%7D'">
+              Dyanmic annotation view of all images <i class="fas fa-link"></i>
+            </a>
+            <a v-if="currentmanifest" id="mirador3" target="_blank" v-bind:href="'https://projectmirador.org/embed/?iiif-content=' + currentmanifest">
+              View in Mirador 3 <i class="fas fa-link"></i>
+            </a>
+          </div>
+        </div>
+        <button class="hide-annos" v-bind:title="annosvisible ? 'Hide Annotations' : 'Show Annotations'" v-on:click="setVisible()">
+          <i class="fas fa-eye" v-if="!annosvisible"></i>
+          <i class="fas fa-eye-slash" v-else-if="annosvisible"></i>
+          <span v-if="annosvisible"> Hide</span><span v-else> Show</span> Annotations
+        </button>
+      </div>
     </div>
-</div>
-  </div>
-  <div v-if="!anno">
-    <p style="background:#e7e7e7; padding: 10px">
-    Welcome to Annonatate. A platform for annotating images.<br>
-    Click on a link in the <span style="color: #61177C">purple</span> box or add a URL to the <span style="color: #004EC2">blue</span> box to start annotating images.
-    </p>
-  </div>
-  <div class="layers gridparent" v-if="alltiles.length > 1">
-    <div v-for="item in alltiles">
-      <input type="checkbox" class="tagscheck" v-on:click="setOpacity(item)" v-model="item.checked">
-      <span v-html="item.label"></span>
-      <div class="slidecontainer">Opacity: <input v-on:change="setOpacity(item, $event)" type="range" min="0" max="100" v-bind:value="item.opacity*100" class="slider"></div>
-      <img :src="item['thumbnail']" style="max-width:100px;padding:5px;"  alt="tile thumbnail">
+    <div class="layers gridparent" v-if="alltiles.length > 1">
+      <div v-for="item in alltiles">
+        <input type="checkbox" class="tagscheck" v-on:click="setOpacity(item)" v-model="item.checked">
+        <span v-html="item.label"></span>
+        <div class="slidecontainer">Opacity: <input v-on:change="setOpacity(item, $event)" type="range" min="0" max="100" v-bind:value="item.opacity*100" class="slider"></div>
+        <img :src="item['thumbnail']" style="max-width:100px;padding:5px;"  alt="tile thumbnail">
+      </div>
+    </div>  
+    <div class="drawingtools" v-if="anno">
+      <div id="current-tool" v-for="drawtool in drawtools" v-on:change="updateDrawTool()">
+        <label class="toolbutton" v-bind:for="drawtool.name">
+          <input type="radio" v-bind:id="drawtool.name" v-bind:name="drawtool.name" v-bind:value="drawtool.name" v-model="currentdrawtool">
+          <span v-html="drawtool.label"></span></label>
+      </div>
     </div>
+    <a class="prev prevnext" v-on:click="next('prev')" v-if="manifestdata && manifestdata[currentposition-1]">&lt;</a>
+    <a class="next prevnext" v-on:click="next('next')" v-if="manifestdata && manifestdata[currentposition+1]">&gt;</a>
+    <div id="openseadragon1" v-bind:class="{'active' : inputurl !== ''}"></div>
   </div>
-  <div class="drawingtools" v-if="anno">
-    <div id="current-tool" v-for="drawtool in drawtools" v-on:change="updateDrawTool()">
-      <label class="toolbutton" v-bind:for="drawtool.name">
-        <input type="radio" v-bind:id="drawtool.name" v-bind:name="drawtool.name" v-bind:value="drawtool.name" v-model="currentdrawtool">
-        <span v-html="drawtool.label"></span></label>
-    </div>
-    <button v-bind:title="annosvisible ? 'Hide Annotations' : 'Show Annotations'" v-on:click="setVisible()" style="height: 22px; width: 35px; font-size: 15px;">
-      <i class="fas fa-eye" v-if="!annosvisible"></i>
-      <i class="fas fa-eye-slash" v-else-if="annosvisible"></i>
-    </button>
-  </div>
-  <a class="prev prevnext" v-on:click="next('prev')" v-if="manifestdata && manifestdata[currentposition-1]">&lt;</a>
-  <a class="next prevnext" v-on:click="next('next')" v-if="manifestdata && manifestdata[currentposition+1]">&gt;</a>
-  <div id="openseadragon1" v-bind:class="{'active' : inputurl !== ''}"></div>
   </div>
   `,
   props: {
@@ -496,6 +497,7 @@ const annoview = Vue.component('annoview', {
       item.checked = checked;
     },
     getManifestFunctions: function(data, manifest, loadcanvas=false){
+      this.manimageshown = false;
       const context = data['@context'] && Array.isArray(data['@context']) ? data['@context'].join("") : data['@context'];
       if (data.constructor.name == 'String' || context && context.indexOf('presentation') == -1){
         this.inputurl = manifest;
@@ -574,7 +576,6 @@ const annoview = Vue.component('annoview', {
       var vue = this;
       if (manifestjson) {
         this.getManifestFunctions(manifestjson, manifest, loadcanvas);
-        console.log('working...')
       } else {
         jQuery.ajax({
           url: manifest,

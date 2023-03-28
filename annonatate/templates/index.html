@@ -17,8 +17,7 @@
 {% endif %}
 <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14"></script>
 <div id="app">
-  <h1 style="margin: 10px 0px;">{% block title %}Home{% endblock %}</h1>
-  <div style="padding-bottom: 10px;">Click on a link in the <span style="color: #61177C">purple</span> box or add a URL to the <span style="color: #004EC2">blue</span> box to start annotating images.</div>
+  <h1 style="margin: 10px 0px;">{% block title %}Start Annotating{% endblock %}</h1>
   {% set updatepage = 'true' if session['currentworkspace']['numbcollabs'] > 1 else 'false' %}
   <annoview :existing='{{existingitems | tojson}}' :updatepage="{{updatepage}}" :filepaths='{{ filepaths|tojson }}' :userinfo='{{userinfo | tojson}}' :tags='{{tags|tojson}}' :originurl='{{session["origin_url"] | tojson}}'></annoview>
 </div>

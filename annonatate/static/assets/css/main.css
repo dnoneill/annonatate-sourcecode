@@ -1,8 +1,17 @@
-/* nav height 48px; */
+:root {
+  --main-color: #1A5F7A;
+  --grey-background: rgb(231, 231, 231);
+  --menu-background: rgb(1,4,10);
+  --boxoutline-color : #57C5B6;
+  --secondary-color: #002B5B;
+}
+/* theme colors: #57C5B6, #159895; #1A5F7A; #002B5B
+https://colorhunt.co/palette/57c5b61598951a5f7a002b5b
+ */
 
 .topnav {
   overflow: hidden;
-  background-color: rgb(1,4,10);
+  background-color: var(--menu-background);
   height: 46px;
 }
 
@@ -25,7 +34,7 @@
 }
 
 .topnav a.active {
-  background-color: teal;
+  background-color: var(--main-color);
   color: white;
 }
 
@@ -34,7 +43,9 @@
 }
 
 @media screen and (max-width: 730px) {
-  .topnav a:not(.show a, .icon) {display: none;}
+  .topnav a:not(.show a, .icon) {
+    display: none;
+  }
   .topnav a.icon {
     float: right;
     display: block;
@@ -78,7 +89,7 @@ section.content {
    position:relative;
    width:auto;
    height:1px;
-   background-image: radial-gradient(teal, white);
+   background-image: radial-gradient(var(--main-color), white);
    margin-bottom: 1em;
    margin-top: 1em;
    display:block;
@@ -262,31 +273,11 @@ tbody {
   margin-bottom: 8px;
   display: flex;
   flex-direction: row;
+  border-radius: 10px;
 }
 
 .manifestimages div {
   padding: 10px;
-}
-
-.manifestimages::-webkit-scrollbar {
-  width: 10px;
-}
-
-/* Track */
-.manifestimages::-webkit-scrollbar-track {
-  box-shadow: inset 0 0 5px grey; 
-  border-radius: 10px;
-}
- 
-/* Handle */
-.manifestimages::-webkit-scrollbar-thumb {
-  background: teal; 
-  border-radius: 10px;
-}
-
-/* Handle on hover */
-.manifestimages::-webkit-scrollbar-thumb:hover {
-  background: teal; 
 }
 
 label.toolbutton {
@@ -308,7 +299,7 @@ label.toolbutton span {
 }
 
 label.toolbutton input:checked+span {
-  background-color: teal;
+  background-color: var(--main-color);
   color: #fff;
 }
 
@@ -320,7 +311,6 @@ label.toolbutton input:checked+span {
 
 #openseadragon1.active {
   height:90vh;
-  outline: 1px solid black;
 }
 
 #app #livedemo {
@@ -358,7 +348,7 @@ img.githubicon {
 
 
 body {font-family: Arial;}
-	
+  
 /* Style the tab */
 .tab {
   overflow: hidden;
@@ -404,7 +394,7 @@ body {font-family: Arial;}
 }
 
 .button {
-  background-color: teal;
+  background-color: var(--main-color);
   border: none;
   color: white;
   padding: 10px 15px;
@@ -415,6 +405,7 @@ body {font-family: Arial;}
   cursor: pointer;
   font: inherit;
   max-width: 80px;
+  border-radius: 20px;
 }
 
 #incollections{
@@ -448,12 +439,13 @@ h3 {
 }
 
 .manifestimages {
-  border: 2px solid #61177C;
+  border: 2px solid var(--boxoutline-color);
   padding: 10px;
 }
 .ingesturlcontainer {
-  /* border: 2px solid #004EC2; */
-  padding: 10px;
+  /* border: 2px solid #004EC2;
+  padding: 10px; */
+  margin: 10px 0px;
 }
 
 .noanno {
@@ -637,24 +629,28 @@ body {
 
 }
 
+::-webkit-scrollbar {
+  width: 5px;
+}
+
 #imagepreview::-webkit-scrollbar {
   width: 20px;
 }
 
-#imagepreview::-webkit-scrollbar-track {
+::-webkit-scrollbar-track {
   box-shadow: inset 0 0 5px grey; 
   border-radius: 10px;
 }
  
 /* Handle */
-#imagepreview::-webkit-scrollbar-thumb {
-  background: teal; 
+::-webkit-scrollbar-thumb {
+  background: var(--boxoutline-color); 
   border-radius: 10px;
 }
 
 /* Handle on hover */
-#imagepreview::-webkit-scrollbar-thumb:hover {
-  background: teal; 
+::-webkit-scrollbar-thumb:hover {
+  background: var(--boxoutline-color); 
 }
 
 #imagepreview div {
@@ -759,7 +755,7 @@ body {
 }
 
 .icontextbutton i {
-  background:rgb(231, 231, 231);
+  background: var(--grey-background);
   padding: 20px;
 }
 
@@ -775,8 +771,7 @@ body {
 
 .manifestimages .icontextbutton {
   text-align: center;
-  color: darkgrey;
-  background:rgb(231, 231, 231);
+  background: var(--grey-background);
   width: 70px;
 }
 
@@ -785,4 +780,58 @@ body {
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 4;  /* Number of lines displayed before it truncate */
      overflow: hidden;
+}
+
+.modal-button {
+  max-width: none;
+}
+
+input {
+  display: block;
+  box-sizing: border-box;
+  padding: 0.5rem 0.75rem;
+}
+
+#ingesturl {
+  width: 100%;
+  margin-bottom: 10px;
+}
+
+#header-toolbar {
+  background-color: var(--secondary-color);
+  color: white;
+  display: flex;
+  font-weight:900; 
+  padding: 10px;
+  font-size: 15px!important;
+}
+
+#header-toolbar .tools {
+  margin-left: auto;
+  order: 2; 
+}
+
+#header-toolbar .tools button {
+  color: white!important;
+  background-color: var(--secondary-color);
+  border: none;
+	padding: 0;
+	font: inherit;
+	cursor: pointer;
+	outline: inherit;
+  margin-left: 10px;
+}
+
+.tools i {
+  height: auto;
+}
+
+#header-toolbar #homepageshare {
+  margin-left: -160px;
+  margin-top: 20px;
+}
+
+.annotorious-viewer {
+  outline: 2px solid black;
+  margin-top: 20px;
 }
