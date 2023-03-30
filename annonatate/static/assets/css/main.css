@@ -2,8 +2,9 @@
   --main-color: #1A5F7A;
   --grey-background: rgb(231, 231, 231);
   --menu-background: rgb(1,4,10);
-  --boxoutline-color : #57C5B6;
+  --boxoutline-color : #159895;
   --secondary-color: #002B5B;
+  --toolbar-font-size: 15px;
 }
 /* theme colors: #57C5B6, #159895; #1A5F7A; #002B5B
 https://colorhunt.co/palette/57c5b61598951a5f7a002b5b
@@ -52,9 +53,6 @@ https://colorhunt.co/palette/57c5b61598951a5f7a002b5b
   }
   label[for=current-tool]{
      display: none;
-  }
-  .drawingtools {
-    font-size: 11px;
   }
   label.toolbutton span {
     padding: 3px 6px!important;
@@ -270,14 +268,51 @@ tbody {
 .manifestimages {
   max-height: 300px;
   overflow: auto;
-  margin-bottom: 8px;
   display: flex;
   flex-direction: row;
   border-radius: 10px;
+  padding: 10px;
 }
 
 .manifestimages div {
   padding: 10px;
+}
+
+.manifestimages .icontextbutton i {
+  font-size: 30px;
+  padding: 10px;
+}
+
+.manifestimages .icontextbutton {
+  text-align: center;
+  background: var(--grey-background);
+  width: 70px;
+}
+
+.manifestimages figcaption {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;  /* Number of lines displayed before it truncate */
+  overflow: hidden;
+}
+
+.my-images h2 {
+  background: var(--boxoutline-color);
+  color: white;
+  padding: 7px;
+  margin: 0px;
+}
+
+.my-images h2 i {
+  float: right;
+  margin-top: auto;
+    margin-bottom: auto;
+}
+
+.my-images {
+  border: 2px solid var(--boxoutline-color);
+  border-radius: 10px;
+  overflow: hidden;
 }
 
 label.toolbutton {
@@ -304,9 +339,8 @@ label.toolbutton input:checked+span {
 }
 
 .drawingtools {
-  position: absolute;
-  z-index: 200;
-  background: rgba(255,255,255,.5);
+  display: flex;
+  align-items: center;
 }
 
 #openseadragon1.active {
@@ -347,7 +381,7 @@ img.githubicon {
 }
 
 
-body {font-family: Arial;}
+* {font-family: Arial;}
   
 /* Style the tab */
 .tab {
@@ -438,10 +472,6 @@ h3 {
   font-size: 1.7em!important;
 }
 
-.manifestimages {
-  border: 2px solid var(--boxoutline-color);
-  padding: 10px;
-}
 .ingesturlcontainer {
   /* border: 2px solid #004EC2;
   padding: 10px; */
@@ -459,7 +489,6 @@ h3 {
     text-decoration: none;
     background: none;
     color: black;
-    font-family: sans-serif;
     font-size: 2rem;
     cursor: pointer;
     text-align: center;
@@ -662,9 +691,8 @@ body {
 }
 
 .helptext {
-  outline: 2px solid firebrick;
-  width: fit-content;
-  padding: 5px;
+  margin-left: auto;
+  order: 2;
 }
 
 .homepagedrop, .homepagedrop .dropbtn {
@@ -764,24 +792,6 @@ body {
   text-decoration: none;
 }
 
-.manifestimages .icontextbutton i {
-  font-size: 30px;
-  padding: 10px;
-}
-
-.manifestimages .icontextbutton {
-  text-align: center;
-  background: var(--grey-background);
-  width: 70px;
-}
-
-.manifestimages figcaption {
-  display: -webkit-box;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 4;  /* Number of lines displayed before it truncate */
-     overflow: hidden;
-}
-
 .modal-button {
   max-width: none;
 }
@@ -816,14 +826,10 @@ input {
   background-color: var(--secondary-color);
   border: none;
 	padding: 0;
-	font: inherit;
 	cursor: pointer;
 	outline: inherit;
   margin-left: 10px;
-}
-
-.tools i {
-  height: auto;
+  font-size: inherit;
 }
 
 #header-toolbar #homepageshare {
@@ -834,4 +840,29 @@ input {
 .annotorious-viewer {
   outline: 2px solid black;
   margin-top: 20px;
+}
+
+
+.a9s-toolbar-btn-inner .handles {
+  display: none;
+}
+
+.a9s-toolbar-btn.active{
+  background-color: var(--main-color)!important;
+}
+
+.a9s-toolbar-btn, .a9s-toolbar-btn svg *{
+  color: black!important;
+  stroke: black!important;
+  margin: 0px!important;
+}
+
+.a9s-toolbar-btn.active, .a9s-toolbar-btn.active svg *{
+  color: white!important;
+  stroke: white!important;
+}
+
+.a9s-toolbar-btn svg {
+  height: 20px!important;
+  width: auto!important;
 }

@@ -39,48 +39,27 @@ const annoview = Vue.component('annoview', {
       </div>
     </div>
   </div>
-  <h2 style="margin:0px" v-on:click="manimageshown = !manimageshown" title="Click to expand/collapse image list">
-  My Images <i class="fas" v-bind:class="[manimageshown ? 'fa-minus-square' : 'fa-plus-square']"></i>
-  </h2>
-  <div v-if="manimageshown">
-    <div class="manifestimages" :class="{'noanno' : !anno}">
-      <div>
-        <div v-on:click="showModal=true" class="icontextbutton">
-          <i class="fas fa-plus"></i>
-          Add Image
+  <div class="my-images">
+    <h2 v-on:click="manimageshown = !manimageshown" title="Click to expand/collapse image list">
+    My Images <i class="fas" v-bind:class="[manimageshown ? 'fa-minus-square' : 'fa-plus-square']"></i>
+    </h2>
+    <div v-if="manimageshown">
+      <div class="manifestimages" :class="{'noanno' : !anno}">
+        <div>
+          <div v-on:click="showModal=true" class="icontextbutton">
+            <i class="fas fa-plus"></i>
+            Add Image
+          </div>
+        </div>
+        <div v-for="image in imageslist">
+          <button v-if="image['url']" class="linkbutton" v-on:click="checkType(image)">
+            <img class="imgthumb" v-bind:alt="image['title'] ? image['title'] : image['url']" v-if="image['thumbnail']" v-bind:src="image['thumbnail']"/>
+            <img class="imgthumb" v-bind:alt="image['title'] ? image['title'] : image['url']" v-else-if="!image['iiif']" v-bind:src="image['url']"/>
+            <figcaption>{{image['title'] ? image['title'] : image['url']}}</figcaption>
+          </button>
         </div>
       </div>
-      <div v-for="image in imageslist">
-        <button v-if="image['url']" class="linkbutton" v-on:click="checkType(image)">
-          <img class="imgthumb" v-bind:alt="image['title'] ? image['title'] : image['url']" v-if="image['thumbnail']" v-bind:src="image['thumbnail']"/>
-          <img class="imgthumb" v-bind:alt="image['title'] ? image['title'] : image['url']" v-else-if="!image['iiif']" v-bind:src="image['url']"/>
-          <figcaption>{{image['title'] ? image['title'] : image['url']}}</figcaption>
-        </button>
-      </div>
     </div>
-  </div>
-  <div>
-    <b v-on:click="showManThumbs = !showManThumbs" v-if="currentmanifest && manifestdata.length > 1">
-      Image pages <i class="fas" v-bind:class="[showManThumbs ? 'fa-minus-square' : 'fa-plus-square']">
-    </b>
-    <div class="manifestthumbs" v-show="showManThumbs && currentmanifest && manifestdata.length > 1">
-      <div v-if="manifestdata == 'failure'"><i class="fas fa-exclamation-triangle"></i> {{currentmanifest}} failed to load! Please check your manifest.</div>
-      <div v-else-if="manifestdata.length == 0">Loading...</div>
-      <div v-else v-for="(item, index) in manifestdata" class="manifestimagelist">
-        <button v-on:click="currentposition = index;manifestLoad(item)" class="linkbutton">
-          <img :src="item['image']" alt="manifest thumbnail">
-          <div class="manthumblabel">
-          {{item['tiles'][0]['label']}}
-          </div>
-        </button>
-      </div>
-    </div>
-  </div>
-  <div v-if="anno" v-bind:class="[currentdrawtool == 'polygon' ? 'helptext' : '']">
-    <span v-if="currentdrawtool == 'polygon'">
-      To stop Polygon annotation selection double click.
-    </span>
-    </b>
   </div>
   <div class="annotorious-viewer">
     <div id="header-toolbar">
@@ -89,6 +68,9 @@ const annoview = Vue.component('annoview', {
         <span v-if="alltiles.length > 0 && alltiles[0]['label']">{{alltiles[0]['label']}}</span>
       </div>
       <div class="tools">
+        <button v-on:click="showManThumbs = !showManThumbs" v-if="currentmanifest && manifestdata.length > 1">
+          <i class="fas" v-bind:class="[showManThumbs ? 'fa-minus-square' : 'fa-plus-square']"> Thumbnails
+        </button>
         <div class="dropdown share homepagedrop" v-if="anno">
           <button class="dropbtn" onclick="dropdownToggle('homepageshare')" aria-label="share">
             <i class="fas fa-share-alt"></i> Share
@@ -113,6 +95,18 @@ const annoview = Vue.component('annoview', {
         </button>
       </div>
     </div>
+    <div class="manifestthumbs" v-show="showManThumbs && currentmanifest && manifestdata.length > 1">
+      <div v-if="manifestdata == 'failure'"><i class="fas fa-exclamation-triangle"></i> {{currentmanifest}} failed to load! Please check your manifest.</div>
+      <div v-else-if="manifestdata.length == 0">Loading...</div>
+      <div v-else v-for="(item, index) in manifestdata" class="manifestimagelist">
+        <button v-on:click="currentposition = index;manifestLoad(item)" class="linkbutton">
+          <img :src="item['image']" alt="manifest thumbnail">
+          <div class="manthumblabel">
+          {{item['tiles'][0]['label']}}
+          </div>
+        </button>
+      </div>
+    </div>
     <div class="layers gridparent" v-if="alltiles.length > 1">
       <div v-for="item in alltiles">
         <input type="checkbox" class="tagscheck" v-on:click="setOpacity(item)" v-model="item.checked">
@@ -121,12 +115,9 @@ const annoview = Vue.component('annoview', {
         <img :src="item['thumbnail']" style="max-width:100px;padding:5px;"  alt="tile thumbnail">
       </div>
     </div>  
-    <div class="drawingtools" v-if="anno">
-      <div id="current-tool" v-for="drawtool in drawtools" v-on:change="updateDrawTool()">
-        <label class="toolbutton" v-bind:for="drawtool.name">
-          <input type="radio" v-bind:id="drawtool.name" v-bind:name="drawtool.name" v-bind:value="drawtool.name" v-model="currentdrawtool">
-          <span v-html="drawtool.label"></span></label>
-      </div>
+    <div class="drawingtools">
+      <div id="drawing-toolbar-container"></div>
+      <div id="helptext" class="helptext"></div>
     </div>
     <a class="prev prevnext" v-on:click="next('prev')" v-if="manifestdata && manifestdata[currentposition-1]">&lt;</a>
     <a class="next prevnext" v-on:click="next('next')" v-if="manifestdata && manifestdata[currentposition+1]">&gt;</a>
@@ -145,8 +136,6 @@ const annoview = Vue.component('annoview', {
   data: function() {
   	return {
       inputurl: '',
-      drawtools: [],
-      currentdrawtool: 'disable',
       anno: '',
       viewer: '',
       manifestdata: '',
@@ -411,7 +400,12 @@ const annoview = Vue.component('annoview', {
       this.anno.setVisible(this.annosvisible);
     },
     loadAnno: function() {
-      document.getElementById('openseadragon1').innerHTML = '';
+      var seadragoncontainer =  'openseadragon1';
+      var toolbarcontainer = 'drawing-toolbar-container';
+      const toolbardiv = document.getElementById(toolbarcontainer);
+      var currentdrawtool = toolbardiv.innerHTML != '' ? toolbardiv.getElementsByClassName('active')[0].classList[1] : '';
+      document.getElementById(seadragoncontainer).innerHTML = '';
+      toolbardiv.innerHTML = '';
       var tilesources = [this.inputurl]
       const imgext = /(.jpeg|.png|.jpg|.bmp|.gif|.tif|.tiff|.apng|.avif|.jfif|.pjpeg|.pjp|.svg|.webp|.ico|.cur)/gm;
       if (imgext.test(this.inputurl.toLowerCase()) && this.inputurl.indexOf('info.json') == -1) {
@@ -422,7 +416,7 @@ const annoview = Vue.component('annoview', {
         this.alltiles = []
       }
       var viewer = OpenSeadragon({
-        id: "openseadragon1",
+        id: seadragoncontainer,
         prefixUrl: "/assets/openseadragon/images/",
         tileSources: tilesources,
         zoomPerScroll: 1,
@@ -431,7 +425,9 @@ const annoview = Vue.component('annoview', {
       this.viewer = viewer;
       var vue = this;
       viewer.addHandler('open', function(){
-        vue.updateDrawTool();
+        if (currentdrawtool){
+          document.getElementsByClassName(currentdrawtool)[0].click();
+        }
         if (vue.alltiles.length > 1){
           for (var k=0; k<vue.alltiles.length; k++){
             vue.alltiles[k]['order'] = k;
@@ -448,7 +444,7 @@ const annoview = Vue.component('annoview', {
       // Initialize the Annotorious plugin
       var widgets = this.buildWidgetList();
       this.anno = OpenSeadragon.Annotorious(viewer, 
-        { image: 'openseadragon1',
+        { image: seadragoncontainer,
           messages: { "Ok": "Save" },
           fragmentUnit: this.fragmentunit,
           allowEmpty: true,
@@ -457,17 +453,8 @@ const annoview = Vue.component('annoview', {
       this.annoLoadOSD();
       Annotorious.SelectorPack(this.anno);
       Annotorious.TiltedBox(this.anno);
-      this.drawtools = []
-      const drawingtools = this.anno.listDrawingTools();
-      for (var dt=0; dt<drawingtools.length; dt++){
-        const name = drawingtools[dt];
-        var cleanname = name.replaceAll("annotorious", "").replaceAll("-", " ").trim();
-        const label = name == 'rect' ? 'Rectangle' : name == 'annotorious-tilted-box' ? 'Angled box' : cleanname.charAt(0).toUpperCase() + cleanname.slice(1);
-        this.drawtools.push({'name': name, 'label': label})
-      }
-      this.drawtools.push({'name': 'disable', 'label': '<i class="fas fa-mouse-pointer"></i>'})
-      this.drawtools = this.drawtools.sort((a, b) => (a.label > b.label) ? 1 : -1)
       this.addListeners();
+      Annotorious.Toolbar(this.anno, toolbardiv, {'withLabel': true, 'withMouse': true, 'infoElement': document.getElementById('helptext')});
       this.enableDrawing(this.drawingenabled);
       this.anno.setAuthInfo({
         id: this.userinfo["id"],
@@ -608,15 +595,6 @@ const annoview = Vue.component('annoview', {
       } else {
         return [manifest['on']];
       }
-    },
-    updateDrawTool: function() {
-      var drawingenabled = true;
-      if (this.currentdrawtool == 'disable') {
-        drawingenabled = false;
-      } else {
-        this.anno.setDrawingTool(this.currentdrawtool);
-      }
-      this.enableDrawing(drawingenabled);
     },
     addManifestAnnotation: function(annotation){
       var target = this.inputurl;
