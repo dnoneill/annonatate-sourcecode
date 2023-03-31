@@ -23,6 +23,7 @@ app = Flask(__name__,
             static_url_path='',)
 app.config.update(
                   SESSION_TYPE = 'filesystem',
+                  SESSION_FILE_DIR='/tmp',
                   GITHUB_CLIENT_ID = client_id,
                   GITHUB_CLIENT_SECRET = client_secret
                   )
@@ -31,7 +32,7 @@ github = GitHubAnno(app)
 ALLOWED_EXTENSIONS = set(['png', 'jpg', 'jpeg'])
 app.config['UPLOAD_FOLDER'] = uploadfolder
 githubfilefolder = 'annonatate/static/githubfiles/'
-currentversion = '2.5'
+currentversion = '1.0'
 #Before every page loads this runs a series of tests
 @app.before_request
 def before_request():
@@ -420,7 +421,7 @@ def index():
         try:
             arraydata = getContents()
             manifests = session['upload']['manifests'] + session['preloaded']['images']
-            existing = {'manifests': manifests, 'settings': session['preloaded']['settings']}
+            existing = {'images': manifests, 'settings': session['preloaded']['settings']}
             if 'vocab' in session['preloaded'].keys():
                 labelonlyvocab = [item['label'] if type(item) == dict else item for item in session['preloaded']['vocab']]
             vocabtags = arraydata['tags'] if 'vocab' not in session['preloaded'].keys() else session['preloaded']['vocab'] + list(filter(lambda tag: tag not in labelonlyvocab, arraydata['tags']))
@@ -728,6 +729,8 @@ def checkManUrls(data):
                 r = requests.get(man)
                 if 'image' not in r.headers['Content-Type']:
                     thumbnail, title = getThumbnailTitle(r.content)
+                    if '/info.json' in man:
+                        thumbnail = man.replace('/info.json', '/full/120,/0/default.jpg')
                     returndata.append({'url': man, 'thumbnail': thumbnail, 'title': title, 'iiif': True})
                 else:
                     mandict = {'url': man, 'iiif': False, 'title': '', 'thumbnail': man}
@@ -941,9 +944,6 @@ def getannotations():
                     session['preloaded'][preloadkey] = getSettings(content['preloadedcontent'][preloadkey])
         if 'version' not in content['preloadedcontent'].keys() or content['preloadedcontent']['version'] != currentversion:
             updateindex()
-            for item in session['preloaded']['manifests']:
-                if item:
-                    item['iiif'] = True
             session['preloaded']['images'] += session['preloaded']['manifests']
             del session['preloaded']['manifests']
             session['preloaded']['version'] = currentversion

@@ -19,11 +19,12 @@ const annoview = Vue.component('annoview', {
         const params = new URLSearchParams(window.location.search);
         const manifesturl = params.get('manifesturl');
         const canvas = params.get('canvas');
-        const manifests = this.existing['manifests'];
-        const loadedManifest = manifesturl ? manifesturl.toString() : manifests[0];
-        var manifestload = manifests.map(ma => JSON.parse(`{ "manifestUri": "${ma}"}`));
+        const manifests = this.existing['images'];
+        const loadedManifest = manifesturl ? manifesturl.toString() : manifests[0] && manifests[0]['url'] ? manifests[0]['url'] : manifests[0];
+        var manifestload = manifests.map(ma => JSON.parse(`{ "manifestUri": "${ma['url'] ? ma['url'] : ma}"}`));
         manifestload.push({"manifestUri": loadedManifest})
-        const check = loadedManifest.indexOf(this.originurl) > -1;
+        //const check = loadedManifest.indexOf(this.originurl) > -1;
+        var check = false;
         const layout = check ? "1x2" : "1x1";
         windowObjs = [{
           "loadedManifest" : loadedManifest,
@@ -32,7 +33,6 @@ const annoview = Vue.component('annoview', {
          }]
          if (check) {
            var newObj = JSON.parse(JSON.stringify(windowObjs[0]));
-           console.log(windowObjs)
            windowObjs[0]["id"] = "slot1";
            windowObjs[0]["slotAddress"] = "row1.column1";
            newObj["slotAddress"] = "row1.column2";

@@ -341,10 +341,10 @@ label.toolbutton input:checked+span {
 .drawingtools {
   display: flex;
   align-items: center;
+  background-color: var(--grey-background);
 }
-
-#openseadragon1.active {
-  height:90vh;
+#openseadragon1 {
+  height: 90vh;
 }
 
 #app #livedemo {
@@ -540,11 +540,13 @@ body {
 }
 
 .manthumblabel {
-  color: grey;
-  white-space: nowrap;
-  overflow: hidden;
+  color: var(--secondary-color);
   text-overflow: ellipsis;
   text-align: center;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;  /* Number of lines displayed before it truncate */
+  overflow: hidden;
   /* margin-top: -8px; */
 }
 
@@ -747,7 +749,6 @@ body {
 
 /* The Close Button */
 .close-modal {
-  color: #aaa;
   float: right;
   font-size: 28px;
   font-weight: bold;
@@ -797,7 +798,6 @@ body {
 }
 
 input {
-  display: block;
   box-sizing: border-box;
   padding: 0.5rem 0.75rem;
 }
@@ -819,6 +819,7 @@ input {
 #header-toolbar .tools {
   margin-left: auto;
   order: 2; 
+  display: flex;
 }
 
 #header-toolbar .tools button {
@@ -837,9 +838,18 @@ input {
   margin-top: 20px;
 }
 
+#header-toolbar #savemessage {
+  padding: 0px 10px;
+  color: #75FF33;
+}
+
+#header-toolbar #savemessage .fa-save {
+  font-size: 18px;
+}
+
 .annotorious-viewer {
-  outline: 2px solid black;
-  margin-top: 20px;
+  border: 2px solid black;
+  margin: 20px 0px;
 }
 
 
@@ -860,6 +870,7 @@ input {
 .a9s-toolbar-btn.active, .a9s-toolbar-btn.active svg *{
   color: white!important;
   stroke: white!important;
+  border-radius: 0px!important;
 }
 
 .a9s-toolbar-btn svg {

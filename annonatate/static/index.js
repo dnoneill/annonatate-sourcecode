@@ -22,7 +22,7 @@ const annoview = Vue.component('annoview', {
         <div class="demoimages">
           <div v-for="image in demoimages">
               <button v-if="image['url']" class="linkbutton" v-on:click="checkType(image); showModal=false;">
-                <img class="imgthumb" v-bind:alt="image['title']" v-if="image['thumbnail']" v-bind:src="image['thumbnail']"/>
+                <img class="imgthumb" v-bind:alt="image['alt']" v-if="image['thumbnail']" v-bind:src="image['thumbnail']"/>
                 <figcaption>{{image['title']}}</figcaption>
               </button>
           </div>
@@ -67,9 +67,10 @@ const annoview = Vue.component('annoview', {
         <span v-html="title[0]['value'] + ':'"></span>
         <span v-if="alltiles.length > 0 && alltiles[0]['label']">{{alltiles[0]['label']}}</span>
       </div>
+      <div id="savemessage" v-if="anno" v-html="savemessage"></div>
       <div class="tools">
         <button v-on:click="showManThumbs = !showManThumbs" v-if="currentmanifest && manifestdata.length > 1">
-          <i class="fas" v-bind:class="[showManThumbs ? 'fa-minus-square' : 'fa-plus-square']"> Thumbnails
+          <i class="fas" v-bind:class="[showManThumbs ? 'fa-minus-square' : 'fa-plus-square']"></i> Thumbnails
         </button>
         <div class="dropdown share homepagedrop" v-if="anno">
           <button class="dropbtn" onclick="dropdownToggle('homepageshare')" aria-label="share">
@@ -88,11 +89,12 @@ const annoview = Vue.component('annoview', {
             </a>
           </div>
         </div>
-        <button class="hide-annos" v-bind:title="annosvisible ? 'Hide Annotations' : 'Show Annotations'" v-on:click="setVisible()">
+        <button v-if="anno" class="hide-annos" v-bind:title="annosvisible ? 'Hide Annotations' : 'Show Annotations'" v-on:click="setVisible()">
           <i class="fas fa-eye" v-if="!annosvisible"></i>
           <i class="fas fa-eye-slash" v-else-if="annosvisible"></i>
           <span v-if="annosvisible"> Hide</span><span v-else> Show</span> Annotations
         </button>
+        <div style="height:15px" v-else></div>
       </div>
     </div>
     <div class="manifestthumbs" v-show="showManThumbs && currentmanifest && manifestdata.length > 1">
@@ -155,12 +157,13 @@ const annoview = Vue.component('annoview', {
       annolistname: '',
       imageslist: [],
       externalurl: '',
+      savemessage: '<i class="fas fa-save"></i>',
       showModal: false,
       externalModal: false,
-      demoimages: [{'title': 'Demo image (IIIF manifest): Insectes. [patterns]', 'url': 'https://d.lib.ncsu.edu/collections/catalog/segIns_020/manifest.json', 'thumbnail': 'https://iiif.lib.ncsu.edu/iiif/segIns_020/full/120,/0/default.jpg'},
-        {'title': 'Demo images (IIIF manifest): National Gallery of Art Collection Highlights', 'url': 'https://media.nga.gov/public/manifests/nga_highlights.json', 'thumbnail': 'https://media.nga.gov/iiif/public/objects/1/0/6/3/8/2/106382-primary-0-nativeres.ptif/full/120,/0/default.jpg'},
-        {'title': 'Demo IIIF image: from Duke Collection', 'url': 'https://repository.duke.edu/fcgi-bin/iipsrv.fcgi?IIIF=/nas/repo_deriv/hydra/multires_image/40/58/a6/28/4058a628-c593-463e-9736-8a821e178fee/info.json', 'thumbnail': 'https://repository.duke.edu/fcgi-bin/iipsrv.fcgi?IIIF=/nas/repo_deriv/hydra/multires_image/40/58/a6/28/4058a628-c593-463e-9736-8a821e178fee/full/120,/0/default.jpg'},
-        {'title': 'Demo image: from Wikimedia', 'url': 'https://upload.wikimedia.org/wikipedia/commons/7/7e/PowersBibleQuilt_1886.jpg', 'thumbnail': 'https://upload.wikimedia.org/wikipedia/commons/7/7e/PowersBibleQuilt_1886.jpg'}
+      demoimages: [{'alt': 'Four squares with colorful illustrations of insects.', 'title': 'Demo image (IIIF manifest): Insectes. [patterns]', 'url': 'https://d.lib.ncsu.edu/collections/catalog/segIns_020/manifest.json', 'thumbnail': 'https://iiif.lib.ncsu.edu/iiif/segIns_020/full/120,/0/default.jpg'},
+        {'alt': 'Painting of a man in side view','title': 'Demo images (IIIF manifest): National Gallery of Art Collection Highlights', 'url': 'https://media.nga.gov/public/manifests/nga_highlights.json', 'thumbnail': 'https://media.nga.gov/iiif/public/objects/1/0/6/3/8/2/106382-primary-0-nativeres.ptif/full/120,/0/default.jpg'},
+        {'alt': 'Sepia tinted map of an island','title': 'Demo IIIF image: from Duke Collection', 'url': 'https://repository.duke.edu/fcgi-bin/iipsrv.fcgi?IIIF=/nas/repo_deriv/hydra/multires_image/40/58/a6/28/4058a628-c593-463e-9736-8a821e178fee/info.json', 'thumbnail': 'https://repository.duke.edu/fcgi-bin/iipsrv.fcgi?IIIF=/nas/repo_deriv/hydra/multires_image/40/58/a6/28/4058a628-c593-463e-9736-8a821e178fee/full/120,/0/default.jpg'},
+        {'alt': 'Orange quilt with silhouette figures', 'title': 'Demo image: from Wikimedia', 'url': 'https://upload.wikimedia.org/wikipedia/commons/7/7e/PowersBibleQuilt_1886.jpg', 'thumbnail': 'https://upload.wikimedia.org/wikipedia/commons/7/7e/PowersBibleQuilt_1886.jpg'}
       ]
   	}
   },
@@ -222,7 +225,7 @@ const annoview = Vue.component('annoview', {
       }
     },
     parseExisting: function() {
-      const manifests = this.existing['manifests'].filter(elem => elem);
+      const manifests = this.existing['images'].filter(elem => elem);
       for (var em=0; em<manifests.length; em++){
         var man = manifests[em];
         if (man['json']) {
@@ -397,7 +400,10 @@ const annoview = Vue.component('annoview', {
     },
     setVisible: function() {
       this.annosvisible = !this.annosvisible;
-      this.anno.setVisible(this.annosvisible);
+      const annoverlays = document.getElementsByClassName('a9s-annotation');
+      for (var ao=0; ao<annoverlays.length; ao++){
+        annoverlays[ao].style.display = this.annosvisible ? 'block' : 'none';
+      }
     },
     loadAnno: function() {
       var seadragoncontainer =  'openseadragon1';
@@ -677,6 +683,7 @@ const annoview = Vue.component('annoview', {
             } else {
               vue.filepaths[key] = [annotation]
             }
+            vue.savemessage = `<i class="fas fa-save"></i> Annotations last saved: ${new Date(Date.now()).toLocaleTimeString(navigator.language)}`
           } else if (method == 'delete' && typeof(inlist) == 'number') {
             delete vue.filepaths[key][inlist]
           }
