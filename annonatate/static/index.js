@@ -40,8 +40,25 @@ const annoview = Vue.component('annoview', {
     </div>
   </div>
   <div class="my-images">
-    <h2 v-on:click="manimageshown = !manimageshown" title="Click to expand/collapse image list">
-    My Images <i class="fas" v-bind:class="[manimageshown ? 'fa-minus-square' : 'fa-plus-square']"></i>
+    <h2>
+    My Images
+    <div class="my-images-icons">
+        <div v-if="!editMode" v-on:click="manimageshown=true;editMode=!editMode">
+          <i class="fas fa-edit"></i>
+        </div>
+        <div v-else>
+          <!-- <span v-on:click="editMode=!editMode;">
+             <i class="fas fa-save"></i>
+          </span> -->
+          <span v-on:click="editMode=!editMode;">
+            <i class="fas fa-window-close"></i>
+          </span>
+        </div>
+        <div v-on:click="manimageshown = !manimageshown;" title="Click to expand/collapse image list">
+          <i class="fas" v-bind:class="[manimageshown ? 'fa-minus-square' : 'fa-plus-square']"></i>
+        </div>
+      </div>
+      
     </h2>
     <div v-if="manimageshown" style="display:flex;">
       <div class="addimage">
@@ -51,12 +68,16 @@ const annoview = Vue.component('annoview', {
           Add Image
         </div>
       <div class="manifestimages" :class="{'noanno' : !anno}">
-        <div v-for="image in imageslist">
-          <button v-if="image['url']" class="linkbutton" v-on:click="checkType(image)">
-            <img class="imgthumb" v-bind:alt="image['title'] ? image['title'] : image['url']" v-if="image['thumbnail']" v-bind:src="image['thumbnail']"/>
-            <img class="imgthumb" v-bind:alt="image['title'] ? image['title'] : image['url']" v-else-if="!image['iiif']" v-bind:src="image['url']"/>
-            <figcaption>{{image['title'] ? image['title'] : image['url']}}</figcaption>
-          </button>
+        <div v-for="image in imageslist" class="imagecontainer">
+          <span v-if="image['url']">
+            <img class="linkbutton" v-on:click="checkType(image)" class="imgthumb" v-bind:alt="image['title'] ? image['title'] : image['url']" v-if="image['thumbnail']" v-bind:src="image['thumbnail']"/>
+            <img class="linkbutton" v-on:click="checkType(image)" class="imgthumb" v-bind:alt="image['title'] ? image['title'] : image['url']" v-else-if="!image['iiif']" v-bind:src="image['url']"/>
+            <figcaption class="linkbutton" v-on:click="checkType(image)">{{image['title'] ? image['title'] : image['url']}}</figcaption>
+          
+            <button class="deletebutton" v-if="editMode" v-on:click="deleteManifest(image)">
+              <i class="fas fa-trash"></i>
+            </button>
+          </span>
         </div>
       </div>
     </div>
@@ -162,6 +183,7 @@ const annoview = Vue.component('annoview', {
       savemessage: '<i class="fas fa-save"></i>',
       showModal: false,
       externalModal: false,
+      editMode: false,
       demoimages: [{'alt': 'Four squares with colorful illustrations of insects.', 'title': 'Demo image (IIIF manifest): Insectes. [patterns]', 'url': 'https://d.lib.ncsu.edu/collections/catalog/segIns_020/manifest.json', 'thumbnail': 'https://iiif.lib.ncsu.edu/iiif/segIns_020/full/120,/0/default.jpg'},
         {'alt': 'Painting of a man in side view','title': 'Demo images (IIIF manifest): National Gallery of Art Collection Highlights', 'url': 'https://media.nga.gov/public/manifests/nga_highlights.json', 'thumbnail': 'https://media.nga.gov/iiif/public/objects/1/0/6/3/8/2/106382-primary-0-nativeres.ptif/full/120,/0/default.jpg'},
         {'alt': 'Sepia tinted map of an island','title': 'Demo IIIF image: from Duke Collection', 'url': 'https://repository.duke.edu/fcgi-bin/iipsrv.fcgi?IIIF=/nas/repo_deriv/hydra/multires_image/40/58/a6/28/4058a628-c593-463e-9736-8a821e178fee/info.json', 'thumbnail': 'https://repository.duke.edu/fcgi-bin/iipsrv.fcgi?IIIF=/nas/repo_deriv/hydra/multires_image/40/58/a6/28/4058a628-c593-463e-9736-8a821e178fee/full/120,/0/default.jpg'},
@@ -215,6 +237,41 @@ const annoview = Vue.component('annoview', {
     }
   },
   methods: {
+    deleteManifest: function(image) {
+      const imagetitle = image['title'] ? image['title'] : image['url']
+      const check = confirm(`Are you sure you want to delete ${imagetitle}?`);
+      if (check){
+        var form_data = new FormData();
+        if (image['upload']) {
+          form_data.append('file', JSON.stringify(image));
+          form_data.append('returnjson', true);
+          this.deleteManifestRequest(image, '/deletefile', form_data);
+        } else {
+          form_data.append('removeurl', JSON.stringify(image));
+          this.deleteManifestRequest(image, '/updatedata', form_data);
+        }
+      }
+    },
+    deleteManifestRequest: function(image, deleteurl, form_data) {
+      var vue = this;
+      jQuery.ajax({
+        url: deleteurl,
+        type: "POST",
+        data: form_data,
+        contentType: false, 
+        processData: false,
+        success: function(data) {
+          const index = vue.imageslist.indexOf(image);
+          if (index > -1) { 
+            vue.imageslist.splice(index, 1);
+          }
+        }, error: function(err) { 
+          console.log(err)
+          alert(`Unable to delete ${image['title'] ? image['title']: image['url']}`)
+          return 0;
+        }
+      });
+    },
     checkType: function(manifetdict) {
       if (manifetdict.constructor.name == 'String'){
         this.getManifest(manifetdict)
@@ -279,9 +336,7 @@ const annoview = Vue.component('annoview', {
           contentType: false, 
           processData: false,
           success: function(data) {
-            console.log(data)
             if (data['output'] == true) {
-              console.log('testing')
               vue.imageslist.unshift(data);
               vue.getManifest(data);
             }

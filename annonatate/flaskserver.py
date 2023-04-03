@@ -32,7 +32,7 @@ github = GitHubAnno(app)
 ALLOWED_EXTENSIONS = set(['png', 'jpg', 'jpeg'])
 app.config['UPLOAD_FOLDER'] = uploadfolder
 githubfilefolder = 'annonatate/static/githubfiles/'
-currentversion = '1.0'
+currentversion = '1.1'
 #Before every page loads this runs a series of tests
 @app.before_request
 def before_request():
@@ -580,10 +580,10 @@ def orgs():
 @app.route('/deletefile/', methods=['POST'])
 def deletefile():
     try:
-        content = json.loads(request.args.get('file'))
+        content = json.loads(request.form.get('file'))
         url = content['url'] if type(content) == dict else content
     except:
-        url = request.args.get('file')
+        url = request.form.get('file')
         content = url
     fullfile = url.replace(session['origin_url'], '').strip('/')
     path, filename = fullfile.rsplit('/', 1)
@@ -611,7 +611,10 @@ def deletefile():
     payload = {'ref': session['github_branch']}
     data = github.createdatadict(session, filename, 'delete', path)
     response = github.raw_request('delete', data['url'], data=json.dumps(data['data']), params=payload)
-    return redirect(request.args.get('next'))
+    if 'returnjson' in request.form.keys():
+        return response.content, response.status_code
+    else:
+        return redirect(request.args.get('next'))
 
 
 def getActions():
@@ -695,7 +698,7 @@ def saveannonaview():
 # Update preloaded manifests and images
 @app.route('/updatedata', methods=['POST'])
 def updatedata():
-    addurl = False
+    jsonreturn = False
     if request.form and 'updatedata' in request.form.keys():
         data = request.form['updatedata']
         jsondata = json.loads(data)
@@ -703,7 +706,11 @@ def updatedata():
         newurl = request.form['addurl']
         session['preloaded']['images'].insert(0, newurl)
         jsondata = session['preloaded']
-        addurl = True
+        jsonreturn = True
+    elif request.form and 'removeurl' in request.form.keys():
+        session['preloaded']['images'].remove(json.loads(request.form['removeurl']))
+        jsondata = session['preloaded']
+        jsonreturn = True
     else:
         jsondata = session['preloaded']
     jsondata['settings'] = getSettings(jsondata['settings'])
@@ -715,7 +722,7 @@ def updatedata():
     github.sendgithubrequest(session, 'preload.yml', yamldata, '_data')
     session['preloaded'] = jsondata
     checkTempUser(jsondata)
-    if addurl:
+    if jsonreturn:
         return jsonify(jsondata), 200
     else:
         return redirect('/profile?tab=data')

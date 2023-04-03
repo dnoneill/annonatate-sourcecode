@@ -315,10 +315,15 @@ tbody {
   margin: 0px;
 }
 
-.my-images h2 i {
+.my-images-icons {
   float: right;
   margin-top: auto;
-    margin-bottom: auto;
+  margin-bottom: auto;
+  display: flex;
+}
+
+.my-images-icons div{
+  padding-left: 8px;
 }
 
 .my-images {
@@ -891,3 +896,14 @@ input {
 .annoimage > * {
   max-height: 300px; width: auto;
 }
+
+.imagecontainer {
+  position: relative;
+}
+.imagecontainer .deletebutton {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  z-index: 2;
+}
+
