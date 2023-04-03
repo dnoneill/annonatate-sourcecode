@@ -43,14 +43,14 @@ const annoview = Vue.component('annoview', {
     <h2 v-on:click="manimageshown = !manimageshown" title="Click to expand/collapse image list">
     My Images <i class="fas" v-bind:class="[manimageshown ? 'fa-minus-square' : 'fa-plus-square']"></i>
     </h2>
-    <div v-if="manimageshown">
-      <div class="manifestimages" :class="{'noanno' : !anno}">
-        <div>
+    <div v-if="manimageshown" style="display:flex;">
+      <div class="addimage">
           <div v-on:click="showModal=true" class="icontextbutton">
             <i class="fas fa-plus"></i>
-            Add Image
           </div>
+          Add Image
         </div>
+      <div class="manifestimages" :class="{'noanno' : !anno}">
         <div v-for="image in imageslist">
           <button v-if="image['url']" class="linkbutton" v-on:click="checkType(image)">
             <img class="imgthumb" v-bind:alt="image['title'] ? image['title'] : image['url']" v-if="image['thumbnail']" v-bind:src="image['thumbnail']"/>
@@ -61,7 +61,7 @@ const annoview = Vue.component('annoview', {
       </div>
     </div>
   </div>
-  <div class="annotorious-viewer">
+  <div class="annotorious-viewer" v-bind:class="{'noanno' : !anno}">
     <div id="header-toolbar">
       <div v-if="title" class="image-title">
         <span v-html="title[0]['value'] + ':'"></span>
@@ -123,7 +123,9 @@ const annoview = Vue.component('annoview', {
     </div>
     <a class="prev prevnext" v-on:click="next('prev')" v-if="manifestdata && manifestdata[currentposition-1]">&lt;</a>
     <a class="next prevnext" v-on:click="next('next')" v-if="manifestdata && manifestdata[currentposition+1]">&gt;</a>
-    <div id="openseadragon1" v-bind:class="{'active' : inputurl !== ''}"></div>
+    <div id="openseadragon1" v-bind:class="{'active' : inputurl !== ''}">
+      <div v-if="!anno">Select an image to begin annotating</div>
+    </div>
   </div>
   </div>
   `,
@@ -426,7 +428,7 @@ const annoview = Vue.component('annoview', {
         prefixUrl: "/assets/openseadragon/images/",
         tileSources: tilesources,
         zoomPerScroll: 1,
-        navigationControlAnchor: OpenSeadragon.ControlAnchor.TOP_RIGHT
+        navigationControlAnchor: OpenSeadragon.ControlAnchor.BOTTOM_RIGHT
       });
       this.viewer = viewer;
       var vue = this;

@@ -268,7 +268,7 @@ tbody {
 .manifestimages {
   max-height: 300px;
   overflow: auto;
-  display: flex;
+  display: inline-flex;
   flex-direction: row;
   border-radius: 10px;
   padding: 10px;
@@ -278,15 +278,27 @@ tbody {
   padding: 10px;
 }
 
-.manifestimages .icontextbutton i {
+.icontextbutton i {
   font-size: 30px;
-  padding: 10px;
+  background: var(--grey-background);
+  padding: 20px;
 }
 
-.manifestimages .icontextbutton {
+.icontextbutton a {
+  color: black;
+  text-decoration: none;
+}
+
+.icontextbutton {
   text-align: center;
   background: var(--grey-background);
   width: 70px;
+  padding: 10px;
+}
+
+.addimage {
+  /* trbl */
+  padding: 20px 10px 0px 10px;
 }
 
 .manifestimages figcaption {
@@ -478,8 +490,15 @@ h3 {
   margin: 10px 0px;
 }
 
-.noanno {
-  padding: 10px;
+.noanno #openseadragon1 {
+  background-color: var(--grey-background);
+}
+
+.noanno #openseadragon1 div{
+  font-style: italic;
+  font-size: 1.25em;
+  padding: 70px;
+  text-align: center;
 }
 
 .removeboard, .linkbutton {
@@ -762,8 +781,9 @@ body {
 }
 
 .modal-options {
-  width: calc(47% - 20px);
+  width: calc(47% - 40px);
   padding: 10px;
+  margin: 10px;
   display: inline-block;
 }
 
@@ -781,16 +801,6 @@ body {
 
 .demoimages .linkbutton {
   padding: 5px;
-}
-
-.icontextbutton i {
-  background: var(--grey-background);
-  padding: 20px;
-}
-
-.icontextbutton a {
-  color: black;
-  text-decoration: none;
 }
 
 .modal-button {
@@ -876,4 +886,8 @@ input {
 .a9s-toolbar-btn svg {
   height: 20px!important;
   width: auto!important;
+}
+
+.annoimage > * {
+  max-height: 300px; width: auto;
 }
