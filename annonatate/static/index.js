@@ -73,9 +73,8 @@ const annoview = Vue.component('annoview', {
             <img class="linkbutton" v-on:click="checkType(image)" class="imgthumb" v-bind:alt="image['title'] ? image['title'] : image['url']" v-if="image['thumbnail']" v-bind:src="image['thumbnail']"/>
             <img class="linkbutton" v-on:click="checkType(image)" class="imgthumb" v-bind:alt="image['title'] ? image['title'] : image['url']" v-else-if="!image['iiif']" v-bind:src="image['url']"/>
             <figcaption class="linkbutton" v-on:click="checkType(image)">{{image['title'] ? image['title'] : image['url']}}</figcaption>
-          
-            <button class="deletebutton" v-if="editMode" v-on:click="deleteManifest(image)">
-              <i class="fas fa-trash"></i>
+            <button class="deletebutton button" v-if="editMode" v-on:click="deleteManifest(image)">
+              <i class="fas fa-trash-alt"></i>
             </button>
           </span>
         </div>
@@ -319,6 +318,7 @@ const annoview = Vue.component('annoview', {
           success: function(data) {
             if (data['images'][0]['url'] == url) {
               vue.imageslist.unshift(data['images'][0])
+              vue.getManifest(data['images'][0])
             }
           }, error: function(err) { 
             console.log(err)
@@ -575,12 +575,13 @@ const annoview = Vue.component('annoview', {
         var fullvalue = m.context.indexOf('3') > -1 ? 'max' : 'full';
         for (var j=0; j<manifestimages.length; j++){
           var resourceitem = manifestimages[j]['resource'] ? manifestimages[j]['resource'] : manifestimages[j]['body'] ? manifestimages[j]['body'] :  Array.isArray(manifestimages[j]['items']) ? manifestimages[j]['items'][0] : manifestimages[j]['items'];
+          resourceitem = Array.isArray(resourceitem) ? resourceitem[0] : resourceitem;
           const imagethumb = this.getId(resourceitem);
           if (!thumb){
             thumb = imagethumb;
           }
           const resourceservice = resourceitem['service'] && Array.isArray(resourceitem['service']) ? resourceitem['service'][0] : resourceitem['service'];
-          var id = resourceservice ? this.trimCharacter(this.getId(resourceservice), '/') + '/info.json' : resourceitem['id'];
+          var id = resourceservice ? this.trimCharacter(this.getId(resourceservice), '/') + '/info.json' : this.getId(resourceitem);
           id = resourceservice ? this.trimCharacter(id.split('/info')[0], '/') + '/info.json' : id;
           const opacity = j == 0 ? 1 : 0;
           const checked = j == 0 ? true : false;

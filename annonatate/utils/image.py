@@ -13,7 +13,7 @@ class Image:
         self.iiifimage = request_form['upload'] # might be 'uploadimage', or a url
         self.isimage = bool(re.match("^upload(iiif|image)$", self.iiifimage.strip()))
         self.origin_url = origin_url
-        self.request_form = request_form.to_dict()
+        self.request_form = request_form
         self.request_files = request_files
         if not self.isimage:
             # handle uploaded url
@@ -25,7 +25,7 @@ class Image:
             self.manifest = self.createmanifest()
             self.thumbnail, self.title = getThumbnailTitle(self.manifest)
             if type(self.manifest) != dict: # manifest creation failed
-                manifestdata = yaml.dump({"thumbnail": self.thumbnail, "title": self.title})
+                manifestdata = yaml.dump({"thumbnail": self.thumbnail, "title": self.title, "order": self.request_form['order']})
                 self.manifest_markdown = "---\n{}\n---\n{}".format(manifestdata, self.manifest)
         else:
             # handle uploaded image
@@ -36,7 +36,7 @@ class Image:
             for filename in request_files.getlist("file"):
                 filenameonly, ext = pathsplitext(filename.filename)
                 cleanfilename = "".join(re.findall(r'[0-9A-Za-z]+', filenameonly)) +  ext
-                self.files.append({'filename': cleanfilename, 'encodedimage': filename.stream.read(), 'label': filenameonly})
+                self.files.append({'filename': cleanfilename, 'encodedimage': filename.stream.read(), 'label': filenameonly.replace("'", "&#39;")})
 
     def createActionScript(self, githubfilefolder, filenamelist):
         with open(pathjoin(githubfilefolder, 'iiifportion.txt')) as f:
@@ -48,10 +48,10 @@ class Image:
             iiifscript = gf.read().replace('replacewithportion', iiifscript)
         iiifscript = iiifscript.replace('replacewithoriginurl', self.origin_url)
         iiifscript = iiifscript.replace('replacewithfilelist', str(filenamelist))
-        replacefields = ["label", "folder", "description", "rights", "language", "direction"]
+        replacefields = ["label", "folder", "description", "rights", "language", "direction", "order"]
         for field in replacefields:
             replacestring = "replacewith{}".format(field)
-            formvalue = self.request_form[field].replace(':', '&#58;')
+            formvalue = str(self.request_form[field]).replace(':', '&#58;')
             if field == "language" and not formvalue:
                 formvalue = "en"
             elif field == "folder":
@@ -86,7 +86,8 @@ def getThumbnailTitle(manifest):
             if fieldIsPresent(manifest.thumbnail):
                 thumbnail = manifest.thumbnail.id 
             else:
-                thumbnail = manifest.items[0].items[0].items[0].body['id']
+                bodyfield = manifest.items[0].items[0].items[0].body
+                thumbnail = bodyfield[0]['id'] if type(bodyfield) == list else bodyfield.id
             label = manifest.label if type(manifest.label) != dict else [manifest.label]
             return thumbnail, label
         except:

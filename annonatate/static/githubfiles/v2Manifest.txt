@@ -28,6 +28,7 @@ for idx,d in enumerate(data):
 manifeststring = manifest.toString(compact=False)
 headerinfo = {}
 headerinfo['title']= manifestlabel
+headerinfo['order']=int('''replacewithorder''')
 headerinfo['thumbnail'] = manifest.sequences[0].canvases[0].thumbnail
 with open(os.path.join('img/derivatives/iiif/', 'replacewithfolder', 'manifest.json'), 'w') as f:
     f.write('''---\n{}---\n'''.format(yaml.dump(headerinfo)))

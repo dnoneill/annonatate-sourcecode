@@ -9,6 +9,19 @@
 /* theme colors: #57C5B6, #159895; #1A5F7A; #002B5B
 https://colorhunt.co/palette/57c5b61598951a5f7a002b5b
  */
+ .imagecontainer {
+  position: relative;
+  text-align: center;
+ }
+ 
+ .imagecontainer .deletebutton {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  z-index: 2;
+  border-radius: 5px;
+  padding:5px;
+}
 
 .topnav {
   overflow: hidden;
@@ -896,14 +909,3 @@ input {
 .annoimage > * {
   max-height: 300px; width: auto;
 }
-
-.imagecontainer {
-  position: relative;
-}
-.imagecontainer .deletebutton {
-  position: absolute;
-  top: 2px;
-  right: 2px;
-  z-index: 2;
-}
-

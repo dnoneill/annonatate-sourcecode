@@ -8,7 +8,7 @@ from werkzeug.datastructures import FileStorage, ImmutableMultiDict
 
 class TestManifest(unittest.TestCase):
    def setUp(self):
-      self.request_form = ImmutableMultiDict({'upload': 'test/testdata/manifest.json'})
+      self.request_form = ImmutableMultiDict({'upload': 'test/testdata/manifest.json', 'order': 1})
       with patch('requests.get') as mock_request:
          url = self.request_form['upload']
          mock_request.return_value.status_code = 200
@@ -16,7 +16,7 @@ class TestManifest(unittest.TestCase):
             mock_request.return_value.json.return_value = json.loads(f.read())
          self.request_files = []
          self.request_url = 'http://session/origin_url/'
-         self.image = ImageClass.Image(self.request_form, self.request_files, self.request_url)
+         self.image = ImageClass.Image(self.request_form.to_dict(), self.request_files, self.request_url)
          self.manifest = json.loads(self.image.manifest)
    def test_manifest_iiif(self):
       self.assertFalse(self.image.isimage)
@@ -25,14 +25,14 @@ class TestManifest(unittest.TestCase):
 
 class TestImageDefault(unittest.TestCase):
    def setUp(self):
-      self.request_form = ImmutableMultiDict({'upload': 'uploadimage', 'version': 'v3', 'label': 'This is the label', 'direction': 'left-to-right', 'description': 'This is the description: with colon', 'rights': 'This is the rights', 'language': ''})
+      self.request_form = ImmutableMultiDict({'upload': 'uploadimage', 'order': 1, 'version': 'v3', 'label': 'This is the label', 'direction': 'left-to-right', 'description': 'This is the description: with colon', 'rights': 'This is the rights', 'language': ''})
       self.request_files = []
       self.request_files.append(("file", FileStorage(io.BytesIO(b'my file contents'), 'filename.jpg')))
       self.request_files.append(("file", FileStorage(io.BytesIO(b'my file contents'), 'filename2.png')))
       self.filenamelist = []
       self.request_files = ImmutableMultiDict(self.request_files)
       self.request_url = 'http://session/origin_url/'
-      self.image = ImageClass.Image(self.request_form, self.request_files, self.request_url)
+      self.image = ImageClass.Image(self.request_form.to_dict(), self.request_files, self.request_url)
       for files in self.image.files:
          self.filenamelist.append(files['filename'])
       self.actionscript = self.image.createActionScript('annonatate/static/githubfiles/', self.filenamelist)
@@ -48,14 +48,14 @@ class TestImageDefault(unittest.TestCase):
 
 class TestImageV2(unittest.TestCase):
    def setUp(self):
-      self.request_form = ImmutableMultiDict({'upload': 'uploadimage', 'version': 'v2', 'label': 'This is the label', 'direction': 'left-to-right', 'description': 'This is the description', 'rights': 'This is the rights', 'language': ''})
+      self.request_form = ImmutableMultiDict({'upload': 'uploadimage', 'order': 1, 'version': 'v2', 'label': 'This is the label', 'direction': 'left-to-right', 'description': 'This is the description', 'rights': 'This is the rights', 'language': ''})
       self.request_files = []
       self.request_files.append(("file", FileStorage(io.BytesIO(b'my file contents'), 'filename.jpg')))
       self.request_files.append(("file", FileStorage(io.BytesIO(b'my file contents'), 'filename2.png')))
       self.filenamelist = []
       self.request_files = ImmutableMultiDict(self.request_files)
       self.request_url = 'http://session/origin_url/'
-      self.image = ImageClass.Image(self.request_form, self.request_files, self.request_url)
+      self.image = ImageClass.Image(self.request_form.to_dict(), self.request_files, self.request_url)
       for files in self.image.files:
          self.filenamelist.append(files['filename'])
       self.actionscript = self.image.createActionScript('annonatate/static/githubfiles/', self.filenamelist)
