@@ -70,7 +70,7 @@ const annoview = Vue.component('annoview', {
         </div>
       <div class="manifestimages" :class="{'noanno' : !anno}">
         <div v-for="image in imageslist" class="imagecontainer">
-          <span v-if="image['url']">
+          <span v-if="image['url']" v-bind:class="[image['url'] == ingesturl ? 'currentimage' : '']">
             <img class="linkbutton" v-on:click="checkType(image)" class="imgthumb" v-bind:alt="image['title'] ? image['title'] : image['url']" v-if="image['thumbnail']" v-bind:src="image['thumbnail']"/>
             <img class="linkbutton" v-on:click="checkType(image)" class="imgthumb" v-bind:alt="image['title'] ? image['title'] : image['url']" v-else-if="!image['iiif']" v-bind:src="image['url']"/>
             <figcaption class="linkbutton" v-on:click="checkType(image)">{{image['title'] ? image['title'] : image['url']}}</figcaption>

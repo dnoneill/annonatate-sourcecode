@@ -4,6 +4,7 @@
   --menu-background: rgb(1,4,10);
   --boxoutline-color : #159895;
   --secondary-color: #002B5B;
+  --third-color: #57C5B6;
   --toolbar-font-size: 15px;
 }
 /* theme colors: #57C5B6, #159895; #1A5F7A; #002B5B
@@ -21,6 +22,10 @@ https://colorhunt.co/palette/57c5b61598951a5f7a002b5b
   z-index: 2;
   border-radius: 5px;
   padding:5px;
+}
+
+.imagecontainer:has(.currentimage) {
+  background-color: var(--third-color);
 }
 
 .topnav {
@@ -524,19 +529,12 @@ h3 {
     text-decoration: none;
     background: none;
     color: black;
-    font-size: 2rem;
     cursor: pointer;
     text-align: center;
     -webkit-appearance: none;
     -moz-appearance: none;
 }
 
-.linkbutton {
-  font-size: 14px;
-  color: #0000EE;
-  text-align: left;
-  padding: 0px;
-}
 .submitbutton {
   padding-top: 20px;
 }
