@@ -25,7 +25,7 @@ class Image:
             self.manifest = self.createmanifest()
             self.thumbnail, self.title = getThumbnailTitle(self.manifest)
             if type(self.manifest) != dict: # manifest creation failed
-                manifestdata = yaml.dump({"thumbnail": self.thumbnail, "title": self.title, "order": self.request_form['order']})
+                manifestdata = yaml.dump({"thumbnail": self.thumbnail, "title": self.title, "added": self.request_form['added']})
                 self.manifest_markdown = "---\n{}\n---\n{}".format(manifestdata, self.manifest)
         else:
             # handle uploaded image
@@ -48,7 +48,7 @@ class Image:
             iiifscript = gf.read().replace('replacewithportion', iiifscript)
         iiifscript = iiifscript.replace('replacewithoriginurl', self.origin_url)
         iiifscript = iiifscript.replace('replacewithfilelist', str(filenamelist))
-        replacefields = ["label", "folder", "description", "rights", "language", "direction", "order"]
+        replacefields = ["label", "folder", "description", "rights", "language", "direction", "added"]
         for field in replacefields:
             replacestring = "replacewith{}".format(field)
             formvalue = str(self.request_form[field]).replace(':', '&#58;')

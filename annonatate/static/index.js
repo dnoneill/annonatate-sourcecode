@@ -29,6 +29,7 @@ const annoview = Vue.component('annoview', {
         </div>
       </div>
       <div v-if="externalModal">
+        <div v-if="modalerror" v-html="modalerror" class="error"></div>
         <h2>Add external link</h2>
         <input id="ingesturl" v-model="externalurl" placeholder="The URL of an image or IIIF resource" aria-label="The URL of an image or IIIF resource"></input>
         <button class="button modal-button" title="This will add your image to the My Images section and will open your added image." v-on:click="externalClick('addtodata', externalurl);"><i class="fas fa-plus"></i> Add to My Images</button>
@@ -163,6 +164,7 @@ const annoview = Vue.component('annoview', {
       anno: '',
       viewer: '',
       manifestdata: '',
+      modalerror: '',
       currentmanifest: '',
       showManThumbs: false,
       canvas: '',
@@ -191,6 +193,9 @@ const annoview = Vue.component('annoview', {
   	}
   },
   watch: {
+    externalModal: function() {
+      this.modalerror = '';
+    },
     canvas: function() {
       this.annolistname = listfilename(this.canvas);
       this.updateUrlParams('canvas', this.canvas);
@@ -302,8 +307,19 @@ const annoview = Vue.component('annoview', {
         }
       }
     },
+    cleanCheckAdd: function(url) {
+      var cleanurl =  url.replace(`${this.originurl}manifests/`, '').replace('://', '');
+      return cleanurl.slice(cleanurl.indexOf('/'))
+    },
     externalClick: function(type, url){
       var vue = this;
+      this.modalerror = '';
+      const urls = this.imageslist.map(elem => this.cleanCheckAdd(elem['url']));
+      if (type != 'noadd' && urls.indexOf(this.cleanCheckAdd(url)) > -1) {
+        this.modalerror = 'This image is already in your My Images list.'
+        this.externalurl = '';
+        return 0;
+      }
       if (type == 'noadd'){
         this.getManifest(url);
       } else if (type == 'addtodata') {
@@ -317,8 +333,7 @@ const annoview = Vue.component('annoview', {
           processData: false,
           success: function(data) {
             if (data['images'][0]['url'] == url) {
-              vue.imageslist.unshift(data['images'][0])
-              vue.getManifest(data['images'][0])
+              vue.externalAfterLoad(data['images'][0])
             }
           }, error: function(err) { 
             console.log(err)
@@ -337,8 +352,7 @@ const annoview = Vue.component('annoview', {
           processData: false,
           success: function(data) {
             if (data['output'] == true) {
-              vue.imageslist.unshift(data);
-              vue.getManifest(data);
+              vue.externalAfterLoad(data);
             }
           }, error: function(err) { 
             console.log(err)
@@ -348,6 +362,11 @@ const annoview = Vue.component('annoview', {
       }
       this.externalModal=false;
       this.showModal=false;
+    },
+    externalAfterLoad: function(data) {
+      this.imageslist.unshift(data);
+      this.getManifest(data);
+      this.externalurl = '';
     },
     getManifestMeta: function(manifest){
       var m = manifesto.parseManifest(JSON.parse(manifest['json']));
@@ -576,10 +595,6 @@ const annoview = Vue.component('annoview', {
         for (var j=0; j<manifestimages.length; j++){
           var resourceitem = manifestimages[j]['resource'] ? manifestimages[j]['resource'] : manifestimages[j]['body'] ? manifestimages[j]['body'] :  Array.isArray(manifestimages[j]['items']) ? manifestimages[j]['items'][0] : manifestimages[j]['items'];
           resourceitem = Array.isArray(resourceitem) ? resourceitem[0] : resourceitem;
-          const imagethumb = this.getId(resourceitem);
-          if (!thumb){
-            thumb = imagethumb;
-          }
           const resourceservice = resourceitem['service'] && Array.isArray(resourceitem['service']) ? resourceitem['service'][0] : resourceitem['service'];
           var id = resourceservice ? this.trimCharacter(this.getId(resourceservice), '/') + '/info.json' : this.getId(resourceitem);
           id = resourceservice ? this.trimCharacter(id.split('/info')[0], '/') + '/info.json' : id;
@@ -590,8 +605,12 @@ const annoview = Vue.component('annoview', {
           xywh = xywh ? xywh.split("xywh=").slice(-1)[0].split(",") : xywh;
           const getLabel = manifestdata[i].getLabel();
           const tilelabel = getLabel && getLabel.length > 0 ? getLabel[0]['value'] : ""
+          const imagethumb = id.replace('/info.json',`/full/${size}/0/default.jpg`)
+          if (!thumb){
+            thumb = imagethumb;
+          }
           tiles.push({'id': id, 'label': tilelabel,
-            thumbnail: imagethumb.replace(`/${fullvalue}/0`, `/${size}/0`), 'opacity': opacity,
+            thumbnail: imagethumb, 'opacity': opacity,
             'checked': checked, 'xywh': xywh
           })
         }

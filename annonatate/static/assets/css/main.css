@@ -909,3 +909,13 @@ input {
 .annoimage > * {
   max-height: 300px; width: auto;
 }
+
+.error {
+  border: 2px solid red;
+  padding: 10px;
+}
+
+.modal .error {
+  margin: auto;
+  width: 65%;
+}

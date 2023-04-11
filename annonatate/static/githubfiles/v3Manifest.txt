@@ -44,7 +44,7 @@ manifestpath = os.path.join(dst, 'manifest.json')
 manifest.json_save(manifestpath)
 headerinfo = {}
 headerinfo['title']= manifestlabel
-headerinfo['order']=int('''replacewithorder''')
+headerinfo['added']= '''replacewithadded'''
 headerinfo['thumbnail'] = manifest.items[0].thumbnail[0].id
 filecontents = open(manifestpath).read()
 with open(manifestpath, 'w') as f:

@@ -71,7 +71,9 @@
     <header>
       {% block header %}{% endblock %}
     </header>
-    <p class="error">{{g.error | safe}}</p>
+    {% if g.error %}
+      <p class="error">{{g.error | safe}}</p>
+    {% endif %}
     {% if 'tempuser' not in session.keys() or session['tempuser'] != True %}
     {% block content %}{% endblock %}
     {% else %}

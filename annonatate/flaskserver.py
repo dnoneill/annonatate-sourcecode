@@ -10,7 +10,7 @@ import re
 import simplejson as json
 #from flask_github import GitHub
 import shutil
-from datetime import datetime
+from datetime import datetime, timedelta
 import os
 from io import StringIO
 
@@ -32,7 +32,7 @@ github = GitHubAnno(app)
 ALLOWED_EXTENSIONS = set(['png', 'jpg', 'jpeg'])
 app.config['UPLOAD_FOLDER'] = uploadfolder
 githubfilefolder = 'annonatate/static/githubfiles/'
-currentversion = '1.0'
+currentversion = '1.1'
 #Before every page loads this runs a series of tests
 @app.before_request
 def before_request():
@@ -240,8 +240,7 @@ def uploadvocab():
 @app.route('/createimage', methods=['POST', 'GET'])
 def createimage():
     request_form = request.form.to_dict()
-    if 'order' not in request_form.keys():
-        request_form['order'] = getNumberOfImages()
+    request_form['added'] = str(datetime.now())
     image = Image(request_form, request.files, session['origin_url'])
     successmessage = ''
     uploadurl = ''
@@ -276,7 +275,7 @@ def createimage():
         triggerAction(ymlname)
     #triggerbuild()
     if 'returnjson' in request.form.keys():
-        manifestdict = {'order': request_form['order'], 'json': image.manifest, 'output': output, 'url': uploadurl, 'iiif': True, 'upload': True, 'title': image.title, 'thumbnail': image.thumbnail}
+        manifestdict = {'added': request_form['added'], 'json': image.manifest, 'output': output, 'url': uploadurl, 'iiif': True, 'upload': True, 'title': image.title, 'thumbnail': image.thumbnail}
         session['upload']['manifests'].insert(0, manifestdict)
         return jsonify(manifestdict), 200
     else:
@@ -340,17 +339,6 @@ def triggerAction(ident):
     print(response.content)
     if 'Not Found' in str(response.content):
         triggerAction(ident)
-
-def getNumberOfImages():
-    manifests = session['preloaded']['images']+session['upload']['manifests']
-    allurls = list(map(lambda x: x['url'], manifests))
-    if len(manifests) > 0:
-        orders = sorted(manifests, key=lambda d: d['order'] if 'order' in d.keys() and d['order'] != None else 0, reverse=True)
-        number = orders[0]['order'] if orders[0] and 'order' in orders[0].keys() and orders[0]['order'] != None else 0
-    else:
-        number = 0
-    actualinprocess = list(filter(lambda x: x['url'] not in allurls, session['inprocess'])) if 'inprocess' in session.keys() else []
-    return number + len(actualinprocess) + 1
 
 @app.route('/defaultworkspace', methods=['POST'])
 def defaultworkspace():
@@ -434,7 +422,7 @@ def index():
         try:
             arraydata = getContents()
             manifests = session['upload']['manifests'] + session['preloaded']['images']
-            manifests = sorted(manifests, key=lambda d: d['order'] if 'order' in d.keys() and d['order'] else 0, reverse=True)
+            manifests = sorted(manifests, key=lambda d: datetime.strptime(d['added'].replace(" +", "."), '%Y-%m-%d %H:%M:%S.%f') if type(d) == dict and 'added' in d.keys() and d['added'] else datetime.now() - timedelta(days=1), reverse=True)
             existing = {'images': manifests, 'settings': session['preloaded']['settings']}
             if 'vocab' in session['preloaded'].keys():
                 labelonlyvocab = [item['label'] if type(item) == dict else item for item in session['preloaded']['vocab']]
@@ -621,7 +609,12 @@ def deletefile():
         session['upload']['manifests'].remove(content)
     else:
         uploadtype = path.split('/')[0]
-        session['upload'][uploadtype].remove(content)
+        try:
+            session['upload'][uploadtype].remove(content)
+        except:
+            if 'inprocess' in session.keys() and len(session['inprocess']) == 0:
+                if url not in list(map(lambda x: x['url'], session['inprocess'])):
+                    return 'error', 400
     payload = {'ref': session['github_branch']}
     data = github.createdatadict(session, filename, 'delete', path)
     response = github.raw_request('delete', data['url'], data=json.dumps(data['data']), params=payload)
@@ -733,7 +726,7 @@ def updatedata():
             jsondata[key] = []
     jsondata['images'] = checkManUrls(jsondata['images'])
     if request.form and 'addurl' in request.form.keys():
-        jsondata['images'][0]['order'] = getNumberOfImages()
+        jsondata['images'][0]['added'] = str(datetime.now())
     yamldata = yaml.dump(jsondata)
     github.sendgithubrequest(session, 'preload.yml', yamldata, '_data')
     session['preloaded'] = jsondata
