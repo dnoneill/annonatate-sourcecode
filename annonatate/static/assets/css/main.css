@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Roboto+Condensed:ital,wght@0,300;0,400;0,700;1,300;1,400;1,700&family=Roboto+Slab:wght@300;400;700&family=Roboto:ital,wght@0,300;0,400;0,700;1,300;1,400;1,700&display=swap');
 :root {
   --main-color: #1A5F7A;
   --grey-background: rgb(231, 231, 231);
@@ -414,7 +415,7 @@ img.githubicon {
 }
 
 
-* {font-family: Georgia sans-serif;}
+* {font-family: Roboto, Arial, sans-serif;}
   
 /* Style the tab */
 .tab {
@@ -838,11 +839,10 @@ body {
   max-width: none;
 }
 
-input {
-  box-sizing: border-box;
-  padding: 0.5rem 0.75rem;
+.tabcontent form input {
+  height: 30px;
+  width: 60%;
 }
-
 #ingesturl {
   width: 100%;
   margin-bottom: 10px;
@@ -932,3 +932,9 @@ input {
   margin: auto;
   width: 65%;
 }
+
+a {
+  color: var(--main-color);
+}
+
+label  {display:inline-block; width:300px; margin-top:15px} 

@@ -566,7 +566,6 @@ const annoview = Vue.component('annoview', {
       item.checked = checked;
     },
     getManifestFunctions: function(data, manifest, loadcanvas=false){
-      this.manimageshown = false;
       const context = data['@context'] && Array.isArray(data['@context']) ? data['@context'].join("") : data['@context'];
       if (data.constructor.name == 'String' || context && context.indexOf('presentation') == -1){
         this.inputurl = manifest;
@@ -630,6 +629,8 @@ const annoview = Vue.component('annoview', {
       }
     },
     getManifest: function(manifestdata, loadcanvas=false) {
+      this.manimageshown = false;
+      document.getElementById('openseadragon1').innerHTML = '<div><i class="fas fa-spinner fa-spin" style="font-size:8rem;"></i></div>'
       var manifest;
       var manifestjson;
       if (manifestdata.constructor.name == 'String'){
@@ -659,6 +660,9 @@ const annoview = Vue.component('annoview', {
               vue.loadImage();
             } else {
               vue.manifestdata = 'failure';
+              console.log(err)
+              document.getElementById('openseadragon1').innerHTML = `<div>${err.responseText}</div>`;
+              vue.manimageshown = true;
             }
           }
         });
