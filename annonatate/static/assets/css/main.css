@@ -698,18 +698,22 @@ body {
   width: 5px;
 }
 
-.manifestimages::-webkit-scrollbar-button:horizontal:start:increment {
+.manifestimages::-webkit-scrollbar-button:horizontal:start:increment, 
+.manifestthumbs::-webkit-scrollbar-button:horizontal:start:increment {
   display: none;
  }
 
- .manifestimages::-webkit-scrollbar-button:horizontal:start:decrement {
+ .manifestimages::-webkit-scrollbar-button:horizontal:start:decrement, 
+ .manifestthumbs::-webkit-scrollbar-button:horizontal:start:decrement {
   width: 1rem;
   display: block;
   height: 1rem;
   background-color: var(--boxoutline-color);
   background: no-repeat center center url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' height='18px' viewBox='0 0 256 512'%3e%3cpath fill='white' d='M9.4 278.6c-12.5-12.5-12.5-32.8 0-45.3l128-128c9.2-9.2 22.9-11.9 34.9-6.9s19.8 16.6 19.8 29.6l0 256c0 12.9-7.8 24.6-19.8 29.6s-25.7 2.2-34.9-6.9l-128-128z'/%3e%3c/svg%3e"), var(--boxoutline-color);
 }
-.manifestimages::-webkit-scrollbar-button:horizontal:end:increment {
+.manifestimages::-webkit-scrollbar-button:horizontal:end:increment,
+.manifestthumbs::-webkit-scrollbar-button:horizontal:end:increment
+{
   display: block;
   width: 1rem;
   height: 1rem;
@@ -841,7 +845,7 @@ body {
 
 .tabcontent form input {
   height: 30px;
-  width: 60%;
+  width: calc(95% - 300px);
 }
 #ingesturl {
   width: 100%;
