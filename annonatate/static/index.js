@@ -41,8 +41,8 @@ const annoview = Vue.component('annoview', {
     </div>
   </div>
   <div class="my-images">
-    <h2>
-    My Images
+    <h2 title="Click to expand/collapse image list">
+    <div class="my-images-header" v-on:click="manimageshown = !manimageshown;">My Images</div>
     <div class="my-images-icons">
         <div v-if="!editMode" v-on:click="manimageshown=true;editMode=!editMode">
           <i class="fas fa-edit"></i>

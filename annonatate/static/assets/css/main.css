@@ -333,6 +333,11 @@ tbody {
   margin: 0px;
 }
 
+.my-images-header {
+  display: inline-block;
+  width: calc(100% - 100px);
+}
+
 .my-images-icons {
   float: right;
   margin-top: auto;
@@ -376,6 +381,7 @@ label.toolbutton input:checked+span {
   display: flex;
   align-items: center;
   background-color: var(--grey-background);
+  flex-wrap: wrap;
 }
 #openseadragon1 {
   height: 90vh;
@@ -491,7 +497,6 @@ img.githubicon {
     margin: 20px;
   }
 }
-
 
 .gridparent > div {
   border-bottom: 1px solid black;
@@ -921,6 +926,16 @@ body {
 .a9s-toolbar-btn svg {
   height: 20px!important;
   width: auto!important;
+}
+
+.a9s-toolbar-btn {
+  padding: 8px 5px!important;
+}
+
+@media (max-width: 659px) {
+  .a9s-toolbar-btn-label {
+    display: none;
+  }
 }
 
 .annoimage > * {
