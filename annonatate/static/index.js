@@ -115,6 +115,11 @@ const annoview = Vue.component('annoview', {
           <i class="fas fa-eye-slash" v-else-if="annosvisible"></i>
           <span v-if="annosvisible"> Hide</span><span v-else> Show</span> Annotations
         </button>
+        <button v-if="anno" class="list-annos" v-bind:title="listview ? 'Hide List View' : 'List View'" v-on:click="listview = !listview">
+          <i class="fas fa-comment-slash" v-if="!listview"></i>
+          <i class="fas fa-comment" v-else-if="listview"></i>
+          <!-- <span v-if="listview">Show</span><span v-else>Hide</span> --> List View
+        </button>
         <div style="height:15px" v-else></div>
       </div>
     </div>
@@ -144,8 +149,24 @@ const annoview = Vue.component('annoview', {
     </div>
     <a class="prev prevnext" v-on:click="next('prev')" v-if="manifestdata && manifestdata[currentposition-1]">&lt;</a>
     <a class="next prevnext" v-on:click="next('next')" v-if="manifestdata && manifestdata[currentposition+1]">&gt;</a>
-    <div id="openseadragon1" v-bind:class="{'active' : inputurl !== ''}">
-      <div v-if="!anno">Select an image to begin annotating</div>
+    <div class="viewercontainer" style="position:relative">
+      <div id="openseadragon1" v-bind:class="{'active' : inputurl !== ''}">
+        <div v-if="!anno">Select an image to begin annotating</div>
+      </div>
+      <transition name="fade" mode="out-in">
+      <div v-show="!listview" class="listview">
+        <h3>Annotations</h3>
+        <div v-for="annotation in cleanListAnnotations" v-bind:key="annotation.order" class="list-view-annotation" v-bind:class="[currentlyselectedanno.id == annotation.id ? 'list-active-anno' : ''] ">
+          <div v-for="annocont in annotation.body" v-bind:key="annocont">
+            <span :class="annocont.purpose">{{annocont.value}}</span>
+            <span v-if="annocont.creator.name" class="creator">[{{annocont.creator.name}}]</span>
+          </div>
+          <button v-on:click="listViewSelect(annotation, $event)"><i class="fas fa-eye"></i> View</button>
+          <button v-on:click="listViewSelect(annotation, $event, false, true)"><i class="fas fa-search-plus"></i> Zoom</button>
+          <button v-on:click="listViewSelect(annotation, $event, true)"><i class="fas fa-edit"></i> Edit</button>
+        </div>
+       </div>
+       </transition>
     </div>
   </div>
   </div>
@@ -170,6 +191,8 @@ const annoview = Vue.component('annoview', {
       canvas: '',
       title: '',
       alltiles: [],
+      listview: true,
+      currentlyselectedanno: {'id': '', 'elem': ''},
       drawingenabled: false,
       ingesturl: '',
       fragmentunit: 'pixel',
@@ -184,6 +207,7 @@ const annoview = Vue.component('annoview', {
       savemessage: '<i class="fas fa-save"></i>',
       showModal: false,
       externalModal: false,
+      listAnnotations: [],
       editMode: false,
       demoimages: [{'alt': 'Four squares with colorful illustrations of insects.', 'title': 'Demo image (IIIF manifest): Insectes. [patterns]', 'url': 'https://d.lib.ncsu.edu/collections/catalog/segIns_020/manifest.json', 'thumbnail': 'https://iiif.lib.ncsu.edu/iiif/segIns_020/full/120,/0/default.jpg'},
         {'alt': 'Painting of a man in side view','title': 'Demo images (IIIF manifest): National Gallery of Art Collection Highlights', 'url': 'https://media.nga.gov/public/manifests/nga_highlights.json', 'thumbnail': 'https://media.nga.gov/iiif/public/objects/1/0/6/3/8/2/106382-primary-0-nativeres.ptif/full/120,/0/default.jpg'},
@@ -191,6 +215,14 @@ const annoview = Vue.component('annoview', {
         {'alt': 'Orange quilt with silhouette figures', 'title': 'Demo image: from Wikimedia', 'url': 'https://upload.wikimedia.org/wikipedia/commons/7/7e/PowersBibleQuilt_1886.jpg', 'thumbnail': 'https://upload.wikimedia.org/wikipedia/commons/7/7e/PowersBibleQuilt_1886.jpg'}
       ]
   	}
+  },
+  computed: {
+    cleanListAnnotations: function(){
+      this.listAnnotations.sort((a, b) => {
+        return a.order - b.order;
+      });
+      return this.listAnnotations;
+    }
   },
   watch: {
     externalModal: function() {
@@ -285,6 +317,33 @@ const annoview = Vue.component('annoview', {
         this.inputurl = manifetdict['url'];
         this.ingesturl = manifetdict['url'];
         this.loadImage();
+      }
+    },
+    listViewSelect: function(annotation,event, edit=false, zoom=false) {
+      if (edit){
+        this.anno.selectAnnotation(annotation);
+      } else {
+        if (this.currentlyselectedanno['elem']){
+          this.currentlyselectedanno['elem'].style.removeProperty('stroke');
+          if (!this.annosvisible){
+            this.currentlyselectedanno['elem'].parentElement.style.display = 'none';
+          }
+        }
+        const getOverlay = document.querySelector(`[data-id="${annotation.id}"]`);
+        getOverlay.style.display = 'block';
+        const inner = getOverlay.getElementsByClassName('a9s-inner')[0];
+        this.currentlyselectedanno['elem'] = inner;
+        this.currentlyselectedanno['id'] = inner.parentElement.getAttribute('data-id');
+        inner.style.stroke = 'yellow';
+      }
+      if (zoom){
+        this.anno.fitBoundsWithConstraints(annotation);
+      } else {
+        const home = this.viewer.viewport.getHomeBounds();
+        const current = this.viewer.viewport.getBounds();
+        if (JSON.stringify(home) != JSON.stringify(current)) {
+          this.anno.panTo(annotation);
+        }
       }
     },
     parseExisting: function() {
@@ -502,7 +561,7 @@ const annoview = Vue.component('annoview', {
         prefixUrl: "/assets/openseadragon/images/",
         tileSources: tilesources,
         zoomPerScroll: 1,
-        navigationControlAnchor: OpenSeadragon.ControlAnchor.BOTTOM_RIGHT
+        navigationControlAnchor: OpenSeadragon.ControlAnchor.BOTTOM_LEFT
       });
       this.viewer = viewer;
       var vue = this;
@@ -510,6 +569,7 @@ const annoview = Vue.component('annoview', {
         if (currentdrawtool){
           document.getElementsByClassName(currentdrawtool)[0].click();
         }
+        vue.listAnnotations = vue.anno.getAnnotations();
         if (vue.alltiles.length > 1){
           for (var k=0; k<vue.alltiles.length; k++){
             vue.alltiles[k]['order'] = k;
@@ -620,9 +680,9 @@ const annoview = Vue.component('annoview', {
           this.manifestLoad({'image': thumb, 'canvas': canvas, 'tiles': tiles})
         }
       }
-      if (images.length > 1){
-        this.showManThumbs = true;
-      }
+      // if (images.length > 1){
+      //   this.showManThumbs = true;
+      // }
       this.manifestdata = images;
       if (!loadcanvas){
         this.manifestLoad(images[0]);
@@ -738,6 +798,7 @@ const annoview = Vue.component('annoview', {
     },
     write_annotation: function(annotation, method) {
       var vue = this;
+      this.listAnnotations = this.anno.getAnnotations();
       var senddata = {'json': annotation, 'canvas': annotation['target']['source'], 'id': annotation['id']}
       if (annotation['order']){
         senddata['order'] = annotation['order'];

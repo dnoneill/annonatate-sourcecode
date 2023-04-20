@@ -428,6 +428,7 @@ img.githubicon {
   overflow: hidden;
   border: 1px solid #ccc;
   background-color: #f1f1f1;
+  
 }
 
 /* Style the buttons inside the tab */
@@ -440,6 +441,7 @@ img.githubicon {
   padding: 14px 16px;
   transition: 0.3s;
   font-size: 17px;
+  color: black;
 }
 
 /* Change background color of buttons on hover */
@@ -480,6 +482,16 @@ img.githubicon {
   font: inherit;
   max-width: 80px;
   border-radius: 20px;
+}
+
+button {
+  background-color: var(--main-color);
+  border: none;
+  color: white;
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+  font: inherit;
 }
 
 #incollections{
@@ -575,7 +587,7 @@ body {
 }
 
 .manifestimagelist > .linkbutton img {
-  max-width:100px;
+  max-width:90px;
 }
 
 .manthumblabel {
@@ -957,3 +969,43 @@ a {
 }
 
 label  {display:inline-block; width:300px; margin-top:15px} 
+
+.listview {
+  position: absolute;
+  top: 0px;
+  right: 0px;
+  width: 200px;
+  height: calc(100% - 2px);
+  overflow: auto;
+  overflow-wrap: break-word;
+  background: rgb(255,255,255,.75);
+  border: 1px solid var(--secondary-color);
+}
+
+.list-view-annotation {
+  background: var(--grey-background);
+  padding: 10px;
+  margin: 5px;
+}
+
+.list-view-annotation .creator {
+  font-size: smaller;
+  font-style: italic;
+}
+
+.list-view-annotation.list-active-anno {
+  background-color: yellow;
+}
+
+.listview h3 {
+  text-align: center;
+  margin: 0px;
+  text-decoration: underline;
+}
+
+.image-title span{
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  display: -webkit-box;
+}
