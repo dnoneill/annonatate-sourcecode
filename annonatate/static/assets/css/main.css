@@ -533,7 +533,7 @@ h3 {
   background-color: var(--grey-background);
 }
 
-.noanno #openseadragon1 div{
+ #openseadragon1 div{
   font-style: italic;
   font-size: 1.25em;
   padding: 70px;
@@ -860,9 +860,12 @@ body {
   max-width: none;
 }
 
-.tabcontent form input {
-  height: 30px;
+.tabcontent form input:not([type]), .tabcontent form input[type='text'] {
   width: calc(95% - 300px);
+}
+
+input[type='text'], input:not([type]) {
+  height: 30px;
 }
 #ingesturl {
   width: 100%;
