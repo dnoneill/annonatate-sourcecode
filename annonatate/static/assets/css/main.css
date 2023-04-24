@@ -783,6 +783,7 @@ body {
 }
 .imgthumb {
   height: 75px;
+  max-width: 200px;
 }
 
 .uploadlist {
