@@ -918,9 +918,9 @@ input[type='text'], input:not([type]) {
 }
 
 
-.a9s-toolbar-btn-inner .handles {
+/* .a9s-toolbar-btn-inner .handles {
   display: none;
-}
+} */
 
 .a9s-toolbar-btn.active{
   background-color: var(--main-color)!important;

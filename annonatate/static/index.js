@@ -561,7 +561,7 @@ const annoview = Vue.component('annoview', {
         prefixUrl: "/assets/openseadragon/images/",
         tileSources: tilesources,
         zoomPerScroll: 1,
-        navigationControlAnchor: OpenSeadragon.ControlAnchor.BOTTOM_LEFT
+        navigationControlAnchor: OpenSeadragon.ControlAnchor.TOP_LEFT
       });
       this.viewer = viewer;
       var vue = this;
