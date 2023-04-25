@@ -533,7 +533,7 @@ h3 {
   background-color: var(--grey-background);
 }
 
- #openseadragon1 div{
+.noanno #openseadragon1 div, #openseadragon1 .osd-error, #openseadragon1 .openseadragon-message{
   font-style: italic;
   font-size: 1.25em;
   padding: 70px;
@@ -946,6 +946,8 @@ input[type='text'], input:not([type]) {
 
 .a9s-toolbar-btn {
   padding: 8px 5px!important;
+  width: auto!important;
+  height: auto!important;
 }
 
 @media (max-width: 659px) {

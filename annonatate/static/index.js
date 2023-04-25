@@ -596,7 +596,9 @@ const annoview = Vue.component('annoview', {
       Annotorious.SelectorPack(this.anno);
       Annotorious.TiltedBox(this.anno);
       this.addListeners();
-      Annotorious.Toolbar(this.anno, toolbardiv, {'withLabel': true, 'withMouse': true, 'infoElement': document.getElementById('helptext')});
+      Annotorious.Toolbar(this.anno, toolbardiv, {'withLabel': true,
+        'drawingTools':  ["rect", "polygon", "freehand", "ellipse", "annotorious-tilted-box"],
+        'withMouse': true, 'infoElement': document.getElementById('helptext')});
       this.enableDrawing(this.drawingenabled);
       this.anno.setAuthInfo({
         id: this.userinfo["id"],
@@ -721,7 +723,7 @@ const annoview = Vue.component('annoview', {
             } else {
               vue.manifestdata = 'failure';
               console.log(err)
-              document.getElementById('openseadragon1').innerHTML = `<div>${err.responseText}</div>`;
+              document.getElementById('openseadragon1').innerHTML = `<div class="osd-error">${err.responseText}</div>`;
               vue.manimageshown = true;
             }
           }
