@@ -95,7 +95,7 @@ https://colorhunt.co/palette/57c5b61598951a5f7a002b5b
   }
 }
 section.content {
-  padding: 0em 2em;
+  margin: 0px 40px;
 }
 
 /**
@@ -773,10 +773,6 @@ body {
   font-size: inherit!important;
 }
 
-#app {
-  padding: 0px 20px;
-}
-
 .linkbutton {
   max-width: 100px;
   overflow-wrap: break-word;
@@ -1009,7 +1005,7 @@ label  {display:inline-block; width:300px; margin-top:15px}
   text-decoration: underline;
 }
 
-.image-title span{
+.image-title {
   overflow: hidden;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;

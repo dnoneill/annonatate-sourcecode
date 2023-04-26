@@ -204,7 +204,7 @@ const annoview = Vue.component('annoview', {
       annolistname: '',
       imageslist: [],
       externalurl: '',
-      savemessage: '<i class="fas fa-save"></i>',
+      savemessage: '',
       showModal: false,
       externalModal: false,
       listAnnotations: [],
@@ -597,7 +597,7 @@ const annoview = Vue.component('annoview', {
       Annotorious.TiltedBox(this.anno);
       this.addListeners();
       Annotorious.Toolbar(this.anno, toolbardiv, {'withLabel': true,
-        'drawingTools':  ["rect", "polygon", "freehand", "ellipse", "annotorious-tilted-box"],
+        'drawingTools':  ["rect", "polygon", "freehand", "ellipse", "circle", "annotorious-tilted-box"],
         'withMouse': true, 'infoElement': document.getElementById('helptext')});
       this.enableDrawing(this.drawingenabled);
       this.anno.setAuthInfo({
@@ -827,7 +827,10 @@ const annoview = Vue.component('annoview', {
             } else {
               vue.filepaths[key] = [annotation]
             }
-            vue.savemessage = `<i class="fas fa-save"></i> Annotations last saved: ${new Date(Date.now()).toLocaleTimeString(navigator.language)}`
+            vue.savemessage = `<span class="fa-stack fa-2x">
+              <i class="fas fa-cloud fa-stack-1x"></i>
+              <i style="font-size: 18px; color: white; -webkit-text-stroke-width: 1px; -webkit-text-stroke-color: black; " class="fas fa-check fa-stack-1x"></i>
+              </span> Annotations last saved: ${new Date(Date.now()).toLocaleTimeString(navigator.language)}`
           } else if (method == 'delete' && typeof(inlist) == 'number') {
             delete vue.filepaths[key][inlist]
           }
