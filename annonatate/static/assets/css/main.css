@@ -533,7 +533,7 @@ h3 {
   background-color: var(--grey-background);
 }
 
-.noanno #openseadragon1 div, #openseadragon1 .osd-error, #openseadragon1 .openseadragon-message{
+.noanno #openseadragon1 div, #openseadragon1 .osd-error,#openseadragon1 .spinner, #openseadragon1 .openseadragon-message{
   font-style: italic;
   font-size: 1.25em;
   padding: 70px;

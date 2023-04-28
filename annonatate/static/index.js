@@ -692,7 +692,7 @@ const annoview = Vue.component('annoview', {
     },
     getManifest: function(manifestdata, loadcanvas=false) {
       this.manimageshown = false;
-      document.getElementById('openseadragon1').innerHTML = '<div><i class="fas fa-spinner fa-spin" style="font-size:8rem;"></i></div>'
+      document.getElementById('openseadragon1').innerHTML = '<div class="spinner"><i class="fas fa-spinner fa-spin" style="font-size:8rem;"></i></div>'
       var manifest;
       var manifestjson;
       if (manifestdata.constructor.name == 'String'){
