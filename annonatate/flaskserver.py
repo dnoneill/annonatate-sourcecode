@@ -23,7 +23,6 @@ app = Flask(__name__,
             static_url_path='',)
 app.config.update(
                   SESSION_TYPE = 'filesystem',
-                  SESSION_FILE_DIR='/tmp',
                   GITHUB_CLIENT_ID = client_id,
                   GITHUB_CLIENT_SECRET = client_secret
                   )
@@ -32,7 +31,7 @@ github = GitHubAnno(app)
 ALLOWED_EXTENSIONS = set(['png', 'jpg', 'jpeg'])
 app.config['UPLOAD_FOLDER'] = uploadfolder
 githubfilefolder = 'annonatate/static/githubfiles/'
-currentversion = '1.1'
+currentversion = '2.0'
 #Before every page loads this runs a series of tests
 @app.before_request
 def before_request():
