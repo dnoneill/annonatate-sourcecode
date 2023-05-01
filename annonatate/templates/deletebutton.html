@@ -2,6 +2,7 @@
 <a href="{{session['customviewpage'][customviewurl]}}"aria-label="edit custom view" class="button" style="padding: 5px 7px;">
   <i class="fas fa-edit"></i> Edit</a>
 {% endif %}
-<form action="{{ url_for('deletefile', file=file, next=next) }}" method="post" style="display: inline-block;">
+<form action="{{ url_for('deletefile', next=next) }}" method="post" style="display: inline-block;">
+    <input style="display: none" name="file" value="{{file}}" id="file"/>
     <button type="submit" class="button" style="padding: 5px 7px;" onclick="return confirm('Are you sure?');">Delete <i class="fas fa-trash-alt"></i></button>
 </form>

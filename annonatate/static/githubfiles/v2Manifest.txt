@@ -26,5 +26,10 @@ for idx,d in enumerate(data):
     size = filteredallfiles[0] if len(filteredallfiles) > 0 else '80,'
     cvs.thumbnail = '{}/full/{}/0/default.jpg'.format(d[3], size)
 manifeststring = manifest.toString(compact=False)
+headerinfo = {}
+headerinfo['title']= manifestlabel
+headerinfo['added']='''replacewithadded'''
+headerinfo['thumbnail'] = manifest.sequences[0].canvases[0].thumbnail
 with open(os.path.join('img/derivatives/iiif/', 'replacewithfolder', 'manifest.json'), 'w') as f:
+    f.write('''---\n{}---\n'''.format(yaml.dump(headerinfo)))
     f.write(manifeststring)

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import re, json
+import re, json, yaml
 from os.path import join as pathjoin
 from os.path import splitext as pathsplitext
 from iiif_prezi.loader import ManifestReader
@@ -13,7 +13,7 @@ class Image:
         self.iiifimage = request_form['upload'] # might be 'uploadimage', or a url
         self.isimage = bool(re.match("^upload(iiif|image)$", self.iiifimage.strip()))
         self.origin_url = origin_url
-        self.request_form = request_form.to_dict()
+        self.request_form = request_form
         self.request_files = request_files
         if not self.isimage:
             # handle uploaded url
@@ -23,8 +23,10 @@ class Image:
             self.manifestpath = pathjoin("manifests/", "/".join(folderpath[-2:]))
             self.manifesturl = "{}{}/manifest.json".format(self.origin_url, self.manifestpath)
             self.manifest = self.createmanifest()
+            self.thumbnail, self.title = getThumbnailTitle(self.manifest)
             if type(self.manifest) != dict: # manifest creation failed
-                self.manifest_markdown = "---\n---\n{}".format(self.manifest)
+                manifestdata = yaml.dump({"thumbnail": self.thumbnail, "title": self.title, "added": self.request_form['added']})
+                self.manifest_markdown = "---\n{}\n---\n{}".format(manifestdata, self.manifest)
         else:
             # handle uploaded image
             files = request_files.getlist("file")
@@ -34,7 +36,7 @@ class Image:
             for filename in request_files.getlist("file"):
                 filenameonly, ext = pathsplitext(filename.filename)
                 cleanfilename = "".join(re.findall(r'[0-9A-Za-z]+', filenameonly)) +  ext
-                self.files.append({'filename': cleanfilename, 'encodedimage': filename.stream.read(), 'label': filenameonly})
+                self.files.append({'filename': cleanfilename, 'encodedimage': filename.stream.read(), 'label': filenameonly.replace("'", "&#39;")})
 
     def createActionScript(self, githubfilefolder, filenamelist):
         with open(pathjoin(githubfilefolder, 'iiifportion.txt')) as f:
@@ -46,10 +48,10 @@ class Image:
             iiifscript = gf.read().replace('replacewithportion', iiifscript)
         iiifscript = iiifscript.replace('replacewithoriginurl', self.origin_url)
         iiifscript = iiifscript.replace('replacewithfilelist', str(filenamelist))
-        replacefields = ["label", "folder", "description", "rights", "language", "direction"]
+        replacefields = ["label", "folder", "description", "rights", "language", "direction", "added"]
         for field in replacefields:
             replacestring = "replacewith{}".format(field)
-            formvalue = self.request_form[field].replace(':', '&#58;')
+            formvalue = str(self.request_form[field]).replace(':', '&#58;')
             if field == "language" and not formvalue:
                 formvalue = "en"
             elif field == "folder":
@@ -66,6 +68,36 @@ class Image:
         manifest = json.dumps(manifestresponse, indent=2)
         return manifest
 
+def getThumbnailTitle(manifest):
+    if type(manifest) == bytes:
+        manifest = manifest.decode('utf-8')
+    manifest = json.loads(manifest)
+    try:
+        manifest = parseManifest(manifest)
+        label = manifest.label if type(manifest.label) != dict else [manifest.label]
+        if manifest.thumbnail:
+            thumbnail = manifest.thumbnail if type(manifest.thumbnail) == str else manifest.thumbnail.id
+        else:
+            thumbnail = manifest.sequences[0].canvases[0].images[0].resource.id.replace("full/0", "120,/0")
+        return thumbnail, label
+    except:
+        try: 
+            manifest = read_API3_json_dict(manifest)
+            if fieldIsPresent(manifest.thumbnail):
+                thumbnail = manifest.thumbnail.id 
+            else:
+                bodyfield = manifest.items[0].items[0].items[0].body
+                thumbnail = bodyfield[0]['id'] if type(bodyfield) == list else bodyfield.id
+            label = manifest.label if type(manifest.label) != dict else [manifest.label]
+            return thumbnail, label
+        except:
+            return '', ''
+
+def fieldIsPresent(field):
+    try:
+        return field.id
+    except:
+        return False
 
 def addAnnotationList(manifest, session):
     try:
@@ -86,7 +118,7 @@ def addAnnotationList(manifest, session):
                 annotations = list(map(lambda x: x['id'], item.annotations)) if item.annotations else []
                 annotationlist = pathjoin(originurl, session['defaults']['annotations'].strip('_'), listfilename(item.id))
                 if annotationlist not in annotations:
-                    annopage = item.add_annotation()
+                    annopage = item.add_annotationpage_to_annotations()
                     annopage.set_id(annotationlist)
                     annopage.type = 'AnnotationPage'
             stringmanifest = manifest.json_dumps()

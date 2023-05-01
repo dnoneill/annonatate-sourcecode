@@ -1,3 +1,5 @@
+{% extends 'base.html' %}
+{% block content %}
 {% set isnoterror = True %}
 {% if message %}
 <p style="font-size: 2em;">
@@ -9,7 +11,10 @@
 
    Looks like there was an error logging in.<br>
    Please try <a href="{{request.url_root}}login">logging in again</a>. <br>
-   If that does not work please <a href="https://github.com/dnoneill/annonatate-sourcecode/issues/new">open an issue</a>.
+   If that does not work please email <b>
+      <a href="mailto:annonatate@mail.com">annonatate@mail.com</a></b>
+   or
+   <b><a href="https://github.com/dnoneill/annonatate-sourcecode/issues/new">open an issue</a></b>.
 </p>
 {% endif %}
 {% if isnoterror %}
@@ -19,6 +24,13 @@
 </b>
 </p>
 <p>
-Try navigating back to the <a href="/">homepage</a> to see if that can fix the problem. Otherwise open an issue here: <a href="https://github.com/annonatate/annonatate/issues">https://github.com/annonatate/annonatate/issues</a> and please take and attatch screenshot of your problem.
+Try navigating back to the <a href="/">homepage</a> to see if that can fix the problem. 
+
+If that does not work please email <b>
+   <a href="mailto:annonatate@mail.com">annonatate@mail.com</a></b>
+or
+<b><a href="https://github.com/dnoneill/annonatate-sourcecode/issues/new">open an issue</a></b>.
 </p>
 {% endif %}
+
+{% endblock %}

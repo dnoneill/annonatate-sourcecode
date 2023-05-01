@@ -40,4 +40,13 @@ for idx,d in enumerate(data):
     s.set_type('ImageService2')
     s.set_profile('level1')
 
-manifest.json_save(os.path.join(dst, 'manifest.json'))
+manifestpath = os.path.join(dst, 'manifest.json')
+manifest.json_save(manifestpath)
+headerinfo = {}
+headerinfo['title']= manifestlabel
+headerinfo['added']= '''replacewithadded'''
+headerinfo['thumbnail'] = manifest.items[0].thumbnail[0].id
+filecontents = open(manifestpath).read()
+with open(manifestpath, 'w') as f:
+    f.write('''---\n{}---\n'''.format(yaml.dump(headerinfo)))
+    f.write(filecontents)
