@@ -118,7 +118,7 @@ def addAnnotationList(manifest, session):
                 annotations = list(map(lambda x: x['id'], item.annotations)) if item.annotations else []
                 annotationlist = pathjoin(originurl, session['defaults']['annotations'].strip('_'), listfilename(item.id))
                 if annotationlist not in annotations:
-                    annopage = item.add_annotation()
+                    annopage = item.add_annotationpage_to_annotations()
                     annopage.set_id(annotationlist)
                     annopage.type = 'AnnotationPage'
             stringmanifest = manifest.json_dumps()
