@@ -421,7 +421,7 @@ def index():
         try:
             arraydata = getContents()
             manifests = session['upload']['manifests'] + session['preloaded']['images']
-            manifests = sorted(manifests, key=lambda d: datetime.strptime(d['added'].replace(" +", "."), '%Y-%m-%d %H:%M:%S.%f') if type(d) == dict and 'added' in d.keys() and d['added'] else datetime.now() - timedelta(days=1), reverse=True)
+            manifests = sorted(manifests, key=lambda d: datetime.strptime(d['added'].replace('&#58;', ':').replace(" +", "."), '%Y-%m-%d %H:%M:%S.%f') if type(d) == dict and 'added' in d.keys() and d['added'] else datetime.now() - timedelta(days=1), reverse=True)
             existing = {'images': manifests, 'settings': session['preloaded']['settings']}
             if 'vocab' in session['preloaded'].keys():
                 labelonlyvocab = [item['label'] if type(item) == dict else item for item in session['preloaded']['vocab']]
