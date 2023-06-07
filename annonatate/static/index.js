@@ -2,17 +2,17 @@ const annoview = Vue.component('annoview', {
   template: `<div>
   <div id="myModal" class="modal" v-if="showModal">
     <div class="modal-content">
-      <span class="close-modal" v-on:click="showModal=false;externalModal=false;">&times;</span>
-      <span class="back" style="float:left" v-if="externalModal" v-on:click="externalModal=false;"><i class="fas fa-arrow-left"></i></span>
-      <div class="optionsmodal" v-if="!externalModal">
+      <span class="close-modal" v-on:click="showModal=false;modalView=false;">&times;</span>
+      <span class="back" style="float:left" v-if="modalView" v-on:click="modalView=false;"><i class="fas fa-arrow-left"></i></span>
+      <div class="optionsmodal" v-if="!modalView">
         <div class="modal-options icontextbutton">
-          <a href="/upload">
+          <a v-on:click="modalView='upload'">
           Upload your own image
           <i class="fas fa-upload"></i>
           </a>
         </div>
         <div class="modal-options icontextbutton">
-          <a v-on:click="externalModal=true">
+          <a v-on:click="modalView='external'">
           Use external image
             <i class="fas fa-link"></i>
           </a>
@@ -28,7 +28,55 @@ const annoview = Vue.component('annoview', {
           </div>
         </div>
       </div>
-      <div v-if="externalModal">
+      <div v-if="modalView=='upload'" class="upload-modal">
+        <h2>Upload Image</h2>
+        <p>
+          When you upload an image(s) this will create
+          a IIIF derivative (tiled for high quality zoom) of the image(s) with a corresponding <a href="https://iiif.io/api/presentation/">IIIF manifest</a> which will contain metadata you enter in the form below.
+        </p>
+        <div id="imagerror"></div>
+        <form action="/createimage" enctype=multipart/form-data method="post">
+        <div>
+          <label for="upload-image">Image(s) or PDF files (each file must be 99MB or smaller): </label>
+          <input type="text"  id="upload-image" name="upload" value="uploadimage" style="display: none">
+          <input type=file  onchange="checkImages(this);" id="upload-image" name=file accept="image/* pdf/*" required multiple>
+          <div id="imagepreview"></div>
+          <div>
+            <label for="label">Title of Image(s) (Required): </label>
+            <input value="" id="label" name="label" required>
+            </div>
+            <div>
+            <label for="description">Description: </label>
+            <input value="" id="description" name="description">
+            </div>
+            <div>
+            <label for="rights">Rights: </label>
+            <input value="" id="rights" name="rights">
+            </div>
+            <div>
+              <label for="language">Language code (default is en): </label>
+              <input value="" id="language" name="language">
+            </div>
+            <div>
+              <label for="version">Version: </label>
+              <select id="version" name="version">
+              <option value="v3" selected>Version 3</option>
+              <option value="v2">Version 2</option>
+              </select>
+            </div>
+          <div>
+            <label for="direction">Viewing Direction: </label>
+            <select id="direction" name="direction">
+              <option value="left-to-right" selected>left-to-right</option>
+              <option value="right-to-left">right-to-left</option>
+            </select>
+          </div>
+        </div>
+        <button type="submit" id="imagesubmit">Upload image</button>
+      </form>
+  
+      </div>
+      <div v-else-if="modalView == 'external'">
         <div v-if="modalerror" v-html="modalerror" class="error"></div>
         <h2>Add external link</h2>
         <input id="ingesturl" v-model="externalurl" placeholder="The URL of an image or IIIF resource" aria-label="The URL of an image or IIIF resource"></input>
@@ -206,7 +254,7 @@ const annoview = Vue.component('annoview', {
       externalurl: '',
       savemessage: '',
       showModal: false,
-      externalModal: false,
+      modalView: false,
       listAnnotations: [],
       editMode: false,
       demoimages: [{'alt': 'Four squares with colorful illustrations of insects.', 'title': 'Demo image (IIIF manifest): Insectes. [patterns]', 'url': 'https://d.lib.ncsu.edu/collections/catalog/segIns_020/manifest.json', 'thumbnail': 'https://iiif.lib.ncsu.edu/iiif/segIns_020/full/120,/0/default.jpg'},
@@ -225,7 +273,7 @@ const annoview = Vue.component('annoview', {
     }
   },
   watch: {
-    externalModal: function() {
+    modalView: function() {
       this.modalerror = '';
     },
     canvas: function() {
@@ -419,7 +467,7 @@ const annoview = Vue.component('annoview', {
           }
         });
       }
-      this.externalModal=false;
+      this.modalView=false;
       this.showModal=false;
     },
     externalAfterLoad: function(data) {
