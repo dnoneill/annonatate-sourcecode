@@ -263,7 +263,7 @@ def createimage():
             if 'content' in response.keys():
                 actionname = 'convert_images_{}'.format(image.folder)
                 uploadurl = "{}img/derivatives/iiif/{}/manifest.json".format(image.origin_url, image.folder)
-                successmessage = successtext(uploadurl, uploadtype, actionname)
+                successmessage = successtext(uploadurl, uploadtype, actionname, {'thumbnail': image.files[0]['filename'].rsplit('.', 1)[0], 'title': image.request_form['label'], 'added': image.request_form['added']})
                 filenames.append((os.path.join(imagespath, afile['filename']), afile['label']))
                 output =  True
             else:
@@ -274,15 +274,25 @@ def createimage():
         triggerAction(ymlname)
     #triggerbuild()
     if 'returnjson' in request.form.keys():
-        manifestdict = {'added': request_form['added'], 'json': image.manifest, 'output': output, 'url': uploadurl, 'iiif': True, 'upload': True, 'title': image.title, 'thumbnail': image.thumbnail}
-        session['upload']['manifests'].insert(0, manifestdict)
+        manifestdict = {'added': request_form['added'],
+            'output': output,
+            'url': uploadurl, 'iiif': True, 'upload': True,
+            'inprocess': session['inprocess']}
+        if not image.isimage:
+            manifestdict['json'] = image.manifest
+            manifestdict['title'] = image.title
+            manifestdict['thumbnail'] = image.thumbnail
+            session['upload']['manifests'].insert(0, manifestdict)
         return jsonify(manifestdict), 200
     else:
         return render_template('uploadsuccess.html', output=output, actionname=actionname, uploadurl=uploadurl, successmessage=successmessage, uploadtype=uploadtype)
 
-def successtext(uploadurl, uploadtype, actionname=''):
+def successtext(uploadurl, uploadtype, actionname='', metadata=''):
     if uploadurl:
         uploaddict = {'url': uploadurl, 'uploadtype': uploadtype, 'actionname': actionname }
+        if metadata:
+            metadata['thumbnail'] = uploadurl.replace('manifest.json', '{}/full/full/0/default.jpg'.format(metadata['thumbnail']))
+            uploaddict.update(metadata)
         if 'inprocess' in session.keys() and uploaddict not in session['inprocess']:
             session['inprocess'].append(uploaddict)
         else:
@@ -421,7 +431,7 @@ def index():
         try:
             arraydata = getContents()
             manifests = session['upload']['manifests'] + session['preloaded']['images']
-            manifests = sorted(manifests, key=lambda d: datetime.strptime(d['added'].replace(" +", "."), '%Y-%m-%d %H:%M:%S.%f') if type(d) == dict and 'added' in d.keys() and d['added'] else datetime.now() - timedelta(days=1), reverse=True)
+            manifests = sorted(manifests, key=lambda d: datetime.strptime(d['added'].replace('&#58;', ':').replace(" +", "."), '%Y-%m-%d %H:%M:%S.%f') if type(d) == dict and 'added' in d.keys() and d['added'] else datetime.now() - timedelta(days=100), reverse=True)
             existing = {'images': manifests, 'settings': session['preloaded']['settings']}
             if 'vocab' in session['preloaded'].keys():
                 labelonlyvocab = [item['label'] if type(item) == dict else item for item in session['preloaded']['vocab']]

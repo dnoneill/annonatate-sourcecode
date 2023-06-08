@@ -189,6 +189,7 @@ tbody {
 #spinner {
   font-size: 100px;
   text-align: center;
+  z-index: 202;
 }
 
 .wrapper {
@@ -809,7 +810,7 @@ body {
 /* Modal Content/Box */
 .modal-content {
   background-color: #fefefe;
-  margin: 15% auto; /* 15% from the top and centered */
+  margin: 5% auto; /* 5% from the top and centered */
   padding: 20px;
   border: 1px solid #888;
   width: 60%; /* Could be more or less, depending on screen size */

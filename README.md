@@ -11,3 +11,7 @@
 6. Run the application 
     ```python wsgi.py```
 7. Go to the application in the browser. Make sure the URL you use matches what you put in the callback URL (If you choose http://0.0.0.0:5000/authorize) then make sure to go to http://0.0.0.0:5000 in the browser. 
+
+## Running tests
+
+1. python -m unittest
