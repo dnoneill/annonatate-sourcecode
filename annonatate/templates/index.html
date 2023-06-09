@@ -21,7 +21,8 @@
 <div id="app">
   <h1 style="margin: 10px 0px;">{% block title %}Start Annotating{% endblock %}</h1>
   {% set updatepage = 'true' if 'numbcollabs' in session['currentworkspace'].keys() and session['currentworkspace']['numbcollabs'] > 1 else 'false' %}
-  <annoview :existing='{{existingitems | tojson}}' :updatepage="{{updatepage}}" :filepaths='{{ filepaths|tojson }}' :userinfo='{{userinfo | tojson}}' :tags='{{tags|tojson}}' :originurl='{{session["origin_url"] | tojson}}'></annoview>
+  {% set inprocess = session['inprocess'] if 'inprocess' in session.keys() and session['inprocess'] else [] %}
+  <annoview :inprocessdata="{{inprocess}}" :existing='{{existingitems | tojson}}' :updatepage="{{updatepage}}" :filepaths='{{ filepaths|tojson }}' :userinfo='{{userinfo | tojson}}' :tags='{{tags|tojson}}' :originurl='{{session["origin_url"] | tojson}}'></annoview>
 </div>
 {% if ismirador %}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.js"></script>

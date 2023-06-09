@@ -3,7 +3,7 @@ const annoview = Vue.component('annoview', {
   <div id="myModal" class="modal" v-if="showModal">
     <div class="modal-content">
       <span class="close-modal" v-on:click="showModal=false;modalView=false;">&times;</span>
-      <span class="back" style="float:left" v-if="modalView" v-on:click="modalView=false;"><i class="fas fa-arrow-left"></i></span>
+      <span class="back" style="float:left" v-if="modalView" v-on:click="modalView=false;uploadsuccess=false;"><i class="fas fa-arrow-left"></i></span>
       <div class="optionsmodal" v-if="!modalView">
         <div class="modal-options icontextbutton">
           <a v-on:click="modalView='upload'">
@@ -29,9 +29,9 @@ const annoview = Vue.component('annoview', {
         </div>
       </div>
       <div v-if="modalView=='upload'" class="upload-modal">
-        <div id="upload-form">
+        <div id="upload-form" v-if="!uploadsuccess">
           <h2>Upload Image</h2>
-          <p>
+          <p style="color:rgba(0, 0, 0, 0.5)">
             When you upload an image(s) this will create
             a IIIF derivative (tiled for high quality zoom) of the image(s) with a corresponding <a href="https://iiif.io/api/presentation/">IIIF manifest</a> which will contain metadata you enter in the form below.
           </p>
@@ -76,6 +76,12 @@ const annoview = Vue.component('annoview', {
           <button type="submit" id="imagesubmit">Upload image</button>
           </form>
         </div>
+        <div v-else>
+          <h2>Upload Success!</h2>
+          It can take a while for your Image and/or Images to process. 
+          When the images have successfully processed they will be added to the "My Images" section on the homepage. 
+          You can also track progress of all uploads on the <a href="/profile/?tab=status">Status tab.</a>
+        </div>
       </div>
       <div v-else-if="modalView == 'external'">
         <div v-if="modalerror" v-html="modalerror" class="error"></div>
@@ -118,6 +124,10 @@ const annoview = Vue.component('annoview', {
           Add Image
         </div>
       <div class="manifestimages" :class="{'noanno' : !anno}">
+        <div v-for="placeholder in placeholders" class="imagecontainer">
+          <i class="fas fa-spinner fa-spin" style="width: 75px; font-size: 75px;"></i>
+          <figcaption class="linkbutton">{{placeholder}}</figcaption>
+        </div>
         <div v-for="image in imageslist" class="imagecontainer">
           <span v-if="image['url']" v-bind:class="[image['url'] == ingesturl ? 'currentimage' : '']">
             <img class="linkbutton" v-on:click="checkType(image)" class="imgthumb" v-bind:alt="image['title'] ? image['title'] : image['url']" v-if="image['thumbnail']" v-bind:src="image['thumbnail']"/>
@@ -226,7 +236,8 @@ const annoview = Vue.component('annoview', {
     'userinfo': Object,
     'tags': Array,
     'originurl': String,
-    'updatepage': String
+    'updatepage': String,
+    'inprocessdata': Array
   },
   data: function() {
   	return {
@@ -243,6 +254,7 @@ const annoview = Vue.component('annoview', {
       listview: true,
       currentlyselectedanno: {'id': '', 'elem': ''},
       drawingenabled: false,
+      uploadsuccess: false,
       ingesturl: '',
       fragmentunit: 'pixel',
       currentposition: 0,
@@ -252,6 +264,7 @@ const annoview = Vue.component('annoview', {
       manimageshown: true,
       annolistname: '',
       imageslist: [],
+      placeholders: [],
       externalurl: '',
       savemessage: '',
       showModal: false,
@@ -283,30 +296,24 @@ const annoview = Vue.component('annoview', {
       const newinprocess = []
       for (var ip=0; ip<this.inprocess.length; ip++){
         const inprocess = this.inprocess[ip];
-        console.log(ip)
-        console.log(inprocess)
         var isready = UrlExists(`/uploadstatus?url=${inprocess['url']}&isprofile=true&checknum=${inprocess['checknum']}&uploadtype=${inprocess['uploadtype']}&actionname=${inprocess['actionname']}`);
-        console.log(isready)
         if (isready['status']) {
           //vue.externalAfterLoad(data);
-          console.log(this.imageslist)
-          this.imageslist.unshift(inprocess)
+          this.imageslist.unshift(inprocess);
+          this.placeholders = this.placeholders.filter(function(item) {
+            return item !== inprocess['title']
+          })
+          this.inprocess = this.inprocess.filter(function(item) {
+            return item['actionname'] !== inprocess['actionname']
+          })
           //console.log(this.imageslist)
-        } else {
-          // const interval = setInterval(function(){
-          //   checkStatus(start)
-          //   start += 1
-          // }, 40000);
-          newinprocess.push(inprocess)
-          console.log('else')
-        }
+        } 
       }
       var vue = this;
       if (newinprocess.length > 0){
         setTimeout(function() {
           vue.inprocess = []
-          vue.inprocess = newinprocess;
-          console.log("Good Night!");
+          vue.inprocess = vue.inprocess;
         }, 100000);
       }
     },
@@ -328,6 +335,8 @@ const annoview = Vue.component('annoview', {
   },
   created(){
     this.parseExisting();
+    this.inprocess = this.inprocessdata;
+    this.placeholders= this.inprocess.map(elem => elem['title']);
   },
   mounted() {
     if (this.existing.settings && this.existing.settings.widgets){
@@ -502,13 +511,14 @@ const annoview = Vue.component('annoview', {
             if (data['output'] == true && type != 'createimage') {
               vue.externalAfterLoad(data);
             } else {
+              const title = form_data.get("label");
+              vue.imageslist = vue.imageslist.filter(function(item) {
+                return item['title'] !== title
+              })
+              vue.placeholders.unshift(title)
               document.getElementById('spinner').style.display = 'none';              
-              document.getElementById('upload-form').innerHTML = `<h2>Upload Success!</h2>
-              It can take a while for your Image and/or Images to process. 
-              When the images have successfully processed they will be added to the "My Images" section on the homepage. 
-              You can also track progress of all uploads on the <a href="/profile/?tab=status">Status tab.</a>
-              `;
-              vue.inprocess = vue.inprocess.concat(data['inprocess'])
+              vue.uploadsuccess = true;
+              vue.inprocess.push(data['inprocess'].slice(-1)[0]);      
             }
           }, error: function(err) { 
             console.log(err)
