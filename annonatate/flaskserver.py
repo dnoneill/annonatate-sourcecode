@@ -276,7 +276,7 @@ def createimage():
     if 'returnjson' in request.form.keys():
         manifestdict = {'added': request_form['added'],
             'output': output,
-            'url': uploadurl, 'iiif': True, 'upload': True,
+            'url': uploadurl, 'iiif': True,
             'inprocess': session['inprocess']}
         if not image.isimage:
             manifestdict['json'] = image.manifest
@@ -289,7 +289,7 @@ def createimage():
 
 def successtext(uploadurl, uploadtype, actionname='', metadata=''):
     if uploadurl:
-        uploaddict = {'url': uploadurl, 'uploadtype': uploadtype, 'actionname': actionname }
+        uploaddict = {'url': uploadurl, 'uploadtype': uploadtype, 'actionname': actionname, 'upload': True }
         if metadata:
             metadata['thumbnail'] = uploadurl.replace('manifest.json', '{}/full/full/0/default.jpg'.format(metadata['thumbnail']))
             uploaddict.update(metadata)

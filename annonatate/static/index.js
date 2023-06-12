@@ -82,6 +82,8 @@ const annoview = Vue.component('annoview', {
           When the images have successfully processed they will be added to the "My Images" section on the homepage. 
           You can also track progress of all uploads on the <a href="/profile/?tab=status">Status tab.</a>
         </div>
+        <br>
+        <div><a v-on:click="uploadsuccess=false">Upload another image</a></div>
       </div>
       <div v-else-if="modalView == 'external'">
         <div v-if="modalerror" v-html="modalerror" class="error"></div>
@@ -292,14 +294,19 @@ const annoview = Vue.component('annoview', {
       this.modalerror = '';
     },
     inprocess: function() {
-      console.log(this.inprocess)
       const newinprocess = []
       for (var ip=0; ip<this.inprocess.length; ip++){
         const inprocess = this.inprocess[ip];
         var isready = UrlExists(`/uploadstatus?url=${inprocess['url']}&isprofile=true&checknum=${inprocess['checknum']}&uploadtype=${inprocess['uploadtype']}&actionname=${inprocess['actionname']}`);
         if (isready['status']) {
           //vue.externalAfterLoad(data);
-          this.imageslist.unshift(inprocess);
+          const checknew = this.imageslist.slice(this.imageslist.length).map(elem => elem['title'])
+          if (checknew.indexOf(inprocess['title']) == -1){
+            this.imageslist = this.imageslist.filter(function(item) {
+              return item['title'] !== inprocess['title']
+            })
+            this.imageslist.unshift(inprocess);
+          }
           this.placeholders = this.placeholders.filter(function(item) {
             return item !== inprocess['title']
           })
@@ -307,13 +314,14 @@ const annoview = Vue.component('annoview', {
             return item['actionname'] !== inprocess['actionname']
           })
           //console.log(this.imageslist)
-        } 
+        }
       }
       var vue = this;
-      if (newinprocess.length > 0){
+      if (vue.inprocess.length > 0){
         setTimeout(function() {
+          const inprocess = vue.inprocess;
           vue.inprocess = []
-          vue.inprocess = vue.inprocess;
+          vue.inprocess = inprocess;
         }, 100000);
       }
     },
@@ -336,7 +344,7 @@ const annoview = Vue.component('annoview', {
   created(){
     this.parseExisting();
     this.inprocess = this.inprocessdata;
-    this.placeholders= this.inprocess.map(elem => elem['title']);
+    this.placeholders=this.inprocess.map(elem => elem['title']);
   },
   mounted() {
     if (this.existing.settings && this.existing.settings.widgets){
