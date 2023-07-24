@@ -652,7 +652,7 @@ const annoview = Vue.component('annoview', {
       for (var i=0; i<manifestdata.length; i++){
         var tiles = [];
         var manifesthumb = m.getThumbnail();
-        var size = manifesthumb && manifesthumb.id && manifesthumb.id.indexOf('full') > -1 && manifesthumb.id.indexOf('full/full') == -1 && manifesthumb.id.indexOf('full/max') == -1 ? manifesthumb.id.split('full/').slice(-1)[0].split('0/')[0] : '100,'
+        var size = manifesthumb && manifesthumb.id && manifesthumb.id.indexOf('full') > -1 && manifesthumb.id.indexOf('full/full') == -1 && manifesthumb.id.indexOf('full/max') == -1 ? manifesthumb.id.split('full/').slice(-1)[0].split('/0')[0] : '100,'
         var canvas = manifestdata[i].id;
         var thumb = manifestdata[i].getThumbnail();
         thumb ? thumb = this.getId(thumb['__jsonld']) : ''
