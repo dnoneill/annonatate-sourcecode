@@ -46,6 +46,7 @@ headerinfo = {}
 headerinfo['title']= manifestlabel
 headerinfo['added']= '''replacewithadded'''
 headerinfo['thumbnail'] = manifest.items[0].thumbnail[0].id
+headerinfo['user'] = '''replacewithuser'''
 filecontents = open(manifestpath).read()
 with open(manifestpath, 'w') as f:
     f.write('''---\n{}---\n'''.format(yaml.dump(headerinfo)))

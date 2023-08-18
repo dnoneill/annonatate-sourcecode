@@ -17,6 +17,7 @@
 {% for key, allviews in session['annocustomviews'].items() %}
 {% if key %}
 {% for view in allviews %}
+{% set user = view['user'] if view is mapping else '' %}
 <div class="customview">
 {% if 'filename' in view %}
 {% if 'slug' not in view %}
@@ -27,7 +28,7 @@
 {{view['slug']}} is still rendering
 </div>
 {% endif %}
-{% with file=view['filename'], next=request.path %}
+{% with file=view['filename'], user=user, next=request.path %}
 {% include 'deletebutton.html' %}
 {% endwith %}
 {% if 'slug' not in view %}
@@ -69,7 +70,7 @@
 {% else %}
 {% set customviewurl =  view.replace('.html', '') %}
 <a href="{{customviewurl}}" target="_blank">{{customviewurl}}</a>
-{% with file=view, next=request.path %}
+{% with file=view, user='', next=request.path %}
 {% include 'deletebutton.html' %}
 {% endwith %}
 <iframe src="{{customviewurl}}" id="{{customviewurl}}" style="height: 660px; width: 100%;"></iframe>
