@@ -39,13 +39,15 @@
         <a href="/profile"><i class="fas fa-exchange-alt"></i>
           Switch Workspace</a>
         <a href="/profile/?tab=workspaces"><i class="fas fa-plus"></i> Create New Workspace</a>
+        {% if session['isadmin'] %}
         <a href="/profile/?tab=workspaces#renameworkspace">
           <i class="fas fa-pen-alt"></i> Update Workspace Name</a>
-        {% if session['isadmin'] %}
         <a href="/profile/?tab=profile#invite">
           <i class="fas fa-paper-plane"></i> Invite Collaborators</a>
         {% endif %}
+        {% if session['permissions'] != 'read' %}
         <a href="/profile/?tab=data"><i class="fas fa-cog"></i> Workspace Settings</a>
+        {% endif %}
         <a href="/profile/?tab=uploads"><i class="fas fa-upload"></i> Uploads</a>
         <a href="{{session['currentworkspace']['html_url']}}" target="_blank"><i class="fab fa-github"></i> View files</a>
         <a href="/logout"><i class="fas fa-sign-out-alt"></i> Logout</a>

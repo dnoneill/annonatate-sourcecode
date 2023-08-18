@@ -1105,8 +1105,9 @@ def get_tabs(viewtype):
     elif viewtype == 'profile':
         tabs = [{ 'value': 'profile', 'label': 'Workspaces'},
             { 'value': 'workspaces', 'label': 'Edit Workspaces'},
-            { 'value': 'data', 'label': 'Settings'},
             { 'value': 'uploads', 'label': 'Uploaded content'}]
+        if session['permissions'] != 'read':
+            tabs.insert(2,{ 'value': 'data', 'label': 'Settings'})
         if 'inprocess' in session.keys() and len(session['inprocess']) > 0:
             tabs.insert(0, {'value': 'status', 'label': 'Upload Status'})
     return tabs

@@ -48,6 +48,7 @@
     </fieldset>
 </form>
 
+{% if session['isadmin'] %}
 <h2 id="renameexisting">Rename workspace</h2>
 {% if renameerror %}
     <i class="fas fa-exclamation-triangle"></i> {{renameerror}}
@@ -61,5 +62,5 @@
       <button name="button" type="submit" value="submit">Submit</button>
     </fieldset>
 </form>
-
+{% endif %}
 </div>
