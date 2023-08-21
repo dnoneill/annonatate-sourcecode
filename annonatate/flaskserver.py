@@ -1039,7 +1039,7 @@ def origin_contents():
         content = json.loads(response.content.decode('utf-8').replace('&lt;', '<').replace('&gt;', '>'))
     except Exception as e:
         print(e)
-        content = {'annotations': [], 'images': [], 'customviews': [], 'collections': []}
+        content = {'annotations': [], 'images': [], 'customviews': [], 'collections': [], 'manifests': []}
         triggerbuild()
         try:
             preloads = github.raw_request('get', session['currentworkspace']['contents_url'].replace('/{+path}', '_data/preload.yml'))
