@@ -963,7 +963,7 @@ def getannotations():
                     session['preloaded'][preloadkey] = getSettings(content['preloadedcontent'][preloadkey])
         if 'version' not in content['preloadedcontent'].keys() or content['preloadedcontent']['version'] != currentversion:
             updateindex()
-            if session['preloaded']['manifests']:
+            if 'manifests' in session['preloaded'].keys():
                 session['preloaded']['images'] += session['preloaded']['manifests']
                 del session['preloaded']['manifests']
             session['preloaded']['version'] = currentversion
@@ -1047,7 +1047,7 @@ def origin_contents():
                 yamlcontents = github.decodeContent(preloads.json()['content'])
                 content['preloadedcontent'] = yaml.load(yamlcontents, Loader=yaml.FullLoader)
             else:
-                content['preloadedcontent'] =  {'images': [], 'settings': {'tempuser': 'notenabled', 'viewer': 'default', 'widgets': 'comment-with-purpose, tag, geotagging'}}
+                content['preloadedcontent'] =  {'images': [],'manifests':[], 'settings': getSettings(None)}
         except Exception as e:
             print(e)
     return content, response.status_code
