@@ -512,17 +512,6 @@ def updateworkspace(workspace):
     session['defaults'] = getDefaults()
     populateworkspace()
 
-# Add collaborator to the GitHub workspace
-@app.route('/add_collaborator', methods=['POST'])
-def add_collaborator():
-    username = request.form['username']
-    permission = request.form['permission']
-    contributorurl = session['currentworkspace']['collaborators_url'].split('{')[0] + '/' + username
-    params = {'permission': permission}
-    response = github.raw_request('put', contributorurl, params=params)
-    next_url = request.args.get('next') or url_for('index')
-    return redirect('/profile/')
-
 # Create annotations via Annotorious
 @app.route('/create_annotations/', methods=['POST'])
 def create_anno():
@@ -740,6 +729,7 @@ def updatedata():
     jsondata['images'] = checkManUrls(jsondata['images'])
     if request.form and 'addurl' in request.form.keys():
         jsondata['images'][0]['added'] = str(datetime.now())
+        jsondata['images'][0]['user'] = session['user_name']
     yamldata = yaml.dump(jsondata)
     github.sendgithubrequest(session, 'preload.yml', yamldata, '_data')
     session['preloaded'] = jsondata
@@ -752,7 +742,7 @@ def updatedata():
 def checkManUrls(data):
     returndata = []
     for man in data:
-        if type(man) == str and man != '':
+        if type(man) == str and man != '' and man != None:
             imagetypes = ['jpg', 'jpeg', 'png', 'gif', 'tif', 'tiff']
             if man.rsplit('.', 1)[-1] not in imagetypes:
                 r = requests.get(man)
@@ -767,7 +757,7 @@ def checkManUrls(data):
             else:
                 mandict = {'url': man, 'iiif': False, 'title': '', 'thumbnail': man}
                 returndata.append(mandict)
-        else:
+        elif man != '' and man != None:
             returndata.append(man)
     return returndata
 
@@ -958,13 +948,13 @@ def getannotations():
             item['canvas'] = getCanvas(item['json'])
         session['annotations'] = content['annotations']
         if 'preloadedcontent' in content.keys() and content['preloadedcontent'] == None:
-            content['preloadedcontent'] = {'manifests': [], 'images': [], 'settings': {}}
+            content['preloadedcontent'] = {'images': [], 'settings': getSettings(None)}
         if 'preloadedcontent' not in content.keys():
             updateindex()
-            session['preloaded'] = {'manifests': content['manifests'], 'images': content['images'], 'settings': {}}
+            content['preloadedcontent'] = {'manifests': content['manifests'], 'images': content['images'], 'settings': {}}
             session['upload'] = {'manifests': [], 'images' : []}
         parsecollections(content)
-        session['preloaded'] = {'manifests': [], 'images': [], 'settings': getSettings(None)}
+        session['preloaded'] = {'images': [], 'settings': getSettings(None)}
         for preloadkey in content['preloadedcontent']:
             if content['preloadedcontent'][preloadkey]:
                 if preloadkey != 'settings':
@@ -973,8 +963,8 @@ def getannotations():
                     session['preloaded'][preloadkey] = getSettings(content['preloadedcontent'][preloadkey])
         if 'version' not in content['preloadedcontent'].keys() or content['preloadedcontent']['version'] != currentversion:
             updateindex()
-            session['preloaded']['images'] += session['preloaded']['manifests']
-            del session['preloaded']['manifests']
+            if content['preloadedcontent']['manifests']:
+                session['preloaded']['images'] += content['preloadedcontent']['manifests']
             session['preloaded']['version'] = currentversion
             updatedata()
         checkTempUser(session['preloaded'])
@@ -1124,8 +1114,10 @@ def search_params(facet, value):
 def parse_permissions(permissiondict=None):
     permissioninfo = permissiondict['permissions'] if permissiondict else session['currentworkspace']['permissions']
     permissions = 'read'
-    if permissioninfo['admin'] or permissioninfo['maintain']:
+    if permissioninfo['admin']:
         permissions = 'admin'
+    elif permissioninfo['maintain']:
+        permissions = 'maintain'
     elif permissioninfo['push']:
         permissions = 'write'
     if permissiondict is None:
@@ -1210,26 +1202,33 @@ app.jinja_env.filters['listfilename'] = listfilename
 
 # Check to see if the user has access to the current workspace, check by querying the collaborator url
 def workspaceCheck(method=False):
-    collaburl = session['currentworkspace']['collaborators_url'].split('{')[0]
-    response = github.raw_request('get', collaburl)
-    if response.status_code > 299 and response.status_code != 403:
+    if session['currentworkspace']['full_name'] not in session['workspaces'].keys():
         prevsession = session['currentworkspace']
-        if 'bad credentials' in response.json()['message'].lower():
-            clearSession()
-            return redirect('/login')
-        elif method == 'POST':
-            return 'problem'
-        else:
-            clearSession('user_')
+        clearSession('user_')
         buildWorkspaces()
         getContents()
         g.error = '<i class="fas fa-exclamation-triangle"></i> You have lost access to {}, we have updated your workspace to {}'.format(prevsession['full_name'], session['currentworkspace']['full_name'])
-    elif response.status_code == 403:
-        session['currentworkspace']['permissions'] = {'admin': False, 'maintain': False, 'push': False, 'triage': False, 'pull': True}
-        parse_permissions()
     else:
-        try:
-            session['currentworkspace']['permissions'] = list(filter(lambda x: x['login'] == session['user_name'], response.json()))[0]['permissions']
-        except Exception as e:
-            print(e)
-        session['currentworkspace']['numbcollabs'] = len(response.json())
+        collaburl = session['currentworkspace']['collaborators_url'].split('{')[0]
+        response = github.raw_request('get', collaburl)
+        if response.status_code > 299 and response.status_code != 403:
+            prevsession = session['currentworkspace']
+            if 'bad credentials' in response.json()['message'].lower():
+                clearSession()
+                return redirect('/login')
+            elif method == 'POST':
+                return 'problem'
+            else:
+                clearSession('user_')
+            buildWorkspaces()
+            getContents()
+            g.error = '<i class="fas fa-exclamation-triangle"></i> You have lost access to {}, we have updated your workspace to {}'.format(prevsession['full_name'], session['currentworkspace']['full_name'])
+        elif response.status_code == 403:
+            session['currentworkspace']['permissions'] = {'admin': False, 'maintain': False, 'push': False, 'triage': False, 'pull': True}
+        else:
+            try:
+                session['currentworkspace']['permissions'] = list(filter(lambda x: x['login'] == session['user_name'], response.json()))[0]['permissions']
+            except Exception as e:
+                print(e)
+            session['currentworkspace']['numbcollabs'] = len(response.json())
+    parse_permissions()

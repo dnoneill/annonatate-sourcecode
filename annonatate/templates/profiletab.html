@@ -66,13 +66,14 @@
                 {% for collaborator in collaborators %}
                 <div style="display: block;">
                     {% set selected = collaborator| parse_permissions %}
+                    {% set login = collaborator['login'] %}
                     <img src="{{collaborator['avatar_url']}}"  alt="github user icon for {{collaborator['login']}}" class="githubicon" style="height: 100px"/>
                     <a href="{{collaborator['html_url']}}" target="_blank">
-                        {{collaborator['login']}}</a>
+                        {{login}}</a>
                         {% if value['permissions']['admin'] and collaborator['login'] != session['currentworkspace']['owner']['login'] and session['currentworkspace']['owner']['type'] == 'Organization' %}
-                        <form onchange="return confirm(`Do you really want to change {{collaborator['login']}} to ${this.id}?`);" action="{{ url_for('updatecollaborator', next=request.path) }}" method="post" style="display: inline-block;">
-                        <select onchange="this.form.submit()" name="permission">
-                            <option id="admin" value="maintain" {% if selected == 'admin' %} selected {% endif %}>
+                        <form action="{{ url_for('updatecollaborator', next=request.path) }}" method="post" style="display: inline-block;">
+                        <select onchange="checkUpdate('{{login}}', this)" name="permission">
+                            <option id="admin" value="admin" {% if selected == 'admin' %} selected {% endif %}>
                                 Admin</option>
                             <option id="write" value="push" {% if  selected == 'write' %} selected {% endif %}>
                                     Read/Write</option>
@@ -105,11 +106,11 @@
         
     {% if session['isadmin'] %}
     <h2 id="invite">Invite collaborators to {{session['currentworkspace']['full_name']}}</h2>
-    <form action="{{ url_for('add_collaborator') }}" method="post">
+    <form action="{{ url_for('updatecollaborator', next=request.path) }}" method="post">
         <fieldset>
         <legend>Collaborator</legend>
-        <div><label for="username">GitHub Username:</label>
-            <input name="username" id="username"/></div>
+        <div><label for="user">GitHub Username:</label>
+            <input name="user" id="user"/></div>
         {% if session['currentworkspace']['owner']['type'] == 'Organization' %}
         <div>
         <input type="radio" id="pull" name="permission" value="pull">
@@ -117,7 +118,7 @@
           <input type="radio" id="push" name="permission" value="push" checked>
           <label for="push">Read/Write</label><br>
           <input type="radio" id="admin" name="permission" value="maintain">
-          <label for="maintain">Admin</label>
+          <label for="admin">Admin</label>
           <button name="button" type="submit" value="submit">Submit</button>
         </div>
         {% else %}
@@ -138,4 +139,18 @@
     {% endif %}
 </div>
 </div>
+<script>
+    function checkUpdate(collaborator, selecttag){
+        const check = confirm(`Do you really want to change ${collaborator} to ${selecttag.selectedOptions[0].id}?`);
+        if (check){
+            selecttag.form.submit();
+        } else {
+            const indexitem = {'admin': 0,'maintain': 1, 'write': 1, 'read': 2}
+            const collabs = JSON.parse('{{collaborators | tojson | safe}}');
+            collab = collabs.filter(elem => elem['login'] == collaborator);
+            const permission = collab[0]['role_name'];
+            selecttag.selectedIndex = indexitem[permission];
+        }
+    }
+</script>
 </div>
