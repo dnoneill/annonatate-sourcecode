@@ -963,8 +963,9 @@ def getannotations():
                     session['preloaded'][preloadkey] = getSettings(content['preloadedcontent'][preloadkey])
         if 'version' not in content['preloadedcontent'].keys() or content['preloadedcontent']['version'] != currentversion:
             updateindex()
-            if content['preloadedcontent']['manifests']:
-                session['preloaded']['images'] += content['preloadedcontent']['manifests']
+            if session['preloaded']['manifests']:
+                session['preloaded']['images'] += session['preloaded']['manifests']
+                del session['preloaded']['manifests']
             session['preloaded']['version'] = currentversion
             updatedata()
         checkTempUser(session['preloaded'])
@@ -1038,7 +1039,7 @@ def origin_contents():
         content = json.loads(response.content.decode('utf-8').replace('&lt;', '<').replace('&gt;', '>'))
     except Exception as e:
         print(e)
-        content = {'annotations': [], 'images': [], 'manifests': [], 'customviews': [], 'collections': []}
+        content = {'annotations': [], 'images': [], 'customviews': [], 'collections': []}
         triggerbuild()
         try:
             preloads = github.raw_request('get', session['currentworkspace']['contents_url'].replace('/{+path}', '_data/preload.yml'))
@@ -1046,7 +1047,7 @@ def origin_contents():
                 yamlcontents = github.decodeContent(preloads.json()['content'])
                 content['preloadedcontent'] = yaml.load(yamlcontents, Loader=yaml.FullLoader)
             else:
-                content['preloadedcontent'] =  {'images': [], 'manifests': [], 'settings': {'tempuser': 'notenabled', 'viewer': 'default', 'widgets': 'comment-with-purpose, tag, geotagging'}}
+                content['preloadedcontent'] =  {'images': [], 'settings': {'tempuser': 'notenabled', 'viewer': 'default', 'widgets': 'comment-with-purpose, tag, geotagging'}}
         except Exception as e:
             print(e)
     return content, response.status_code
