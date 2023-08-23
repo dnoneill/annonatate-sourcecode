@@ -8,7 +8,7 @@ from werkzeug.datastructures import FileStorage, ImmutableMultiDict
 
 class TestManifest(unittest.TestCase):
    def setUp(self):
-      self.request_form = ImmutableMultiDict({'upload': 'test/testdata/manifest.json', 'added': '2022-01-20'})
+      self.request_form = ImmutableMultiDict({'upload': 'test/testdata/manifest.json', 'added': '2022-01-20', 'user': 'testuser'})
       with patch('requests.get') as mock_request:
          url = self.request_form['upload']
          mock_request.return_value.status_code = 200
@@ -25,7 +25,7 @@ class TestManifest(unittest.TestCase):
 
 class TestImageDefault(unittest.TestCase):
    def setUp(self):
-      self.request_form = ImmutableMultiDict({'upload': 'uploadimage', 'added': '2022-01-20', 'version': 'v3', 'label': 'This is the label', 'direction': 'left-to-right', 'description': 'This is the description: with colon', 'rights': 'This is the rights', 'language': ''})
+      self.request_form = ImmutableMultiDict({'upload': 'uploadimage', 'added': '2022-01-20', 'user': 'testuser', 'version': 'v3', 'label': 'This is the label', 'direction': 'left-to-right', 'description': 'This is the description: with colon', 'rights': 'This is the rights', 'language': ''})
       self.request_files = []
       self.request_files.append(("file", FileStorage(io.BytesIO(b'my file contents'), 'filename.jpg')))
       self.request_files.append(("file", FileStorage(io.BytesIO(b'my file contents'), 'filename2.png')))
@@ -48,7 +48,7 @@ class TestImageDefault(unittest.TestCase):
 
 class TestImageV2(unittest.TestCase):
    def setUp(self):
-      self.request_form = ImmutableMultiDict({'upload': 'uploadimage', 'added': '2022-01-20', 'version': 'v2', 'label': 'This is the label', 'direction': 'left-to-right', 'description': 'This is the description', 'rights': 'This is the rights', 'language': ''})
+      self.request_form = ImmutableMultiDict({'upload': 'uploadimage', 'added': '2022-01-20', 'user': 'testuser', 'version': 'v2', 'label': 'This is the label', 'direction': 'left-to-right', 'description': 'This is the description', 'rights': 'This is the rights', 'language': ''})
       self.request_files = []
       self.request_files.append(("file", FileStorage(io.BytesIO(b'my file contents'), 'filename.jpg')))
       self.request_files.append(("file", FileStorage(io.BytesIO(b'my file contents'), 'filename2.png')))

@@ -207,12 +207,16 @@ def renameGitHub():
     return redirect('/profile')
 
 # Remove collaborator from workspace
-@app.route('/removecollaborator', methods=['POST'])
-def removecollaborator():
+@app.route('/updatecollaborator', methods=['POST'])
+def updatecollaborator():
     collaburl = session['currentworkspace']['collaborators_url'].split('{')[0]
     user = request.form['user']
+    permission = request.form['permission']
     collaburl += '/{}'.format(user)
-    response = github.raw_request('DELETE', collaburl)
+    if permission == 'remove':
+        response = github.raw_request('DELETE', collaburl)
+    else:
+        response = github.raw_request('PUT', collaburl, data=json.dumps({"permission":permission}))
     next_url = request.args.get('next') or url_for('index')
     if response.status_code > 299:
         next_url += '?error={}'.format(parseGitHubErrors(response.json()))
@@ -240,6 +244,7 @@ def uploadvocab():
 def createimage():
     request_form = request.form.to_dict()
     request_form['added'] = str(datetime.now())
+    request_form['user'] = session['user_name']
     image = Image(request_form, request.files, session['origin_url'])
     successmessage = ''
     uploadurl = ''
@@ -274,7 +279,9 @@ def createimage():
         triggerAction(ymlname)
     #triggerbuild()
     if 'returnjson' in request.form.keys():
-        manifestdict = {'added': request_form['added'], 'json': image.manifest, 'output': output, 'url': uploadurl, 'iiif': True, 'upload': True, 'title': image.title, 'thumbnail': image.thumbnail}
+        manifestdict = {'added': request_form['added'], 'json': image.manifest, 
+        'output': output, 'url': uploadurl, 'iiif': True, 'upload': True, 
+        'title': image.title, 'thumbnail': image.thumbnail, 'user': request_form['user']}
         session['upload']['manifests'].insert(0, manifestdict)
         return jsonify(manifestdict), 200
     else:
@@ -427,7 +434,7 @@ def index():
                 labelonlyvocab = [item['label'] if type(item) == dict else item for item in session['preloaded']['vocab']]
             vocabtags = arraydata['tags'] if 'vocab' not in session['preloaded'].keys() else session['preloaded']['vocab'] + list(filter(lambda tag: tag not in labelonlyvocab, arraydata['tags']))
             userid =  session['user_id'] if 'tempuser' not in session.keys() else session['user_name']
-            return render_template('index.html', existingitems=existing, filepaths=arraydata['contents'], tags=vocabtags, userinfo={'name': session['user_name'], 'id': userid})
+            return render_template('index.html', existingitems=existing, filepaths=arraydata['contents'], tags=vocabtags, userinfo={'name': session['user_name'], 'id': userid, 'permissions': session['permissions']})
         except Exception as e:
            return errorchecking(request, e)
 
@@ -505,17 +512,6 @@ def updateworkspace(workspace):
     session['defaults'] = getDefaults()
     populateworkspace()
 
-# Add collaborator to the GitHub workspace
-@app.route('/add_collaborator', methods=['POST'])
-def add_collaborator():
-    username = request.form['username']
-    permission = request.form['permission']
-    contributorurl = session['currentworkspace']['collaborators_url'].split('{')[0] + '/' + username
-    params = {'permission': permission}
-    response = github.raw_request('put', contributorurl, params=params)
-    next_url = request.args.get('next') or url_for('index')
-    return redirect('/profile/')
-
 # Create annotations via Annotorious
 @app.route('/create_annotations/', methods=['POST'])
 def create_anno():
@@ -561,13 +557,19 @@ def delete_anno():
 # Get repository invites, collaborators, user info/organizations, render profile page
 @app.route('/profile/')
 def getprofiledata():
+    sent_invites = []
     tabs = get_tabs('profile')
     invites = github.get('{}/repository_invitations'.format(githubuserapi))
+    if session['isadmin']:
+        sent_invites = github.get('{}/invitations'.format(session['currentworkspace']['url']))
     collaburl = session['currentworkspace']['collaborators_url'].split('{')[0]
-    collaborators = github.get(collaburl)
+    try:
+        collaborators = github.get(collaburl)
+    except:
+        collaborators = []
     populateuserinfo()
     orgs()
-    return render_template('profile.html', userinfo={'name':session['user_name']}, invites=invites, collaborators=collaborators, tabs=tabs)
+    return render_template('profile.html', userinfo={'name':session['user_name']}, invites=invites, sent_invites=sent_invites, collaborators=collaborators, tabs=tabs, revoke_url='https://github.com/settings/connections/applications/{}'.format(client_id))
 
 # get list of orgs user belongs to
 def orgs():
@@ -629,10 +631,11 @@ def getActions():
     session['actions'] = runs['workflow_runs']
 
 # Route for accepting invitations to repositories
-@app.route('/acceptinvite/', methods=['POST'])
-def acceptinvite():
+@app.route('/invite/<string:type>', methods=['POST'])
+def invites(type):
     inviteurl = request.form['inviteurl']
-    response = github.raw_request('patch', inviteurl)
+    requesttype = 'patch' if type == 'accept' else 'delete'
+    response = github.raw_request(requesttype, inviteurl)
     populateuserinfo()
     return redirect('/profile')
 
@@ -726,6 +729,7 @@ def updatedata():
     jsondata['images'] = checkManUrls(jsondata['images'])
     if request.form and 'addurl' in request.form.keys():
         jsondata['images'][0]['added'] = str(datetime.now())
+        jsondata['images'][0]['user'] = session['user_name']
     yamldata = yaml.dump(jsondata)
     github.sendgithubrequest(session, 'preload.yml', yamldata, '_data')
     session['preloaded'] = jsondata
@@ -738,7 +742,7 @@ def updatedata():
 def checkManUrls(data):
     returndata = []
     for man in data:
-        if type(man) == str and man != '':
+        if type(man) == str and man != '' and man != None:
             imagetypes = ['jpg', 'jpeg', 'png', 'gif', 'tif', 'tiff']
             if man.rsplit('.', 1)[-1] not in imagetypes:
                 r = requests.get(man)
@@ -753,7 +757,7 @@ def checkManUrls(data):
             else:
                 mandict = {'url': man, 'iiif': False, 'title': '', 'thumbnail': man}
                 returndata.append(mandict)
-        else:
+        elif man != '' and man != None:
             returndata.append(man)
     return returndata
 
@@ -914,7 +918,7 @@ def populateworkspace():
     try:
         pagesinfo = github.get('{}/pages'.format(session['currentworkspace']['url']))
         session['origin_url'] = pagesinfo['html_url']
-        session['isadmin'] = session['currentworkspace']['permissions']['admin']
+        parse_permissions()
     except:
         return render_template('error.html', message="<p>There is a problem with your GitHub pages site. Try <a href='https://docs.github.com/en/github/working-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site'>enabling the website</a> or deleting/renaming the repository <a href='{}/settings'>{}/settings</a></p>".format(session['currentworkspace']['html_url'], session['currentworkspace']['html_url']))
 
@@ -944,13 +948,13 @@ def getannotations():
             item['canvas'] = getCanvas(item['json'])
         session['annotations'] = content['annotations']
         if 'preloadedcontent' in content.keys() and content['preloadedcontent'] == None:
-            content['preloadedcontent'] = {'manifests': [], 'images': [], 'settings': {}}
+            content['preloadedcontent'] = {'images': [], 'settings': getSettings(None)}
         if 'preloadedcontent' not in content.keys():
             updateindex()
-            session['preloaded'] = {'manifests': content['manifests'], 'images': content['images'], 'settings': {}}
+            content['preloadedcontent'] = {'manifests': content['manifests'], 'images': content['images'], 'settings': {}}
             session['upload'] = {'manifests': [], 'images' : []}
         parsecollections(content)
-        session['preloaded'] = {'manifests': [], 'images': [], 'settings': getSettings(None)}
+        session['preloaded'] = {'images': [], 'settings': getSettings(None)}
         for preloadkey in content['preloadedcontent']:
             if content['preloadedcontent'][preloadkey]:
                 if preloadkey != 'settings':
@@ -959,8 +963,9 @@ def getannotations():
                     session['preloaded'][preloadkey] = getSettings(content['preloadedcontent'][preloadkey])
         if 'version' not in content['preloadedcontent'].keys() or content['preloadedcontent']['version'] != currentversion:
             updateindex()
-            session['preloaded']['images'] += session['preloaded']['manifests']
-            del session['preloaded']['manifests']
+            if 'manifests' in session['preloaded'].keys():
+                session['preloaded']['images'] += session['preloaded']['manifests']
+                del session['preloaded']['manifests']
             session['preloaded']['version'] = currentversion
             updatedata()
         checkTempUser(session['preloaded'])
@@ -1034,7 +1039,7 @@ def origin_contents():
         content = json.loads(response.content.decode('utf-8').replace('&lt;', '<').replace('&gt;', '>'))
     except Exception as e:
         print(e)
-        content = {'annotations': [], 'images': [], 'manifests': [], 'customviews': [], 'collections': []}
+        content = {'annotations': [], 'images': [], 'customviews': [], 'collections': [], 'manifests': []}
         triggerbuild()
         try:
             preloads = github.raw_request('get', session['currentworkspace']['contents_url'].replace('/{+path}', '_data/preload.yml'))
@@ -1042,7 +1047,7 @@ def origin_contents():
                 yamlcontents = github.decodeContent(preloads.json()['content'])
                 content['preloadedcontent'] = yaml.load(yamlcontents, Loader=yaml.FullLoader)
             else:
-                content['preloadedcontent'] =  {'images': [], 'manifests': [], 'settings': {'tempuser': 'notenabled', 'viewer': 'default', 'widgets': 'comment-with-purpose, tag, geotagging'}}
+                content['preloadedcontent'] =  {'images': [],'manifests':[], 'settings': getSettings(None)}
         except Exception as e:
             print(e)
     return content, response.status_code
@@ -1091,8 +1096,9 @@ def get_tabs(viewtype):
     elif viewtype == 'profile':
         tabs = [{ 'value': 'profile', 'label': 'Workspaces'},
             { 'value': 'workspaces', 'label': 'Edit Workspaces'},
-            { 'value': 'data', 'label': 'Settings'},
             { 'value': 'uploads', 'label': 'Uploaded content'}]
+        if session['permissions'] != 'read':
+            tabs.insert(2,{ 'value': 'data', 'label': 'Settings'})
         if 'inprocess' in session.keys() and len(session['inprocess']) > 0:
             tabs.insert(0, {'value': 'status', 'label': 'Upload Status'})
     return tabs
@@ -1105,6 +1111,35 @@ def search_params(facet, value):
     args = dict(request.args) if request.args else {'q': ''}
     args[facet] =value
     return args
+
+def parse_permissions(permissiondict=None):
+    permissioninfo = permissiondict['permissions'] if permissiondict else session['currentworkspace']['permissions']
+    permissions = 'read'
+    if permissioninfo['admin']:
+        permissions = 'admin'
+    elif permissioninfo['maintain']:
+        permissions = 'maintain'
+    elif permissioninfo['push']:
+        permissions = 'write'
+    if permissiondict is None:
+        session['isadmin'] = permissions == 'admin'
+        session['permissions'] = permissions
+    return permissions
+
+
+def getNav(session):
+    nav = [{'url': url_for('index'), 'label': 'Home'},
+    {'url': url_for('listannotations'), 'label': 'Annotations'},
+    {'url': url_for('search'), 'label': 'Search'},
+    {'url': url_for('customviews'), 'label': 'Custom views'},
+    {'url': url_for('collections'), 'label': 'Collections'}
+    ] 
+    if session['permissions'] != 'read':
+        nav.insert(3, {'url': url_for('upload'), 'label': 'Upload'})
+    return nav
+
+app.jinja_env.filters['getNav'] = getNav 
+app.jinja_env.filters['parse_permissions'] = parse_permissions  
 
 app.jinja_env.filters['search_params'] = search_params
 
@@ -1168,19 +1203,33 @@ app.jinja_env.filters['listfilename'] = listfilename
 
 # Check to see if the user has access to the current workspace, check by querying the collaborator url
 def workspaceCheck(method=False):
-    collaburl = session['currentworkspace']['collaborators_url'].split('{')[0]
-    response = github.raw_request('get', collaburl)
-    if response.status_code > 299:
+    if session['currentworkspace']['full_name'] not in session['workspaces'].keys():
         prevsession = session['currentworkspace']
-        if 'bad credentials' in response.json()['message'].lower():
-            clearSession()
-            return redirect('/login')
-        elif method == 'POST':
-            return 'problem'
-        else:
-            clearSession('user_')
+        clearSession('user_')
         buildWorkspaces()
         getContents()
         g.error = '<i class="fas fa-exclamation-triangle"></i> You have lost access to {}, we have updated your workspace to {}'.format(prevsession['full_name'], session['currentworkspace']['full_name'])
     else:
-        session['currentworkspace']['numbcollabs'] = len(response.json())
+        collaburl = session['currentworkspace']['collaborators_url'].split('{')[0]
+        response = github.raw_request('get', collaburl)
+        if response.status_code > 299 and response.status_code != 403:
+            prevsession = session['currentworkspace']
+            if 'bad credentials' in response.json()['message'].lower():
+                clearSession()
+                return redirect('/login')
+            elif method == 'POST':
+                return 'problem'
+            else:
+                clearSession('user_')
+            buildWorkspaces()
+            getContents()
+            g.error = '<i class="fas fa-exclamation-triangle"></i> You have lost access to {}, we have updated your workspace to {}'.format(prevsession['full_name'], session['currentworkspace']['full_name'])
+        elif response.status_code == 403:
+            session['currentworkspace']['permissions'] = {'admin': False, 'maintain': False, 'push': False, 'triage': False, 'pull': True}
+        else:
+            try:
+                session['currentworkspace']['permissions'] = list(filter(lambda x: x['login'] == session['user_name'], response.json()))[0]['permissions']
+            except Exception as e:
+                print(e)
+            session['currentworkspace']['numbcollabs'] = len(response.json())
+    parse_permissions()

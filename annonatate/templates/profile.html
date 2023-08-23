@@ -16,9 +16,11 @@
 	<div id="workspaces" class="tabcontent">
 	{% include 'profilenewworkspace.html' %}
 	</div>
+	{% if session['permissions'] != 'read' %}
 	<div id="data" class="tabcontent">
 		{% include 'profiledata.html' %}
 	</div>
+	{% endif %}
 	<div id="uploads" class="tabcontent">
 		{% include 'profileuploads.html' %}
 	</div>

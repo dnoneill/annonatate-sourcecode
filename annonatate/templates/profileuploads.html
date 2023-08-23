@@ -4,15 +4,24 @@
   {% for content in session['upload'][key] %}
   <div>
     {% set url = content['url'] if content is mapping else content %}
+    {% set id = content['title'] if content is mapping else content %}
+    {% set user = content['user'] if content is mapping else '' %}
     {% if content['thumbnail'] %}
-    <img style="height: 100px;" src="{{content['thumbnail']}}"/>
-    {% else %}
-    <a href="{{url}}">{{url}}</a>
+    <img style="height: auto; width: 90px" src="{{content['thumbnail']}}"/>
+    {% if 'title' in content.keys() %}
+    <figcaption class="dropbtn" onclick="dropdownToggle('drop{{url}}')" style="max-width: 90px;overflow-wrap:break-word;">
+      {{content['title']}} <i class="fas fa-ellipsis-v"></i>
+    </figcaption>
     {% endif %}
-    {% with file=content|tojson_pretty, next='/profile?tab=uploads' %}
+    {% else %}
+    <a href="{{url}}">{{url}}</a> <i class="fas fa-ellipsis-v dropbtn" onclick="dropdownToggle('drop{{url}}')"></i>
+    {% endif %}
+    <div class="dropdown-content uploads" id="drop{{url}}">
+    {% with file=content|tojson_pretty, user=user, next='/profile?tab=uploads' %}
     {% include 'deletebutton.html' %}
     {% endwith %}
     <a href="{{url_for('index', manifesturl=url) }}" class="button" style="padding: 5px 7px;">Annotate</a>
+    </div>
     </div>
 {% endfor %}
 </div>
