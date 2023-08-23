@@ -562,10 +562,9 @@ def getprofiledata():
     invites = github.get('{}/repository_invitations'.format(githubuserapi))
     if session['isadmin']:
         sent_invites = github.get('{}/invitations'.format(session['currentworkspace']['url']))
-    collaburl = session['currentworkspace']['collaborators_url'].split('{')[0]
-    try:
+        collaburl = session['currentworkspace']['collaborators_url'].split('{')[0]
         collaborators = github.get(collaburl)
-    except:
+    else:
         collaborators = []
     populateuserinfo()
     orgs()
@@ -702,7 +701,7 @@ def saveannonaview():
                 session['annocustomviews'][annourl].append({'slug': jsonitems['slug'], 'filename': fileurl})
         elif annourl:
             session['annocustomviews'][annourl] = [{'slug': jsonitems['slug'], 'filename': fileurl}]
-    return jsonify(response.content), response.status_code
+    return jsonify(response.json()), response.status_code
 
 # Update preloaded manifests and images
 @app.route('/updatedata', methods=['POST'])
