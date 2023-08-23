@@ -562,10 +562,9 @@ def getprofiledata():
     invites = github.get('{}/repository_invitations'.format(githubuserapi))
     if session['isadmin']:
         sent_invites = github.get('{}/invitations'.format(session['currentworkspace']['url']))
-    collaburl = session['currentworkspace']['collaborators_url'].split('{')[0]
-    try:
+        collaburl = session['currentworkspace']['collaborators_url'].split('{')[0]
         collaborators = github.get(collaburl)
-    except:
+    else:
         collaborators = []
     populateuserinfo()
     orgs()
