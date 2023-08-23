@@ -701,7 +701,7 @@ def saveannonaview():
                 session['annocustomviews'][annourl].append({'slug': jsonitems['slug'], 'filename': fileurl})
         elif annourl:
             session['annocustomviews'][annourl] = [{'slug': jsonitems['slug'], 'filename': fileurl}]
-    return jsonify(response.content), response.status_code
+    return jsonify(response.json()), response.status_code
 
 # Update preloaded manifests and images
 @app.route('/updatedata', methods=['POST'])
