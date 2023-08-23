@@ -25,7 +25,7 @@ class Image:
             self.manifest = self.createmanifest()
             self.thumbnail, self.title = getThumbnailTitle(self.manifest)
             if type(self.manifest) != dict: # manifest creation failed
-                manifestdata = yaml.dump({"thumbnail": self.thumbnail, "title": self.title, "added": self.request_form['added']})
+                manifestdata = yaml.dump({"thumbnail": self.thumbnail, "title": self.title, "added": self.request_form['added'], "user": self.request_form['user']})
                 self.manifest_markdown = "---\n{}\n---\n{}".format(manifestdata, self.manifest)
         else:
             # handle uploaded image
@@ -48,7 +48,7 @@ class Image:
             iiifscript = gf.read().replace('replacewithportion', iiifscript)
         iiifscript = iiifscript.replace('replacewithoriginurl', self.origin_url)
         iiifscript = iiifscript.replace('replacewithfilelist', str(filenamelist))
-        replacefields = ["label", "folder", "description", "rights", "language", "direction", "added"]
+        replacefields = ["label", "folder", "description", "rights", "language", "direction", "added", "user"]
         for field in replacefields:
             replacestring = "replacewith{}".format(field)
             formvalue = str(self.request_form[field]).replace(':', '&#58;')
@@ -69,6 +69,8 @@ class Image:
         return manifest
 
 def getThumbnailTitle(manifest):
+    label = ''
+    thumbnail = ''
     if type(manifest) == bytes:
         manifest = manifest.decode('utf-8')
     manifest = json.loads(manifest)
@@ -83,15 +85,15 @@ def getThumbnailTitle(manifest):
     except:
         try: 
             manifest = read_API3_json_dict(manifest)
+            label = manifest.label if type(manifest.label) != dict else [manifest.label]
             if fieldIsPresent(manifest.thumbnail):
                 thumbnail = manifest.thumbnail.id 
             else:
                 bodyfield = manifest.items[0].items[0].items[0].body
-                thumbnail = bodyfield[0]['id'] if type(bodyfield) == list else bodyfield.id
-            label = manifest.label if type(manifest.label) != dict else [manifest.label]
+                thumbnail = bodyfield[0]['id'] if type(bodyfield) == list else bodyfield['id']
             return thumbnail, label
-        except:
-            return '', ''
+        except Exception as e:
+            return thumbnail, label
 
 def fieldIsPresent(field):
     try:

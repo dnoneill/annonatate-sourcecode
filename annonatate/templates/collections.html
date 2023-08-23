@@ -19,12 +19,14 @@ collection displayed in a custom view is shown in this link.
 
 <div class="gridparent">
 {% for (key, collection) in collections.items() %}
+{% set user = collection['user'] if collection is mapping else '' %}
+
 {% set githuburl = collectionurl + '/' + key | urlencode + '.json' %}
 <div class="collection">
 
 <div>
 <b>Collection: <a href="{{key}}" target="_blank">{{key}}</a></b>
-{% with file=githuburl, next='/collections' %}
+{% with file=githuburl,user=user, next='/collections' %}
 {% include 'deletebutton.html' %}
 {% endwith %}
 </div>

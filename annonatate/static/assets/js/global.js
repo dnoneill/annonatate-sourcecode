@@ -36,6 +36,17 @@ function UrlExists(url){
       return {'status': status, 'data': senddata};
 }
 
+function getTitle(image){
+    var title = image['title'] ? image['title'] : image['url'] ? image['url'] : image;
+    const titlelang = Array.isArray(title) && title.length > 0 ? title.filter(elem => elem['locale'] == navigator.language || elem == navigator.language) : [];
+    title = titlelang.length > 0 ? titlelang[0] :Array.isArray(title) ? title[0] : title;
+    if (titlelang.length == 0 && title.constructor.name == 'Object'){        
+      title = title[navigator.language] ? title[navigator.language] : title[navigator.language.split('-')[0]] ? title[navigator.language.split('-')[0]] : title;
+    }
+    title = title['value'] ? title['value'] : title instanceof Object ? title[Object.keys(title)[0]] : title;
+    return title
+}
+
 function dropdownToggle(tag) {
     document.getElementById(tag).classList.toggle("show");
 }

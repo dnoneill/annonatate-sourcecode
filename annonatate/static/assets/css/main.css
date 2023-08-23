@@ -643,6 +643,10 @@ body {
   background-color: #ddd;
 }
 
+.dropdown-content.uploads a{
+  color: white!important;
+}
+
 .show {
   display: block;
 }
@@ -790,7 +794,6 @@ body {
 }
 
 .uploadlist div {
-  display: grid;
   padding: 10px;
 }
 

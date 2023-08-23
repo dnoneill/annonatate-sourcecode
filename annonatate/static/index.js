@@ -132,10 +132,10 @@ const annoview = Vue.component('annoview', {
         </div>
         <div v-for="image in imageslist" class="imagecontainer">
           <span v-if="image['url']" v-bind:class="[image['url'] == ingesturl ? 'currentimage' : '']">
-            <img class="linkbutton" v-on:click="checkType(image)" class="imgthumb" v-bind:alt="image['title'] ? image['title'] : image['url']" v-if="image['thumbnail']" v-bind:src="image['thumbnail']"/>
-            <img class="linkbutton" v-on:click="checkType(image)" class="imgthumb" v-bind:alt="image['title'] ? image['title'] : image['url']" v-else-if="!image['iiif']" v-bind:src="image['url']"/>
-            <figcaption class="linkbutton" v-on:click="checkType(image)">{{image['title'] ? image['title'] : image['url']}}</figcaption>
-            <button class="deletebutton button" v-if="editMode" v-on:click="deleteManifest(image)">
+            <img class="linkbutton" v-on:click="checkType(image)" class="imgthumb" v-bind:alt="getTitle(image)" v-if="image['thumbnail']" v-bind:src="image['thumbnail']"/>
+            <img class="linkbutton" v-on:click="checkType(image)" class="imgthumb" v-bind:alt="getTitle(image)" v-else-if="!image['iiif']" v-bind:src="image['url']"/>
+            <figcaption class="linkbutton" v-on:click="checkType(image)">{{getTitle(image)}}</figcaption>
+            <button class="deletebutton button" v-if="editMode && canDelete(image)" v-on:click="deleteManifest(image)">
               <i class="fas fa-trash-alt"></i>
             </button>
           </span>
@@ -445,6 +445,9 @@ const annoview = Vue.component('annoview', {
         }
       }
     },
+    canDelete: function(image){
+      return this.userinfo['permissions'] == 'admin' || image['user'] == this.userinfo['id'];
+    },
     parseExisting: function() {
       const manifests = this.existing['images'].filter(elem => elem);
       for (var em=0; em<manifests.length; em++){
@@ -706,10 +709,12 @@ const annoview = Vue.component('annoview', {
       var id = this.inputurl;
       // Initialize the Annotorious plugin
       var widgets = this.buildWidgetList();
+      const readOnly = this.userinfo['permissions'] == 'read';
       this.anno = OpenSeadragon.Annotorious(viewer, 
         { image: seadragoncontainer,
           messages: { "Ok": "Save" },
           fragmentUnit: this.fragmentunit,
+          readOnly: readOnly,
           allowEmpty: true,
           widgets: widgets});
     // Load annotations in W3C WebAnnotation format
@@ -727,10 +732,12 @@ const annoview = Vue.component('annoview', {
         'drawingTools':  ["rect", "polygon", "freehand", "ellipse", "circle", "annotorious-tilted-box"],
         'withMouse': true, 'infoElement': document.getElementById('helptext')});
       this.enableDrawing(this.drawingenabled);
-      this.anno.setAuthInfo({
-        id: this.userinfo["id"],
-        displayName: this.userinfo["name"]
-      });
+      if (!readOnly){
+        this.anno.setAuthInfo({
+          id: this.userinfo["id"],
+          displayName: this.userinfo["name"]
+        });
+      }
     },
     setLayers: function(layer, position){
       var vue = this;
