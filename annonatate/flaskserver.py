@@ -205,7 +205,7 @@ def renameGitHub():
         session['defaults'] = getDefaults()
         updateworkspace(content['full_name'])
     else:
-        error = parseGitHubErrors(response.json())
+        error = parseGitHubErrors(response)
         return redirect('/profile?renameerror={}'.format(error))
     return redirect('/profile')
 
@@ -222,7 +222,7 @@ def updatecollaborator():
         response = github.raw_request('PUT', collaburl, data=json.dumps({"permission":permission}))
     next_url = request.args.get('next') or url_for('index')
     if response.status_code > 299:
-        next_url += '?error={}'.format(parseGitHubErrors(response.json()))
+        next_url += '?error={}'.format(parseGitHubErrors(response))
     return redirect(next_url)
 
 @app.route('/uploadvocab', methods=['POST'])
@@ -843,8 +843,6 @@ def populateuserinfo():
         time.sleep(2)
         enablepages = enablepagesfunc(response['url'])
         if enablepages.status_code > 299:
-            enablepages = enablepagesfunc(response['url'])
-        if enablepages.status_code > 299:
             firstbuild = 'noworkspaces'
             workspaces[response['full_name']] = response
         else:
@@ -859,6 +857,9 @@ def populateuserinfo():
 def enablepagesfunc(pagesurl):
     branches = {'source': {'branch': github_branch,'path': '/'}}
     enablepages = github.raw_request('post', '{}/pages'.format(pagesurl), data=json.dumps(branches), headers={'Accept': 'application/vnd.github.switcheroo-preview+json'})
+    if enablepages.status_code > 299:
+        time.sleep(1)
+        enablepages = github.raw_request('post', '{}/pages'.format(pagesurl), data=json.dumps(branches), headers={'Accept': 'application/vnd.github.switcheroo-preview+json'})
     return enablepages
 
 # Create a new workspace, by using Annonatate's template.
@@ -889,7 +890,7 @@ def add_repos():
         if ismirador:
             updatepreload = github.sendgithubrequest({'github_url': response['contents_url'].replace('/{+path}', ''), 'github_branch': 'main'}, 'preload.yml', open(os.path.join(githubfilefolder, "miradordata.yml")).read(), '_data')
     else:
-        error = parseGitHubErrors(response.json())
+        error = parseGitHubErrors(response)
         return redirect('/profile?tab=workspaces&error={}'.format(error))
     return redirect('/profile?tab=profile')
 
@@ -902,6 +903,7 @@ def updatetempuser():
 
 # Get error message if there is one in GitHub's API response
 def parseGitHubErrors(response):
+    response = response if type(response) == dict else response.json()
     firsterror = response['errors'][0] if 'errors' in response.keys() else response
     error = firsterror['message'] if 'message' in firsterror else firsterror
     return error
