@@ -274,6 +274,7 @@ def createimage():
             response = github.sendgithubrequest(session, afile['filename'], afile['encodedimage'], imagespath).json()
             if 'content' in response.keys():
                 actionname = 'convert_images_{}'.format(image.folder)
+                manifestdict['thumbnail'] = image.files[0]['imagepath']
                 uploadurl = "{}img/derivatives/iiif/{}/manifest.json".format(image.origin_url, image.folder)
                 successmessage = successtext(uploadurl, uploadtype, actionname, manifestdict)
                 filenames.append((os.path.join(imagespath, afile['filename']), afile['label']))

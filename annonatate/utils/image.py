@@ -36,8 +36,8 @@ class Image:
             self.title = self.request_form['label']
             for filename in request_files.getlist("file"):
                 filenameonly, ext = pathsplitext(filename.filename)
-                cleanfilename = "".join(re.findall(r'[0-9A-Za-z]+', filenameonly)) +  ext
-                self.files.append({'filename': cleanfilename, 'encodedimage': filename.stream.read(), 'label': filenameonly.replace("'", "&#39;")})
+                cleanfilename = "".join(re.findall(r'[0-9A-Za-z]+', filenameonly))
+                self.files.append({'filename': (cleanfilename + ext), 'imagepath': cleanfilename,'encodedimage': filename.stream.read(), 'label': filenameonly.replace("'", "&#39;")})
 
     def createActionScript(self, githubfilefolder, filenamelist):
         with open(pathjoin(githubfilefolder, 'iiifportion.txt')) as f:
