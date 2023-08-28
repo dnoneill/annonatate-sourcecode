@@ -33,6 +33,7 @@ class Image:
             self.folder = "".join(re.findall(r'[0-9A-Za-z]+', request_form['label']))
             self.files = []
             self.request_form['folder'] = self.folder
+            self.title = self.request_form['label']
             for filename in request_files.getlist("file"):
                 filenameonly, ext = pathsplitext(filename.filename)
                 cleanfilename = "".join(re.findall(r'[0-9A-Za-z]+', filenameonly)) +  ext

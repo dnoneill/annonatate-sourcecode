@@ -147,6 +147,7 @@ def sitestatus():
 @app.route('/uploadstatus')
 def uploadstatus():
     url = request.args.get('url')
+    filterdict = {}
     checknum = request.args.get('checknum')
     uploadtype = request.args.get('uploadtype') + 's'
     isprofile = request.args.get('isprofile')
@@ -167,9 +168,11 @@ def uploadstatus():
     if uploadtype == 'customviews':
         deleteItemAnnonCustomViews(url, 'slug')
     elif url not in session['upload'][uploadtype]:
-        session['upload'][uploadtype].append(url)
+        filterdict = list(filter(lambda x: x['url'] == url, session['inprocess']))
+        filterdict = filterdict[0] if len(filterdict) > 0 else {}
+        session['upload'][uploadtype].append(filterdict)
     if isprofile:
-        session['inprocess'] = list(filter(lambda x: x['url'] != url, session['inprocess']))
+        session['inprocess'].remove(filterdict)
     return 'success', 200
 
 # Delete items from annocustomviews by URL
@@ -250,13 +253,17 @@ def createimage():
     uploadurl = ''
     uploadtype = 'manifest'
     actionname = ''
+    manifestdict = {'added': request_form['added'], 'iiif': True, 'upload': True,
+        'title': image.title, 'user': request_form['user']}
     if not image.isimage:
         if type(image.manifest) == dict:
             return render_template('upload.html', error=image.manifest['error'], tabs=get_tabs('upload'))
         response = github.sendgithubrequest(session, "manifest.json", image.manifest_markdown, image.manifestpath).json()
         if 'content' in response.keys():
+            manifestdict['json'] = image.manifest
+            manifestdict['thumbnail'] = image.thumbnail
             uploadurl ='{}{}'.format(image.origin_url, response['content']['path'].replace('_manifest', 'manifest'))
-            successmessage = successtext(uploadurl, uploadtype, actionname)
+            successmessage = successtext(uploadurl, uploadtype, actionname, manifestdict)
             output = True
         else:
             output = response['message']
@@ -268,7 +275,7 @@ def createimage():
             if 'content' in response.keys():
                 actionname = 'convert_images_{}'.format(image.folder)
                 uploadurl = "{}img/derivatives/iiif/{}/manifest.json".format(image.origin_url, image.folder)
-                successmessage = successtext(uploadurl, uploadtype, actionname, {'thumbnail': image.files[0]['filename'].rsplit('.', 1)[0], 'title': image.request_form['label'], 'added': image.request_form['added']})
+                successmessage = successtext(uploadurl, uploadtype, actionname, manifestdict)
                 filenames.append((os.path.join(imagespath, afile['filename']), afile['label']))
                 output =  True
             else:
@@ -279,10 +286,9 @@ def createimage():
         triggerAction(ymlname)
     #triggerbuild()
     if 'returnjson' in request.form.keys():
-        manifestdict = {'added': request_form['added'], 'json': image.manifest, 
-        'output': output, 'url': uploadurl, 'iiif': True, 'upload': True, 
-        'title': image.title, 'thumbnail': image.thumbnail, 'user': request_form['user']}
-        session['upload']['manifests'].insert(0, manifestdict)
+        manifestdict['inprocess'] = session['inprocess']
+        manifestdict['output'] = output
+        manifestdict['url'] = uploadurl
         return jsonify(manifestdict), 200
     else:
         return render_template('uploadsuccess.html', output=output, actionname=actionname, uploadurl=uploadurl, successmessage=successmessage, uploadtype=uploadtype)
@@ -291,11 +297,12 @@ def successtext(uploadurl, uploadtype, actionname='', metadata=''):
     if uploadurl:
         uploaddict = {'url': uploadurl, 'uploadtype': uploadtype, 'actionname': actionname, 'upload': True }
         if metadata:
-            metadata['thumbnail'] = uploadurl.replace('manifest.json', '{}/full/full/0/default.jpg'.format(metadata['thumbnail']))
-            uploaddict.update(metadata)
+            if 'thumbnail' in metadata.keys() and 'http' not in metadata['thumbnail']:
+                metadata['thumbnail'] = uploadurl.replace('manifest.json', '{}/full/full/0/default.jpg'.format(metadata['thumbnail']))
+            uploaddict = {**uploaddict, **metadata}
         if 'inprocess' in session.keys() and uploaddict not in session['inprocess']:
             session['inprocess'].append(uploaddict)
-        else:
+        elif 'inprocess' not in session.keys():
             session['inprocess'] = [uploaddict]
     return '<a href="{}">{}</a> is now avaliable.</p><p><a href="/?{}url={}">Start annotating your {}!</a></p>'.format(uploadurl, uploadurl, uploadtype, uploadurl, uploadtype)
 # upload wax formatted csv. Get headers from CSV. Update config.yml with wax fields

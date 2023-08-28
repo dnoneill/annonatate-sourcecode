@@ -81,9 +81,9 @@ const annoview = Vue.component('annoview', {
           It can take a while for your Image and/or Images to process. 
           When the images have successfully processed they will be added to the "My Images" section on the homepage. 
           You can also track progress of all uploads on the <a href="/profile/?tab=status">Status tab.</a>
+          <br>
+          <p><a v-on:click="uploadsuccess=false">Upload another image</a></p>
         </div>
-        <br>
-        <div><a v-on:click="uploadsuccess=false">Upload another image</a></div>
       </div>
       <div v-else-if="modalView == 'external'">
         <div v-if="modalerror" v-html="modalerror" class="error"></div>
@@ -300,7 +300,7 @@ const annoview = Vue.component('annoview', {
         var isready = UrlExists(`/uploadstatus?url=${inprocess['url']}&isprofile=true&checknum=${inprocess['checknum']}&uploadtype=${inprocess['uploadtype']}&actionname=${inprocess['actionname']}`);
         if (isready['status']) {
           //vue.externalAfterLoad(data);
-          const checknew = this.imageslist.slice(this.imageslist.length).map(elem => elem['title'])
+          const checknew = this.imageslist.slice(this.imageslist.length).map(elem => elem['title']);
           if (checknew.indexOf(inprocess['title']) == -1){
             this.imageslist = this.imageslist.filter(function(item) {
               return item['title'] !== inprocess['title']
