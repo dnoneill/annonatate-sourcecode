@@ -175,7 +175,7 @@ def uploadstatus():
         try:
             session['inprocess'].remove(filterdict)
         except:
-            pass
+            session['inprocess'] = list(filter(lambda x: x['url'] != url, session['inprocess']))
     return 'success', 200
 
 # Delete items from annocustomviews by URL
