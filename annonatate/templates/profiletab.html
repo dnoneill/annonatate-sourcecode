@@ -70,15 +70,19 @@
                     <img src="{{collaborator['avatar_url']}}"  alt="github user icon for {{collaborator['login']}}" class="githubicon" style="height: 100px"/>
                     <a href="{{collaborator['html_url']}}" target="_blank">
                         {{login}}</a>
-                        {% if value['permissions']['admin'] and collaborator['login'] != session['currentworkspace']['owner']['login'] and session['currentworkspace']['owner']['type'] == 'Organization' %}
+                        {% if value['permissions']['admin'] and collaborator['login'] != session['currentworkspace']['owner']['login'] %}
                         <form action="{{ url_for('updatecollaborator', next=request.path) }}" method="post" style="display: inline-block;">
                         <select onchange="checkUpdate('{{login}}', this)" name="permission">
+                            {% if session['currentworkspace']['owner']['type'] == 'Organization' or selected == 'admin' %}
                             <option id="admin" value="admin" {% if selected == 'admin' %} selected {% endif %}>
                                 Admin</option>
+                            {% elif session['currentworkspace']['owner']['type'] == 'Organization' or selected == 'write' %}
                             <option id="write" value="push" {% if  selected == 'write' %} selected {% endif %}>
                                     Read/Write</option>
+                            {% elif session['currentworkspace']['owner']['type'] == 'Organization' or selected == 'read' %}
                             <option id="read" value="pull"  {% if  selected == 'read' %} selected {% endif %}>
                             Read</option>
+                            {% endif %}
                             <option id="remove" value="remove">
                                 Remove user</option>
                         </select>
