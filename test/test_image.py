@@ -39,7 +39,7 @@ class TestImageDefault(unittest.TestCase):
    
    def test_manifest_iiif(self):
       self.assertTrue(self.image.isimage)
-      self.assertEqual(self.image.files, [{'filename': 'filename.jpg', 'encodedimage': b'my file contents', 'label': 'filename'}, {'filename': 'filename2.png', 'encodedimage': b'my file contents', 'label': 'filename2'}])
+      self.assertEqual(self.image.files, [{'filename': 'filename.jpg', 'imagepath': 'filename', 'encodedimage': b'my file contents', 'label': 'filename'}, {'filename': 'filename2.png', 'imagepath': 'filename2', 'encodedimage': b'my file contents', 'label': 'filename2'}])
       self.maxDiff = None
       self.parsedActionScript= yaml.load(self.actionscript, Loader=yaml.FullLoader)['jobs']['convertimages']['steps']
       self.assertTrue("iiifpapi3.BASE_URL" in self.parsedActionScript[4]['run'])
@@ -62,7 +62,7 @@ class TestImageV2(unittest.TestCase):
    
    def test_manifest_iiif(self):
       self.assertTrue(self.image.isimage)
-      self.assertEqual(self.image.files, [{'filename': 'filename.jpg', 'encodedimage': b'my file contents', 'label': 'filename'}, {'filename': 'filename2.png', 'encodedimage': b'my file contents', 'label': 'filename2'}])
+      self.assertEqual(self.image.files, [{'filename': 'filename.jpg', 'imagepath': 'filename', 'encodedimage': b'my file contents', 'label': 'filename'}, {'filename': 'filename2.png', 'imagepath': 'filename2', 'encodedimage': b'my file contents', 'label': 'filename2'}])
       self.maxDiff = None
       self.parsedActionScript= yaml.load(self.actionscript, Loader=yaml.FullLoader)['jobs']['convertimages']['steps']
       self.assertFalse("iiifpapi3.BASE_URL" in self.parsedActionScript[4]['run'])

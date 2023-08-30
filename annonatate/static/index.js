@@ -2,17 +2,17 @@ const annoview = Vue.component('annoview', {
   template: `<div>
   <div id="myModal" class="modal" v-if="showModal">
     <div class="modal-content">
-      <span class="close-modal" v-on:click="showModal=false;externalModal=false;">&times;</span>
-      <span class="back" style="float:left" v-if="externalModal" v-on:click="externalModal=false;"><i class="fas fa-arrow-left"></i></span>
-      <div class="optionsmodal" v-if="!externalModal">
+      <span class="close-modal" v-on:click="showModal=false;modalView=false;">&times;</span>
+      <span class="back" style="float:left" v-if="modalView" v-on:click="modalView=false;uploadsuccess=false;"><i class="fas fa-arrow-left"></i></span>
+      <div class="optionsmodal" v-if="!modalView">
         <div class="modal-options icontextbutton">
-          <a href="/upload">
+          <a v-on:click="modalView='upload'">
           Upload your own image
           <i class="fas fa-upload"></i>
           </a>
         </div>
         <div class="modal-options icontextbutton">
-          <a v-on:click="externalModal=true">
+          <a v-on:click="modalView='external'">
           Use external image
             <i class="fas fa-link"></i>
           </a>
@@ -28,7 +28,64 @@ const annoview = Vue.component('annoview', {
           </div>
         </div>
       </div>
-      <div v-if="externalModal">
+      <div v-if="modalView=='upload'" class="upload-modal">
+        <div id="upload-form" v-if="!uploadsuccess">
+          <h2>Upload Image</h2>
+          <p style="color:rgba(0, 0, 0, 0.5)">
+            When you upload an image(s) this will create
+            a IIIF derivative (tiled for high quality zoom) of the image(s) with a corresponding <a href="https://iiif.io/api/presentation/">IIIF manifest</a> which will contain metadata you enter in the form below.
+          </p>
+          <div id="imagerror"></div>
+          <form ref="form" @submit.prevent="externalClick('createimage', ''); return 0;" enctype=multipart/form-data method="post">
+          <div>
+            <label for="upload-image">Image(s) or PDF files (each file must be 99MB or smaller): </label>
+            <input type="text"  id="upload-image" name="upload" value="uploadimage" style="display: none">
+            <input type=file  onchange="checkImages(this);" id="upload-image" name=file accept="image/* pdf/*" required multiple>
+            <div id="imagepreview"></div>
+            <div>
+              <label for="label">Title of Image(s) (Required): </label>
+              <input value="" id="label" name="label" required>
+              </div>
+              <div>
+              <label for="description">Description: </label>
+              <input value="" id="description" name="description">
+              </div>
+              <div>
+              <label for="rights">Rights: </label>
+              <input value="" id="rights" name="rights">
+              </div>
+              <div>
+                <label for="language">Language code (default is en): </label>
+                <input value="" id="language" name="language">
+              </div>
+              <div>
+                <label for="version">Version: </label>
+                <select id="version" name="version">
+                <option value="v3" selected>Version 3</option>
+                <option value="v2">Version 2</option>
+                </select>
+              </div>
+            <div>
+              <label for="direction">Viewing Direction: </label>
+              <select id="direction" name="direction">
+                <option value="left-to-right" selected>left-to-right</option>
+                <option value="right-to-left">right-to-left</option>
+              </select>
+            </div>
+          </div>
+          <button type="submit" id="imagesubmit">Upload image</button>
+          </form>
+        </div>
+        <div v-else>
+          <h2>Upload Success!</h2>
+          It can take a while for your Image and/or Images to process. 
+          When the images have successfully processed they will be added to the "My Images" section on the homepage. 
+          You can also track progress of all uploads on the <a href="/profile/?tab=status">Status tab.</a>
+          <br>
+          <p><a v-on:click="uploadsuccess=false">Upload another image</a></p>
+        </div>
+      </div>
+      <div v-else-if="modalView == 'external'">
         <div v-if="modalerror" v-html="modalerror" class="error"></div>
         <h2>Add external link</h2>
         <input id="ingesturl" v-model="externalurl" placeholder="The URL of an image or IIIF resource" aria-label="The URL of an image or IIIF resource"></input>
@@ -69,6 +126,10 @@ const annoview = Vue.component('annoview', {
           Add Image
         </div>
       <div class="manifestimages" :class="{'noanno' : !anno}">
+        <div v-for="placeholder in placeholders" class="imagecontainer">
+          <i class="fas fa-spinner fa-spin" style="width: 75px; font-size: 75px;"></i>
+          <figcaption class="linkbutton">{{placeholder}}</figcaption>
+        </div>
         <div v-for="image in imageslist" class="imagecontainer">
           <span v-if="image['url']" v-bind:class="[image['url'] == ingesturl ? 'currentimage' : '']">
             <img class="linkbutton" v-on:click="checkType(image)" class="imgthumb" v-bind:alt="getTitle(image)" v-if="image['thumbnail']" v-bind:src="image['thumbnail']"/>
@@ -177,7 +238,8 @@ const annoview = Vue.component('annoview', {
     'userinfo': Object,
     'tags': Array,
     'originurl': String,
-    'updatepage': String
+    'updatepage': String,
+    'inprocessdata': Array
   },
   data: function() {
   	return {
@@ -194,6 +256,7 @@ const annoview = Vue.component('annoview', {
       listview: true,
       currentlyselectedanno: {'id': '', 'elem': ''},
       drawingenabled: false,
+      uploadsuccess: false,
       ingesturl: '',
       fragmentunit: 'pixel',
       currentposition: 0,
@@ -203,10 +266,12 @@ const annoview = Vue.component('annoview', {
       manimageshown: true,
       annolistname: '',
       imageslist: [],
+      placeholders: [],
       externalurl: '',
       savemessage: '',
       showModal: false,
-      externalModal: false,
+      inprocess: [],
+      modalView: false,
       listAnnotations: [],
       editMode: false,
       demoimages: [{'alt': 'Four squares with colorful illustrations of insects.', 'title': 'Demo image (IIIF manifest): Insectes. [patterns]', 'url': 'https://d.lib.ncsu.edu/collections/catalog/segIns_020/manifest.json', 'thumbnail': 'https://iiif.lib.ncsu.edu/iiif/segIns_020/full/120,/0/default.jpg'},
@@ -225,8 +290,40 @@ const annoview = Vue.component('annoview', {
     }
   },
   watch: {
-    externalModal: function() {
+    modalView: function() {
       this.modalerror = '';
+    },
+    inprocess: function() {
+      const newinprocess = []
+      for (var ip=0; ip<this.inprocess.length; ip++){
+        const inprocess = this.inprocess[ip];
+        var isready = UrlExists(`/uploadstatus?url=${inprocess['url']}&isprofile=true&checknum=${inprocess['checknum']}&uploadtype=${inprocess['uploadtype']}&actionname=${inprocess['actionname']}`);
+        if (isready['status']) {
+          //vue.externalAfterLoad(data);
+          const checknew = this.imageslist.slice(this.imageslist.length).map(elem => elem['title']);
+          if (checknew.indexOf(inprocess['title']) == -1){
+            this.imageslist = this.imageslist.filter(function(item) {
+              return item['title'] !== inprocess['title']
+            })
+            this.imageslist.unshift(inprocess);
+          }
+          this.placeholders = this.placeholders.filter(function(item) {
+            return item !== inprocess['title']
+          })
+          this.inprocess = this.inprocess.filter(function(item) {
+            return item['actionname'] !== inprocess['actionname']
+          })
+          //console.log(this.imageslist)
+        }
+      }
+      var vue = this;
+      if (vue.inprocess.length > 0){
+        setTimeout(function() {
+          const inprocess = vue.inprocess;
+          vue.inprocess = []
+          vue.inprocess = inprocess;
+        }, 100000);
+      }
     },
     canvas: function() {
       this.annolistname = listfilename(this.canvas);
@@ -246,6 +343,8 @@ const annoview = Vue.component('annoview', {
   },
   created(){
     this.parseExisting();
+    this.inprocess = this.inprocessdata;
+    this.placeholders=this.inprocess.map(elem => elem['title']);
   },
   mounted() {
     if (this.existing.settings && this.existing.settings.widgets){
@@ -377,7 +476,9 @@ const annoview = Vue.component('annoview', {
       var vue = this;
       this.modalerror = '';
       const urls = this.imageslist.map(elem => this.cleanCheckAdd(elem['url']));
-      if (type != 'noadd' && urls.indexOf(this.cleanCheckAdd(url)) > -1) {
+      if (type == 'createimage'){
+        document.getElementById('spinner').style.display = 'block';
+      } else if (type != 'noadd' && urls.indexOf(this.cleanCheckAdd(url)) > -1) {
         this.modalerror = 'This image is already in your My Images list.'
         this.externalurl = '';
         return 0;
@@ -402,10 +503,15 @@ const annoview = Vue.component('annoview', {
             return 0;
           }
         });
-      } else if (type=='copy') {
-        var form_data = new FormData();
+      } else if (type=='copy' || type == 'createimage') {
+        var form_data;
+        if (type == 'copy'){
+          form_data = new FormData();
+          form_data.append('upload', url);
+        } else {
+          form_data = new FormData(this.$refs.form, this.$refs.form.querySelector("button[type=submit]"));
+        }
         form_data.append('returnjson', true);
-        form_data.append('upload', url);
         jQuery.ajax({
           url: "/createimage",
           type: "POST",
@@ -413,17 +519,32 @@ const annoview = Vue.component('annoview', {
           contentType: false, 
           processData: false,
           success: function(data) {
-            if (data['output'] == true) {
+            if (data['output'] == true && type != 'createimage') {
               vue.externalAfterLoad(data);
+            } else {
+              const title = form_data.get("label");
+              vue.imageslist = vue.imageslist.filter(function(item) {
+                return item['title'] !== title
+              })
+              vue.placeholders.unshift(title)
+              document.getElementById('spinner').style.display = 'none';              
+              vue.uploadsuccess = true;
+              vue.inprocess.push(data['inprocess'].slice(-1)[0]);      
             }
           }, error: function(err) { 
             console.log(err)
+            if (document.getElementById('imagerror')) {
+              document.getElementById('spinner').style.display = 'none';
+              document.getElementById('imagerror').innerHTML = '<span style="color: red">There was an error uploading this image. Please try again.</span>'
+            }
             return 0;
           }
         });
       }
-      this.externalModal=false;
-      this.showModal=false;
+      if (type != 'createimage'){
+        this.modalView=false;
+        this.showModal=false;
+      }
     },
     externalAfterLoad: function(data) {
       this.imageslist.unshift(data);

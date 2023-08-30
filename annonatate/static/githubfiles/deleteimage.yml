@@ -17,6 +17,7 @@ jobs:
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
           git config pull.rebase false
+          git pull origin main
           git add -A
           git commit -m "delete replacewithimagepath" -a || echo "No changes to commit"
       - name: pull

@@ -17,5 +17,10 @@ window.onload = function() {
         const defaultOpen = document.getElementById("defaultOpen");
         defaultOpen.click();
     }
+    const figcaptions = document.getElementsByTagName('figcaption');
+    for (var fig=0; fig<figcaptions.length; fig++){
+        const titlejson = JSON.parse(figcaptions[fig].querySelector('#title').innerHTML)
+        figcaptions[fig].querySelector('#title').innerHTML = getTitle(titlejson)
+    }
 }
 </script>

@@ -19,7 +19,7 @@ jobs:
       - name: poppler
         run: sudo apt-get install -y poppler-utils
       - name: pip install
-        run: pip3 install iiif pdf2image Pillow iiif-prezi git+https://github.com/giacomomarchioro/pyIIIFpres
+        run: pip3 install iiif pdf2image Pillow iiif-prezi pyIIIFpres
       - name: runscript
         run: python3 -c "exec(\"replacewithportion\")"
       - name: commit files
@@ -27,10 +27,9 @@ jobs:
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
           git config pull.rebase false
+          git pull origin main
           git add -A
           git commit -m "Create replacewithfolder manifest and IIIF derivatives" -a || echo "No changes to commit"
-      - name: pull
-        run: git pull origin main
       - name: push changes
         uses: ad-m/github-push-action@v0.6.0
         with:

@@ -10,7 +10,7 @@
     <img style="height: auto; width: 90px" src="{{content['thumbnail']}}"/>
     {% if 'title' in content.keys() %}
     <figcaption class="dropbtn" onclick="dropdownToggle('drop{{url}}')" style="max-width: 90px;overflow-wrap:break-word;">
-      {{content['title']}} <i class="fas fa-ellipsis-v"></i>
+      <span id="title">{{content['title'] | tojson}}</span> <i class="fas fa-ellipsis-v"></i>
     </figcaption>
     {% endif %}
     {% else %}

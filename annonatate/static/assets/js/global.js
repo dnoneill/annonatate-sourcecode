@@ -28,6 +28,9 @@ function UrlExists(url){
             status = true;
             senddata = data;
             return {'status': status, 'data': senddata};
+        }, error: function(err) { 
+            senddata = err.responseText;
+            return {'status': status, 'data': err.responseText};
         }
       });
       return {'status': status, 'data': senddata};
@@ -59,3 +62,49 @@ window.onclick = function(e) {
         }
     }
   }
+
+
+  function checkImages(images) {
+    var message = ''
+    for (var i=0; i<images.files.length; i++){
+        if(images.files[i].size > 100000000){
+            if (message){
+                message += '<br>'
+            }
+            message += `${images.files[i].name} is bigger than 100MB! Choose different images.`;
+        }
+    }
+    if (message) {
+        alert(message.replaceAll("<br>", "\n"))
+        var imageerror = document.getElementById('imagerror');
+        imageerror.innerHTML = `<i class="fas fa-exclamation-triangle"></i>${message}<i class="fas fa-exclamation-triangle"></i>`;
+        document.getElementById("imagesubmit").disabled = true;
+    } else {
+        document.getElementById('imagerror').innerHTML = '';
+        var preview = document.createElement('img');
+        preview.style.height = "150px";
+        var files = document.querySelector('input[type=file]').files;
+        var imgpreview = document.getElementById('imagepreview');
+        imgpreview.innerHTML = ''
+        for (file of files) {
+            if (file.size > 30453078){
+                imgpreview.innerHTML += `<div><img src="" alt='${file.name} too large to preview'/>
+                <figcaption style="text-align:right">${file.name}</figcaption></div>`
+            } else {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.fileName = file.name;
+                reader.onload = (event) => {
+                const fileName = event.target.fileName;
+                const content = event.currentTarget.result;
+                imgpreview.innerHTML = `<div><img style="height: 150px" src="${content}"/>
+                <figcaption style="text-align:right">${fileName}</figcaption></div>` + imgpreview.innerHTML
+            }
+            };
+            if (!imgpreview.style.marginBottom){
+                imgpreview.style.marginBottom = '20px';
+            }
+         }
+        document.getElementById("imagesubmit").disabled = false;
+    }
+}

@@ -147,6 +147,7 @@ def sitestatus():
 @app.route('/uploadstatus')
 def uploadstatus():
     url = request.args.get('url')
+    filterdict = {}
     checknum = request.args.get('checknum')
     uploadtype = request.args.get('uploadtype') + 's'
     isprofile = request.args.get('isprofile')
@@ -167,9 +168,14 @@ def uploadstatus():
     if uploadtype == 'customviews':
         deleteItemAnnonCustomViews(url, 'slug')
     elif url not in session['upload'][uploadtype]:
-        session['upload'][uploadtype].append(url)
+        filterdict = list(filter(lambda x: x['url'] == url, session['inprocess']))
+        filterdict = filterdict[0] if len(filterdict) > 0 else {}
+        session['upload'][uploadtype].append(filterdict)
     if isprofile:
-        session['inprocess'] = list(filter(lambda x: x['url'] != url, session['inprocess']))
+        try:
+            session['inprocess'].remove(filterdict)
+        except:
+            session['inprocess'] = list(filter(lambda x: x['url'] != url, session['inprocess']))
     return 'success', 200
 
 # Delete items from annocustomviews by URL
@@ -202,7 +208,7 @@ def renameGitHub():
         session['defaults'] = getDefaults()
         updateworkspace(content['full_name'])
     else:
-        error = parseGitHubErrors(response.json())
+        error = parseGitHubErrors(response)
         return redirect('/profile?renameerror={}'.format(error))
     return redirect('/profile')
 
@@ -219,7 +225,7 @@ def updatecollaborator():
         response = github.raw_request('PUT', collaburl, data=json.dumps({"permission":permission}))
     next_url = request.args.get('next') or url_for('index')
     if response.status_code > 299:
-        next_url += '?error={}'.format(parseGitHubErrors(response.json()))
+        next_url += '?error={}'.format(parseGitHubErrors(response))
     return redirect(next_url)
 
 @app.route('/uploadvocab', methods=['POST'])
@@ -250,13 +256,17 @@ def createimage():
     uploadurl = ''
     uploadtype = 'manifest'
     actionname = ''
+    manifestdict = {'added': request_form['added'], 'iiif': True, 'upload': True,
+        'title': image.title, 'user': request_form['user']}
     if not image.isimage:
         if type(image.manifest) == dict:
             return render_template('upload.html', error=image.manifest['error'], tabs=get_tabs('upload'))
         response = github.sendgithubrequest(session, "manifest.json", image.manifest_markdown, image.manifestpath).json()
         if 'content' in response.keys():
+            manifestdict['json'] = image.manifest
+            manifestdict['thumbnail'] = image.thumbnail
             uploadurl ='{}{}'.format(image.origin_url, response['content']['path'].replace('_manifest', 'manifest'))
-            successmessage = successtext(uploadurl, uploadtype, actionname)
+            successmessage = successtext(uploadurl, uploadtype, actionname, manifestdict)
             output = True
         else:
             output = response['message']
@@ -267,8 +277,9 @@ def createimage():
             response = github.sendgithubrequest(session, afile['filename'], afile['encodedimage'], imagespath).json()
             if 'content' in response.keys():
                 actionname = 'convert_images_{}'.format(image.folder)
+                manifestdict['thumbnail'] = image.files[0]['imagepath']
                 uploadurl = "{}img/derivatives/iiif/{}/manifest.json".format(image.origin_url, image.folder)
-                successmessage = successtext(uploadurl, uploadtype, actionname)
+                successmessage = successtext(uploadurl, uploadtype, actionname, manifestdict)
                 filenames.append((os.path.join(imagespath, afile['filename']), afile['label']))
                 output =  True
             else:
@@ -279,20 +290,23 @@ def createimage():
         triggerAction(ymlname)
     #triggerbuild()
     if 'returnjson' in request.form.keys():
-        manifestdict = {'added': request_form['added'], 'json': image.manifest, 
-        'output': output, 'url': uploadurl, 'iiif': True, 'upload': True, 
-        'title': image.title, 'thumbnail': image.thumbnail, 'user': request_form['user']}
-        session['upload']['manifests'].insert(0, manifestdict)
+        manifestdict['inprocess'] = session['inprocess']
+        manifestdict['output'] = output
+        manifestdict['url'] = uploadurl
         return jsonify(manifestdict), 200
     else:
         return render_template('uploadsuccess.html', output=output, actionname=actionname, uploadurl=uploadurl, successmessage=successmessage, uploadtype=uploadtype)
 
-def successtext(uploadurl, uploadtype, actionname=''):
+def successtext(uploadurl, uploadtype, actionname='', metadata=''):
     if uploadurl:
-        uploaddict = {'url': uploadurl, 'uploadtype': uploadtype, 'actionname': actionname }
+        uploaddict = {'url': uploadurl, 'uploadtype': uploadtype, 'actionname': actionname, 'upload': True }
+        if metadata:
+            if 'thumbnail' in metadata.keys() and 'http' not in metadata['thumbnail']:
+                metadata['thumbnail'] = uploadurl.replace('manifest.json', '{}/full/full/0/default.jpg'.format(metadata['thumbnail']))
+            uploaddict = {**uploaddict, **metadata}
         if 'inprocess' in session.keys() and uploaddict not in session['inprocess']:
             session['inprocess'].append(uploaddict)
-        else:
+        elif 'inprocess' not in session.keys():
             session['inprocess'] = [uploaddict]
     return '<a href="{}">{}</a> is now avaliable.</p><p><a href="/?{}url={}">Start annotating your {}!</a></p>'.format(uploadurl, uploadurl, uploadtype, uploadurl, uploadtype)
 # upload wax formatted csv. Get headers from CSV. Update config.yml with wax fields
@@ -428,7 +442,7 @@ def index():
         try:
             arraydata = getContents()
             manifests = session['upload']['manifests'] + session['preloaded']['images']
-            manifests = sorted(manifests, key=lambda d: datetime.strptime(d['added'].replace('&#58;', ':').replace(" +", "."), '%Y-%m-%d %H:%M:%S.%f') if type(d) == dict and 'added' in d.keys() and d['added'] else datetime.now() - timedelta(days=1), reverse=True)
+            manifests = sorted(manifests, key=lambda d: datetime.strptime(d['added'].replace('&#58;', ':').replace(" +", "."), '%Y-%m-%d %H:%M:%S.%f') if type(d) == dict and 'added' in d.keys() and d['added'] else datetime.now() - timedelta(days=100), reverse=True)
             existing = {'images': manifests, 'settings': session['preloaded']['settings']}
             if 'vocab' in session['preloaded'].keys():
                 labelonlyvocab = [item['label'] if type(item) == dict else item for item in session['preloaded']['vocab']]
@@ -832,8 +846,6 @@ def populateuserinfo():
         time.sleep(2)
         enablepages = enablepagesfunc(response['url'])
         if enablepages.status_code > 299:
-            enablepages = enablepagesfunc(response['url'])
-        if enablepages.status_code > 299:
             firstbuild = 'noworkspaces'
             workspaces[response['full_name']] = response
         else:
@@ -848,6 +860,9 @@ def populateuserinfo():
 def enablepagesfunc(pagesurl):
     branches = {'source': {'branch': github_branch,'path': '/'}}
     enablepages = github.raw_request('post', '{}/pages'.format(pagesurl), data=json.dumps(branches), headers={'Accept': 'application/vnd.github.switcheroo-preview+json'})
+    if enablepages.status_code > 299:
+        time.sleep(1)
+        enablepages = github.raw_request('post', '{}/pages'.format(pagesurl), data=json.dumps(branches), headers={'Accept': 'application/vnd.github.switcheroo-preview+json'})
     return enablepages
 
 # Create a new workspace, by using Annonatate's template.
@@ -878,7 +893,7 @@ def add_repos():
         if ismirador:
             updatepreload = github.sendgithubrequest({'github_url': response['contents_url'].replace('/{+path}', ''), 'github_branch': 'main'}, 'preload.yml', open(os.path.join(githubfilefolder, "miradordata.yml")).read(), '_data')
     else:
-        error = parseGitHubErrors(response.json())
+        error = parseGitHubErrors(response)
         return redirect('/profile?tab=workspaces&error={}'.format(error))
     return redirect('/profile?tab=profile')
 
@@ -891,6 +906,7 @@ def updatetempuser():
 
 # Get error message if there is one in GitHub's API response
 def parseGitHubErrors(response):
+    response = response if type(response) == dict else response.json()
     firsterror = response['errors'][0] if 'errors' in response.keys() else response
     error = firsterror['message'] if 'message' in firsterror else firsterror
     return error
