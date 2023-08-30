@@ -172,7 +172,10 @@ def uploadstatus():
         filterdict = filterdict[0] if len(filterdict) > 0 else {}
         session['upload'][uploadtype].append(filterdict)
     if isprofile:
-        session['inprocess'].remove(filterdict)
+        try:
+            session['inprocess'].remove(filterdict)
+        except:
+            pass
     return 'success', 200
 
 # Delete items from annocustomviews by URL
