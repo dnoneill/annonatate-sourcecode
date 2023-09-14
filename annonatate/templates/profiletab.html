@@ -76,10 +76,12 @@
                             {% if session['currentworkspace']['owner']['type'] == 'Organization' or selected == 'admin' %}
                             <option id="admin" value="admin" {% if selected == 'admin' %} selected {% endif %}>
                                 Admin</option>
-                            {% elif session['currentworkspace']['owner']['type'] == 'Organization' or selected == 'write' %}
+                            {% endif %}
+                            {% if session['currentworkspace']['owner']['type'] == 'Organization' or selected == 'write' %}
                             <option id="write" value="push" {% if  selected == 'write' %} selected {% endif %}>
                                     Read/Write</option>
-                            {% elif session['currentworkspace']['owner']['type'] == 'Organization' or selected == 'read' %}
+                            {% endif %}
+                            {% if session['currentworkspace']['owner']['type'] == 'Organization' or selected == 'read' %}
                             <option id="read" value="pull"  {% if  selected == 'read' %} selected {% endif %}>
                             Read</option>
                             {% endif %}

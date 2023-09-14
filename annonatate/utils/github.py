@@ -5,7 +5,8 @@ import os, json, yaml
 import base64
 from flask_github import GitHub
 from annonatate.utils.image import listfilename
-from annonatate.utils.annogetters import contextType, isMirador
+from annonatate.utils.annogetters import contextType, isMirador, getCanvas
+
 class GitHubAnno(GitHub):
     def get_existing(self, session, full_url):
         payload = {'ref': session['github_branch']}
@@ -32,7 +33,7 @@ class GitHubAnno(GitHub):
         writeordelete = "write" if text != 'delete' else "delete"
         message = "{} {}".format(writeordelete, filename)
         if type(text) != str and type(text) != bytes:
-            canvas = text['target']['source'] if 'target' in text.keys() else text['on'][0]['full']
+            canvas = getCanvas(text)
             text = '---\ncanvas: "{}"\n{}---\n{}'.format(canvas ,order, json.dumps(text, indent=4))
         text = text.encode('utf-8') if type(text) != bytes else text
         data = {"message":message, "content": base64.b64encode(text).decode('utf-8'), "branch": session['github_branch'] }
