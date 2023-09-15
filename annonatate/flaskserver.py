@@ -218,7 +218,7 @@ def renameGitHub():
 def updatecollaborator():
     collaburl = session['currentworkspace']['collaborators_url'].split('{')[0]
     user = request.form['user']
-    permission = request.form['permission']
+    permission = request.form['permission'] if 'permission' in request.form.keys() else 'write'
     collaburl += '/{}'.format(user)
     if permission == 'remove':
         response = github.raw_request('DELETE', collaburl)
