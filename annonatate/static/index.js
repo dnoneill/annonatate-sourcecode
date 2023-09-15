@@ -645,7 +645,11 @@ const annoview = Vue.component('annoview', {
         'converttopolygon': {widget: this.convertToPolygonWidget},
         'geotagging': {widget: recogito.GeoTagging({defaultOrigin: [ 48, 16 ]})}}
       for (var wi=0; wi<this.widgets.length; wi++){
-        widgets.push(widgettypes[this.widgets[wi]])
+        const addwidget = widgettypes[this.widgets[wi]];
+        if (addwidget['editable'] && this.userinfo['permissions'] == 'admin') {
+          addwidget['editable'] = true;
+        }
+        widgets.push(addwidget);
       }
       return widgets;
     },
