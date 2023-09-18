@@ -979,7 +979,7 @@ const annoview = Vue.component('annoview', {
       if (annotation['order']){
         senddata['order'] = annotation['order'];
       }
-      const key = senddata['json']['target']['source'];
+      const key = senddata['json']['target']['source']['id'] ? senddata['json']['target']['source']['id'] : senddata['json']['target']['source'];
       this.draftannos.push(senddata['id'])
       const index = this.draftannos.length-1;
       jQuery.ajax({
