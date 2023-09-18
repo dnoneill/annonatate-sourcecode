@@ -31,7 +31,8 @@ github = GitHubAnno(app)
 ALLOWED_EXTENSIONS = set(['png', 'jpg', 'jpeg'])
 app.config['UPLOAD_FOLDER'] = uploadfolder
 githubfilefolder = 'annonatate/static/githubfiles/'
-currentversion = '2.0'
+currentversion = '2.1'
+settingdefaults = {'tempuser': 'notenabled', 'viewer': 'default', 'widgets': 'comment-with-purpose, tag, geotagging, converttopolygon'}
 #Before every page loads this runs a series of tests
 @app.before_request
 def before_request():
@@ -217,7 +218,7 @@ def renameGitHub():
 def updatecollaborator():
     collaburl = session['currentworkspace']['collaborators_url'].split('{')[0]
     user = request.form['user']
-    permission = request.form['permission']
+    permission = request.form['permission'] if 'permission' in request.form.keys() else 'write'
     collaburl += '/{}'.format(user)
     if permission == 'remove':
         response = github.raw_request('DELETE', collaburl)
@@ -242,8 +243,23 @@ def uploadvocab():
             vocab.append(row['label'])
     vocab =  vocab + [i for i in session['preloaded']['vocab'] if i not in vocab] if session['preloaded'] and 'vocab' in session['preloaded'].keys() else vocab
     session['preloaded']['vocab'] = vocab
-    github.sendgithubrequest(session, 'preload.yml', yaml.dump(session['preloaded']), '_data')
+    updatePreload()
     return render_template('uploadsuccess.html', output=True, uploadurl=False, successmessage="success!", uploadtype="vocab")
+
+def updatePreload(contents=False):
+    contents = contents if contents else session['preloaded']
+    cleancontents = json.loads(json.dumps(contents))
+    settings = cleancontents['settings']
+    for item in json.loads(json.dumps(settings)):
+        if item != 'images' and settings[item] == settingdefaults[item]:
+            del cleancontents['settings'][item]
+    if settings['widgets'] == 'comment-with-purpose, tag, geotagging' and ('version' not in cleancontents.keys() or cleancontents['version'] == '2.0'):
+        del cleancontents['settings']['widgets']
+        cleancontents['version'] = currentversion
+        contents['settings'] = getSettings(cleancontents)
+    yamldata = yaml.dump(cleancontents)
+    github.sendgithubrequest(session, 'preload.yml', yamldata, '_data')
+
 # take uploaded content from upload form
 # create manifest or upload image
 @app.route('/createimage', methods=['POST', 'GET'])
@@ -744,8 +760,7 @@ def updatedata():
     if request.form and 'addurl' in request.form.keys():
         jsondata['images'][0]['added'] = str(datetime.now())
         jsondata['images'][0]['user'] = session['user_name']
-    yamldata = yaml.dump(jsondata)
-    github.sendgithubrequest(session, 'preload.yml', yamldata, '_data')
+    updatePreload(jsondata)
     session['preloaded'] = jsondata
     checkTempUser(jsondata)
     if jsonreturn:
@@ -982,8 +997,8 @@ def getannotations():
             if 'manifests' in session['preloaded'].keys():
                 session['preloaded']['images'] += session['preloaded']['manifests']
                 del session['preloaded']['manifests']
-            session['preloaded']['version'] = currentversion
             updatedata()
+            session['preloaded']['version'] = currentversion
         checkTempUser(session['preloaded'])
         session['upload'] = {'images': content['images'], 'manifests': content['manifests']}
         parsecustomviews(content)
@@ -998,9 +1013,9 @@ def getannotations():
     return annotations
 
 def getSettings(settings):
-    defaults = {'tempuser': 'notenabled', 'viewer': 'default', 'widgets': 'comment-with-purpose, tag, geotagging'}
+    defaults = settingdefaults
     if settings:
-        defaults = {**defaults, **settings}
+        defaults = {**settingdefaults, **settings}
     return defaults
 
 # Load custom views JSON into a dict that sorts custom views based on the url being read

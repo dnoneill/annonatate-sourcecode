@@ -260,7 +260,7 @@ const annoview = Vue.component('annoview', {
       ingesturl: '',
       fragmentunit: 'pixel',
       currentposition: 0,
-      widgets: ['comment-with-purpose','tag','geotagging'],
+      widgets: ['comment-with-purpose','tag','geotagging', 'converttopolygon'],
       draftannos: [],
       annosvisible: true, 
       manimageshown: true,
@@ -642,9 +642,14 @@ const annoview = Vue.component('annoview', {
         {'comment-with-purpose': {widget: 'COMMENT', editable: 'MINE_ONLY', purposeSelector: true},
         'comment': {widget: 'COMMENT', editable: 'MINE_ONLY'},
         'tag': {widget: 'TAG', vocabulary: this.tags},
+        'converttopolygon': {widget: this.convertToPolygonWidget},
         'geotagging': {widget: recogito.GeoTagging({defaultOrigin: [ 48, 16 ]})}}
       for (var wi=0; wi<this.widgets.length; wi++){
-        widgets.push(widgettypes[this.widgets[wi]])
+        const addwidget = widgettypes[this.widgets[wi]];
+        if (addwidget['editable'] && this.userinfo['permissions'] == 'admin') {
+          addwidget['editable'] = true;
+        }
+        widgets.push(addwidget);
       }
       return widgets;
     },
@@ -728,10 +733,12 @@ const annoview = Vue.component('annoview', {
       Annotorious.SelectorPack(this.anno);
       Annotorious.TiltedBox(this.anno);
       this.addListeners();
-      Annotorious.Toolbar(this.anno, toolbardiv, {'withLabel': true,
-        'drawingTools':  ["rect", "polygon", "freehand", "ellipse", "circle", "annotorious-tilted-box"],
-        'withMouse': true, 'infoElement': document.getElementById('helptext')});
-      this.enableDrawing(this.drawingenabled);
+      if (!readOnly){
+        Annotorious.Toolbar(this.anno, toolbardiv, {'withLabel': true,
+          'drawingTools':  ["rect", "polygon", "freehand", "ellipse", "circle", "annotorious-tilted-box"],
+          'withMouse': true, 'infoElement': document.getElementById('helptext')});
+        this.enableDrawing(this.drawingenabled);
+      }
       if (!readOnly){
         this.anno.setAuthInfo({
           id: this.userinfo["id"],
@@ -882,14 +889,18 @@ const annoview = Vue.component('annoview', {
     addManifestAnnotation: function(annotation){
       var target = this.inputurl;
       annotation['motivation'] = 'commenting';
+      var type = 'image';
+      annotation.target.source = {}
       if (this.currentmanifest){
-        annotation.target['dcterms:isPartOf'] = {
+        annotation.target.source['partOf'] = {
           "id": this.currentmanifest,
           "type": "Manifest"
         }
         target = this.canvas;
+        type = 'Canvas';
       }
-      annotation.target.source = target;
+      annotation.target.source['id'] = target;
+      annotation.target.source['type'] = type;
       annotation = this.cleanPixel(annotation);
       return annotation;
     },
@@ -901,6 +912,34 @@ const annoview = Vue.component('annoview', {
     enableDrawing: function(enable=true){
       this.drawingenabled = enable;
       this.anno.setDrawingEnabled(enable);
+    },
+    convertToPolygon: function(annotation) {
+      const xywh = annotation.target.selector.value.split("=").slice(-1)[0].split(',');
+      const x = parseFloat(xywh[0])
+      const y = parseFloat(xywh[1])
+      const w = parseFloat(xywh[2])
+      const h = parseFloat(xywh[3])
+      annotation.target.selector.value = `<svg><polygon points=\"${x},${y} ${x+w/2},${y} ${x+w},${y} ${x+w},${y+h/2} ${x+w},${y+h} ${x+w/2},${y+h} ${x},${y+h} ${x},${y+h/2}\"></polygon></svg>`
+      annotation.target.selector.type = 'SvgSelector'
+      this.write_annotation(annotation, 'update');
+    },
+    convertToPolygonWidget: function(args) {
+      const annotype = args.annotation.target.selector.type;
+      const isfirstcreation = args.annotation.underlying.type == 'Selection';
+      var container = document.createElement('div');
+      const iscreated = this.draftannos.indexOf(args.annotation.id) == -1
+      if (annotype == 'FragmentSelector' && !isfirstcreation && iscreated){
+        container.classList = 'r6o-convert-to-polygon r6o-widget';
+        var button = document.createElement('button');
+        button.classList = 'r6o-btn'
+        button.innerHTML = 'Convert to Polygon';
+        var vue = this;
+        button.addEventListener('click', (event) => {
+          vue.convertToPolygon(args.annotation.underlying)
+        });
+        container.appendChild(button)
+      }
+      return container;
     },
     addListeners: function() {
       // Attach handlers to listen to events
@@ -935,11 +974,12 @@ const annoview = Vue.component('annoview', {
     write_annotation: function(annotation, method) {
       var vue = this;
       this.listAnnotations = this.anno.getAnnotations();
-      var senddata = {'json': annotation, 'canvas': annotation['target']['source'], 'id': annotation['id']}
+      const canvas = annotation['target']['source']['id'] ? annotation['target']['source']['id'] : annotation['target']['source']; 
+      var senddata = {'json': annotation, 'canvas': canvas, 'id': annotation['id']}
       if (annotation['order']){
         senddata['order'] = annotation['order'];
       }
-      const key = senddata['json']['target']['source'];
+      const key = senddata['json']['target']['source']['id'] ? senddata['json']['target']['source']['id'] : senddata['json']['target']['source'];
       this.draftannos.push(senddata['id'])
       const index = this.draftannos.length-1;
       jQuery.ajax({
