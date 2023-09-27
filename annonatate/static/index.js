@@ -919,6 +919,7 @@ const annoview = Vue.component('annoview', {
       const y = parseFloat(xywh[1])
       const w = parseFloat(xywh[2])
       const h = parseFloat(xywh[3])
+      annotation.target.selector = {};
       annotation.target.selector.value = `<svg><polygon points=\"${x},${y} ${x+w/2},${y} ${x+w},${y} ${x+w},${y+h/2} ${x+w},${y+h} ${x+w/2},${y+h} ${x},${y+h} ${x},${y+h/2}\"></polygon></svg>`
       annotation.target.selector.type = 'SvgSelector'
       this.write_annotation(annotation, 'update');

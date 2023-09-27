@@ -1242,6 +1242,12 @@ def workspaceCheck(method=False):
         g.error = '<i class="fas fa-exclamation-triangle"></i> You have lost access to {}, we have updated your workspace to {}'.format(prevsession['full_name'], session['currentworkspace']['full_name'])
     else:
         collaburl = session['currentworkspace']['collaborators_url'].split('{')[0]
+        if 'annotation_tree_url' not in session.keys():
+            trees = github.raw_request('get', session['currentworkspace']['trees_url'].replace('{/sha}', '/' + session['currentworkspace']['default_branch']))
+            if trees.status_code < 399:
+                annotationtree = list(filter(lambda x: x['path'] == session['defaults']['annotations'], trees.json()['tree']))
+                if len(annotationtree) > 0:
+                    session['annotation_tree_url'] = annotationtree[0]['url']
         response = github.raw_request('get', collaburl)
         if response.status_code > 299 and response.status_code != 403:
             prevsession = session['currentworkspace']

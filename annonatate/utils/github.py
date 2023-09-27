@@ -46,7 +46,10 @@ class GitHubAnno(GitHub):
 
     def updateAnnos(self, session):
         try:
-            githubresponse = self.get(session['currentworkspace']['contents_url'].replace('{+path}', session['defaults']['annotations']))
+            if 'annotation_tree_url' in session.keys():
+                githubresponse = self.get(session['annotation_tree_url'])['tree']
+            else:
+                githubresponse = self.get(session['currentworkspace']['contents_url'].replace('{+path}', session['defaults']['annotations']))
             annotations = self.filterAnnos(githubresponse, session)
             return annotations
         except:
