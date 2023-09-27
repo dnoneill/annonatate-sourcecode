@@ -925,20 +925,22 @@ const annoview = Vue.component('annoview', {
       this.write_annotation(annotation, 'update');
     },
     convertToPolygonWidget: function(args) {
-      const annotype = args.annotation.target.selector.type;
-      const isfirstcreation = args.annotation.underlying.type == 'Selection';
       var container = document.createElement('div');
-      const iscreated = this.draftannos.indexOf(args.annotation.id) == -1
-      if (annotype == 'FragmentSelector' && !isfirstcreation && iscreated){
-        container.classList = 'r6o-convert-to-polygon r6o-widget';
-        var button = document.createElement('button');
-        button.classList = 'r6o-btn'
-        button.innerHTML = 'Convert to Polygon';
-        var vue = this;
-        button.addEventListener('click', (event) => {
-          vue.convertToPolygon(args.annotation.underlying)
-        });
-        container.appendChild(button)
+      if (args.annotation.target){
+        const annotype = args.annotation.target.selector.type;
+        const isfirstcreation = args.annotation.underlying.type == 'Selection';
+        const iscreated = this.draftannos.indexOf(args.annotation.id) == -1
+        if (annotype == 'FragmentSelector' && !isfirstcreation && iscreated){
+          container.classList = 'r6o-convert-to-polygon r6o-widget';
+          var button = document.createElement('button');
+          button.classList = 'r6o-btn'
+          button.innerHTML = 'Convert to Polygon';
+          var vue = this;
+          button.addEventListener('click', (event) => {
+            vue.convertToPolygon(args.annotation.underlying)
+          });
+          container.appendChild(button)
+        }
       }
       return container;
     },
