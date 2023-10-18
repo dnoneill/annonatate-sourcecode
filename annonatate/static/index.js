@@ -976,7 +976,7 @@ const annoview = Vue.component('annoview', {
     },
     write_annotation: function(annotation, method) {
       var vue = this;
-      this.listAnnotations = this.anno.getAnnotations();
+      //this.listAnnotations = this.anno.getAnnotations();
       const canvas = annotation['target']['source']['id'] ? annotation['target']['source']['id'] : annotation['target']['source']; 
       var senddata = {'json': annotation, 'canvas': canvas, 'id': annotation['id']}
       if (annotation['order']){
@@ -992,17 +992,15 @@ const annoview = Vue.component('annoview', {
         data: JSON.stringify(senddata),
         contentType: "application/json; charset=utf-8",
         success: function(data) {
-          const inlist = vue.filepaths[key] ? vue.filepaths[key].findIndex(x => x['id'] === senddata['id']) : false;
+          const inlist = vue.filepaths[key] ? vue.filepaths[key].findIndex(x => x && x['id'] === senddata['id']) : false;
           if (annotation && method != 'delete') {
             delete vue.draftannos[index]
             vue.anno.removeAnnotation(annotation);
-            annotation['id'] = data['id']
-            annotation['order'] = data['order'];
-            vue.anno.addAnnotation(annotation);
+            vue.anno.addAnnotation(data);
             if (typeof(inlist) == 'number') {
-              vue.filepaths[key][inlist] = annotation
+              vue.filepaths[key][inlist] = data
             } else {
-              vue.filepaths[key] = [annotation]
+              vue.filepaths[key] = [data]
             }
             vue.savemessage = `<span class="fa-stack fa-2x">
               <i class="fas fa-cloud fa-stack-1x"></i>
@@ -1011,6 +1009,7 @@ const annoview = Vue.component('annoview', {
           } else if (method == 'delete' && typeof(inlist) == 'number') {
             delete vue.filepaths[key][inlist]
           }
+          vue.listAnnotations = vue.anno.getAnnotations();
         },
         error: function(err) {
           alert(`${err.responseText}`);
