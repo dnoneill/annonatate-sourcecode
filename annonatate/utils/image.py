@@ -30,7 +30,7 @@ class Image:
         else:
             # handle uploaded image
             files = request_files.getlist("file")
-            self.folder = "".join(re.findall(r'[0-9A-Za-z]+', request_form['label']))
+            self.folder = "".join(re.findall(r'[0-9A-Za-z]+', request_form['label'])).lower()
             self.files = []
             self.request_form['folder'] = self.folder
             self.title = self.request_form['label']
