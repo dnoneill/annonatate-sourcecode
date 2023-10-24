@@ -7,7 +7,7 @@
     {% endblock %}
     {% block content %}
     <p>Custom views allow you save a view into a webpage. 
-      {% set filename = request.args.get('url').split('/')[-1].split('.json')[0] %}
+      {% set filename = request.args.get('url').split('/')[-1].split('.json')[0] if request.args.get('url') else '' %}
       The filename will populate the url, unless you change the filename field,
       your URL will be: <a href="{{session['origin_url']}}customviews/{{filename}}">{{session['origin_url']}}customviews/{{filename}}</a>. 
       The preview in the viewer will reflect the view you will save. 
