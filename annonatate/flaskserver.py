@@ -253,7 +253,7 @@ def updatePreload(contents=False):
     for item in json.loads(json.dumps(settings)):
         if item != 'images' and settings[item] == settingdefaults[item]:
             del cleancontents['settings'][item]
-    if settings['widgets'] == 'comment-with-purpose, tag, geotagging' and ('version' not in cleancontents.keys() or cleancontents['version'] == '2.0'):
+    if ('widgets' in settings.keys() and settings['widgets'] == 'comment-with-purpose, tag, geotagging') and ('version' not in cleancontents.keys() or cleancontents['version'] == '2.0'):
         del cleancontents['settings']['widgets']
         cleancontents['version'] = currentversion
         contents['settings'] = getSettings(cleancontents)
