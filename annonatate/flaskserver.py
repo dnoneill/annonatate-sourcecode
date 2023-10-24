@@ -1221,7 +1221,8 @@ def createlistpage(canvas, manifest):
     context, annotype, itemskey = contextType(session)
     text = '---\ncanvas_id: "' + canvas + '"\n---\n{% assign annotations = site.annotations | where: "canvas", page.canvas_id | sort: "order" | map: "content" %}\n{\n"@context": "' + context + '",\n"id": "{{ site.url }}{{ site.baseurl }}{{page.url}}",\n"type": "' + annotype + '",\n"%s": [{{ annotations | join: ","}}] }'%(itemskey)
     github.sendgithubrequest(session, filename, text)
-    if manifest in session['upload']['manifests']:
+    manifesturls = list(map(lambda x: x['url'], session['upload']['manifests']))
+    if manifest in manifesturls:
         response = requests.get(manifest).json()
         manifestwithlist = addAnnotationList(json.dumps(response), session)
         manifestfilename = manifest.replace(session['origin_url'], '')
