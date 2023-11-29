@@ -52,7 +52,7 @@ class Image:
         replacefields = ["label", "folder", "description", "rights", "language", "direction", "added", "user"]
         for field in replacefields:
             replacestring = "replacewith{}".format(field)
-            formvalue = str(self.request_form[field]).replace(':', '&#58;')
+            formvalue = str(self.request_form[field]).replace(':', '&#58;').replace('"', '&quot;').replace("'", "&apos;")
             if field == "language" and not formvalue:
                 formvalue = "en"
             elif field == "folder":
@@ -114,7 +114,7 @@ def addAnnotationList(manifest, session):
             if annotationlist not in othercontentids:
                 canvas.annotationList(annotationlist)
         stringmanifest = manifest.toString(compact=False)
-    except:
+    except Exception as e:
         try:
             manifest = read_API3_json_dict(json.loads(manifest))
             for item in manifest.items:
@@ -125,7 +125,7 @@ def addAnnotationList(manifest, session):
                     annopage.set_id(annotationlist)
                     annopage.type = 'AnnotationPage'
             stringmanifest = manifest.json_dumps()
-        except:
+        except Exception as e:
             stringmanifest = json.dumps(manifest) if type(manifest) == dict else manifest
     return stringmanifest
 

@@ -115,17 +115,18 @@
     <form action="{{ url_for('updatecollaborator', next=request.path) }}" method="post">
         <fieldset>
         <legend>Collaborator</legend>
-        <div><label for="user">GitHub Username:</label>
-            <input name="user" id="user"/></div>
+        <div><label for="user" style="width: auto;">GitHub Username:</label>
+            <input name="user" id="user"/>
+        <button name="button" type="submit" value="submit" style="margin-left: 5px">Submit</button>
+        </div>
         {% if session['currentworkspace']['owner']['type'] == 'Organization' %}
         <div>
         <input type="radio" id="pull" name="permission" value="pull">
           <label for="pull">Read Only</label><br>
           <input type="radio" id="push" name="permission" value="push" checked>
           <label for="push">Read/Write</label><br>
-          <input type="radio" id="admin" name="permission" value="maintain">
+          <input type="radio" id="admin" name="permission" value="admin">
           <label for="admin">Admin</label>
-          <button name="button" type="submit" value="submit">Submit</button>
         </div>
         {% else %}
         <br>
