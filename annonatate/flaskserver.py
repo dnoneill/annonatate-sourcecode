@@ -706,7 +706,7 @@ def annonaview():
 def saveannonaview():
     jsonitems = json.loads(request.data)
     frontmatter = 'tagurl: {}\n'.format(jsonitems['url'])
-    tag = jsonitems['tag'].replace('styling=', 'styling=fullpage:true;')
+    tag = jsonitems['tag'].replace("styling='", "styling='fullpage:true;")
     if session['defaults']['iswax']:
         title = jsonitems['slug'].replace('_', ' ').title()
         date = datetime.now().strftime('%Y-%m-%d')
