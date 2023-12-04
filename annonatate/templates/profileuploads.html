@@ -21,6 +21,7 @@
     {% include 'deletebutton.html' %}
     {% endwith %}
     <a href="{{url_for('index', manifesturl=url) }}" class="button" style="padding: 5px 7px;">Annotate</a>
+    <a href="{{url_for('annonaview', url=url, viewtype='iiif-storyboard', apiurl='/saveannonaview') }}" class="button" style="padding: 5px 7px;">Custom View</a>
     </div>
     </div>
 {% endfor %}
